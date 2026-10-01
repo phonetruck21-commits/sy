@@ -156,8 +156,8 @@ def write_shortcut(path: Path, url: str) -> None:
 
 def write_index(dest: Path, categories: dict, downloaded: list[str], failed: list[str], manuals: list[dict], profile: str) -> None:
     lines = [
-        "דיסק טכנאי",
-        "==========",
+        "Technician-USB-Toolkit",
+        "======================",
         "",
         f"פרופיל שהורד: {profile}",
         "",
@@ -193,7 +193,7 @@ def write_index(dest: Path, categories: dict, downloaded: list[str], failed: lis
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build a technician USB folder")
-    parser.add_argument("--dest", default="TechDisk")
+    parser.add_argument("--dest", default="Technician-USB-Toolkit")
     parser.add_argument("--profile", choices=("core", "full", "all"), default="full")
     parser.add_argument("--only", default="", help="comma-separated tool ids")
     parser.add_argument("--check", action="store_true", help="resolve URLs and read 16 bytes, do not save the disk")

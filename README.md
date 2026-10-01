@@ -1,6 +1,6 @@
-# דיסק טכנאי להורדה
+# Technician-USB-Toolkit
 
-הערכה מסדרת תוכנות לכונן USB של טכנאי מחשבים. הסקריפט מוריד אותן מהאתרים הרשמיים ומניח אותן בתיקיות לפי קטגוריה. קבצי ההתקנה לא נשמרים בגיט.
+ערכת הדיסק שכבר מסודרת לפי קטגוריות. הסקריפט מוריד את התוכנות מהאתרים הרשמיים ומניח אותן בתיקייה `Technician-USB-Toolkit`. קבצי ההתקנה לא נשמרים בגיט.
 
 צריך Windows וכונן של 128GB. פרופיל `full` שוקל בערך 8GB. פרופיל `all` מוסיף גם את Ubuntu, בערך 6GB נוספים.
 
@@ -9,19 +9,19 @@
 מתוך התיקייה הזו, ב-PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Build-TechDisk.ps1 -Destination D:\TechDisk -Profile full
+powershell -ExecutionPolicy Bypass -File .\Build-TechDisk.ps1 -Destination D:\Technician-USB-Toolkit -Profile full
 ```
 
 ערכה קטנה יותר, בלי ה-ISO הכבדים:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Build-TechDisk.ps1 -Destination D:\TechDisk -Profile core
+powershell -ExecutionPolicy Bypass -File .\Build-TechDisk.ps1 -Destination D:\Technician-USB-Toolkit -Profile core
 ```
 
 כולל Ubuntu:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Build-TechDisk.ps1 -Destination D:\TechDisk -Profile all
+powershell -ExecutionPolicy Bypass -File .\Build-TechDisk.ps1 -Destination D:\Technician-USB-Toolkit -Profile all
 ```
 
 בדיקה שהקישורים נפתחים, בלי להוריד:
@@ -33,13 +33,13 @@ powershell -ExecutionPolicy Bypass -File .\Build-TechDisk.ps1 -Profile full -Che
 אפשר להריץ גם עם Python 3:
 
 ```bash
-python3 build_tech_disk.py --dest TechDisk --profile full
+python3 build_tech_disk.py --dest Technician-USB-Toolkit --profile full
 ```
 
 ## מה נוצר
 
 ```text
-TechDisk/
+Technician-USB-Toolkit/
   ISO/            קבצי אתחול, Ventoy מוצא אותם לבד
   Portable/       תוכנות ל-Windows שעולה
   Links/          קיצורי דרך לכלים שמורידים ידנית

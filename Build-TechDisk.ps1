@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $Destination) {
-    $Destination = Join-Path $Root 'TechDisk'
+    $Destination = Join-Path $Root 'Technician-USB-Toolkit'
 }
 $Destination = [IO.Path]::GetFullPath($Destination)
 $ManifestPath = Join-Path $Root 'manifest.json'
@@ -235,8 +235,8 @@ foreach ($tool in $manifest.tools) {
 
 if (-not $Check) {
     $lines = @(
-        'דיסק טכנאי',
-        '==========',
+        'Technician-USB-Toolkit',
+        '======================',
         '',
         "פרופיל שהורד: $Profile",
         '',
