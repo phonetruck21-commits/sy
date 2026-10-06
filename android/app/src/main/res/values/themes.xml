@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.SYAntivirus" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.SYSecurity" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/brand_navy</item>
+    </style>
+
+    <!-- Branded launch screen: the shield logo on navy. -->
+    <style name="Theme.SYSecurity.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_navy</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.SYSecurity</item>
+    </style>
 </resources>

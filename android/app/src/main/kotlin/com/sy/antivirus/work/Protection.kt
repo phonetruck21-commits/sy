@@ -109,7 +109,7 @@ object Notifications {
         )
         val title = if (verdict.level == RiskLevel.MALWARE) "נמצאה נוזקה!" else "אפליקציה חשודה הותקנה"
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_stat_shield)
             .setContentTitle(title)
             .setContentText("${verdict.app.label} - ${verdict.threat ?: "ניקוד סיכון ${verdict.score}"}")
             .setPriority(NotificationCompat.PRIORITY_HIGH)

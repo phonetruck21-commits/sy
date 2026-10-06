@@ -12,8 +12,15 @@ android {
         applicationId = "com.sy.antivirus"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+
+        // AdMob IDs. The defaults are Google's public *test* IDs (they show sample ads and pay nothing).
+        // Put your own in ~/.gradle/gradle.properties or pass -PadmobAppId=... -PadmobBannerId=...
+        val admobAppId = (project.findProperty("admobAppId") as String?) ?: "ca-app-pub-3940256099942544~3347511713"
+        val admobBannerId = (project.findProperty("admobBannerId") as String?) ?: "ca-app-pub-3940256099942544/6300978111"
+        manifestPlaceholders["admobAppId"] = admobAppId
+        buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
     }
 
     buildTypes {
@@ -35,6 +42,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -47,6 +55,8 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.documentfile:documentfile:1.0.1")
