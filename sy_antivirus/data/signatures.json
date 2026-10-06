@@ -1,0 +1,33 @@
+{
+  "hashes": {
+    "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f": "EICAR-Test-File",
+    "44d88612fea8a8f36de82e1278abb02f": "EICAR-Test-File"
+  },
+  "patterns": [
+    {
+      "name": "EICAR-Test-File",
+      "pattern": "X5O!P%@AP\\[4\\\\PZX54\\(P\\^\\)7CC\\)7\\}\\$EICAR-STANDARD-ANTIVIRUS-TEST-FILE",
+      "severity": "high"
+    },
+    {
+      "name": "Linux.Mirai.Credentials",
+      "pattern": "xc3511.{0,64}vizxv.{0,64}7ujMko0admin",
+      "severity": "high"
+    },
+    {
+      "name": "Webshell.China-Chopper",
+      "pattern": "<%@\\s*Page\\s+Language=\"Jscript\"%>\\s*<%\\s*eval\\(Request\\.Item\\[",
+      "severity": "high"
+    },
+    {
+      "name": "Webshell.PHP-Generic",
+      "pattern": "<\\?php\\s+@?eval\\(\\$_(POST|GET|REQUEST)\\[",
+      "severity": "high"
+    },
+    {
+      "name": "Ransomware.WannaCry-Marker",
+      "pattern": "WANACRY!|WanaCrypt0r|\\.WNCRY",
+      "severity": "high"
+    }
+  ]
+}

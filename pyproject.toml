@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sy-antivirus"
+version = "0.1.0"
+description = "Lightweight, dependency-free antivirus engine: signatures, heuristics, quarantine and real-time protection"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[project.scripts]
+sy-av = "sy_antivirus.cli:main"
+
+[tool.setuptools]
+packages = ["sy_antivirus"]
+
+[tool.setuptools.package-data]
+sy_antivirus = ["data/*.json"]
