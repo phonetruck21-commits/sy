@@ -1,0 +1,8 @@
+# SY Antivirus signature database. Format: type<TAB>key<TAB>value
+# Add more with the app's 'import signatures' button (e.g. a MalwareBazaar SHA-256 list).
+hash	275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f	EICAR-Test-File
+hash	44d88612fea8a8f36de82e1278abb02f	EICAR-Test-File
+pattern	EICAR-Test-File	X5O!P%@AP\[4\\PZX54\(P\^\)7CC\)7\}\$EICAR-STANDARD-ANTIVIRUS-TEST-FILE
+pattern	Linux.Mirai.Credentials	xc3511.{0,64}vizxv.{0,64}7ujMko0admin
+pattern	Webshell.PHP-Generic	<\?php\s+@?eval\(\$_(POST|GET|REQUEST)\[
+pattern	Ransomware.WannaCry-Marker	WANACRY!|WanaCrypt0r|\.WNCRY
