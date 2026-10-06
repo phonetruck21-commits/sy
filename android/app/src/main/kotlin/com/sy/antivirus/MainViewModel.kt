@@ -35,8 +35,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var db: SignatureDb by mutableStateOf(SignatureStore.load(application))
         private set
 
+    private var rawVerdicts: List<AppVerdict>? = null
     var appVerdicts by mutableStateOf<List<AppVerdict>?>(null)
         private set
+
+    /** Apps the user marked as trusted; they are never reported again. */
+    private var trustedPackages: Set<String> = prefs.getStringSet("trusted", emptySet()).orEmpty().toSet()
     var appProgress by mutableStateOf<Progress?>(null)
         private set
     var lastAppScan by mutableStateOf(prefs.getLong("lastAppScan", 0L))
@@ -74,13 +78,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     apps.collect(name)?.let(analyzer::analyze)
                 }
             }
-            appVerdicts = verdicts.sortedWith(compareByDescending<AppVerdict> { it.level }.thenByDescending { it.score })
+            rawVerdicts = verdicts
+            publishVerdicts()
             lastAppScan = System.currentTimeMillis()
             prefs.edit().putLong("lastAppScan", lastAppScan).apply()
             appProgress = null
-            val bad = verdicts.count { it.level >= RiskLevel.SUSPICIOUS }
+            val bad = appVerdicts.orEmpty().count { it.level >= RiskLevel.SUSPICIOUS }
             message = if (bad == 0) "נסרקו ${verdicts.size} אפליקציות - לא נמצאו איומים" else "נמצאו $bad אפליקציות חשודות"
         }
+    }
+
+    fun setTrusted(packageName: String, trusted: Boolean) {
+        trustedPackages = if (trusted) trustedPackages + packageName else trustedPackages - packageName
+        prefs.edit().putStringSet("trusted", trustedPackages).apply()
+        publishVerdicts()
+    }
+
+    fun isTrusted(packageName: String) = packageName in trustedPackages
+
+    private fun publishVerdicts() {
+        appVerdicts = rawVerdicts
+            ?.map { v ->
+                // A known-malware signature match is never hidden by the allowlist.
+                if (v.app.packageName in trustedPackages && v.level != RiskLevel.MALWARE) {
+                    v.copy(level = RiskLevel.SAFE, reasons = listOf("סומנה על ידך כמהימנה") + v.reasons)
+                } else {
+                    v
+                }
+            }
+            ?.sortedWith(compareByDescending<AppVerdict> { it.level }.thenByDescending { it.score })
     }
 
     fun scanFolder(treeUri: Uri) {

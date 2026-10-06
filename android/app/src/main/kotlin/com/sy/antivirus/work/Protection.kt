@@ -45,11 +45,13 @@ class ProtectionWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
         val apps = InstalledApps(ctx)
         val analyzer = AppAnalyzer(SignatureStore.load(ctx))
+        val trusted = ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getStringSet("trusted", emptySet()).orEmpty()
         for (name in changed.packageNames) {
             if (name == ctx.packageName) continue
             val info = apps.collect(name) ?: continue // uninstalled
             val verdict = analyzer.analyze(info)
-            if (verdict.level >= RiskLevel.SUSPICIOUS) Notifications.threat(ctx, verdict)
+            val report = verdict.level == RiskLevel.MALWARE || (verdict.level == RiskLevel.SUSPICIOUS && name !in trusted)
+            if (report) Notifications.threat(ctx, verdict)
         }
         prefs.edit().putInt(KEY_SEQUENCE, changed.sequenceNumber).apply()
         return Result.success()

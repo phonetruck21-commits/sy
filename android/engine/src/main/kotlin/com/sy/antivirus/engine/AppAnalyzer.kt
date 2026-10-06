@@ -14,6 +14,14 @@ data class AppInfo(
     val hasAccessibilityService: Boolean = false,
     val hasDeviceAdmin: Boolean = false,
     val hasNotificationListener: Boolean = false,
+    /** Android reports the app came from an app store (API 33+). */
+    val installedFromStore: Boolean = false,
+    /** Android reports the app was installed from a local or downloaded APK file (API 33+). */
+    val sideloadedFromFile: Boolean = false,
+    /** Installed by another app from the same developer (e.g. a watch app installing its plugin). */
+    val sameSignerAsInstaller: Boolean = false,
+    /** Signed with the same certificate as an app preinstalled on the device (device maker, Google...). */
+    val signedLikeSystemApp: Boolean = false,
 )
 
 enum class RiskLevel { SAFE, LOW, SUSPICIOUS, MALWARE }
@@ -39,6 +47,11 @@ class AppAnalyzer(private val db: SignatureDb) {
         }
         // System apps legitimately hold every sensitive capability.
         if (app.isSystem) return AppVerdict(app, RiskLevel.SAFE, 0, null, emptyList())
+        if (app.signedLikeSystemApp) {
+            return AppVerdict(app, RiskLevel.SAFE, 0, null, listOf("חתומה על ידי יצרן המכשיר / מפתח של אפליקציית מערכת"))
+        }
+        val trustedSource = !app.sideloadedFromFile &&
+            (app.installer in TRUSTED_INSTALLERS || app.installedFromStore || app.sameSignerAsInstaller)
 
         val reasons = mutableListOf<String>()
         var score = 0
@@ -64,13 +77,22 @@ class AppAnalyzer(private val db: SignatureDb) {
 
         if (app.hasAccessibilityService && sms) add(30, "שילוב נגישות + SMS: דפוס טיפוסי של טרויאני בנקאות")
         if (app.hasAccessibilityService && OVERLAY in p) add(20, "שילוב נגישות + חלון צף: דפוס של גניבת סיסמאות")
-        if (!app.hasLauncherIcon && score >= 20) add(20, "אפליקציה ללא אייקון (מוסתרת)")
-        if (app.installer !in TRUSTED_INSTALLERS && score > 0) add(15, "הותקנה ממקור לא רשמי")
+        // Plugins and companion apps from stores often have no icon; that only matters for sideloads.
+        if (!trustedSource && !app.hasLauncherIcon && score >= 20) add(20, "אפליקציה ללא אייקון (מוסתרת)")
+        if (!trustedSource && score > 0) {
+            add(15, if (app.sideloadedFromFile) "הותקנה מקובץ APK" else "הותקנה ממקור לא רשמי")
+        }
 
-        val level = when {
+        var level = when {
             score >= SUSPICIOUS_THRESHOLD -> RiskLevel.SUSPICIOUS
             score >= LOW_THRESHOLD -> RiskLevel.LOW
             else -> RiskLevel.SAFE
+        }
+        // Store apps are already vetted; without a signature match, permissions alone
+        // are informational (launchers, password managers and watch apps need them).
+        if (trustedSource && level == RiskLevel.SUSPICIOUS) {
+            level = RiskLevel.LOW
+            reasons += "הותקנה מחנות רשמית או ממפתח מוכר - לכן לא מסומנת כחשודה"
         }
         return AppVerdict(app, level, score, null, reasons)
     }
@@ -104,6 +126,8 @@ class AppAnalyzer(private val db: SignatureDb) {
             "com.amazon.venezia",             // Amazon Appstore
             "com.huawei.appmarket",           // Huawei AppGallery
             "com.xiaomi.mipicks",             // Xiaomi GetApps
+            "com.sec.android.easyMover",      // Samsung Smart Switch (restores apps from an old phone)
+            "com.google.android.feedback",    // Google Play on older devices
         )
     }
 }

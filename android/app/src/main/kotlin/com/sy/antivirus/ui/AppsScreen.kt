@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,7 +55,7 @@ fun AppsScreen(vm: MainViewModel) {
     }
 
     var showAll by rememberSaveable { mutableStateOf(false) }
-    val visible = if (showAll) verdicts else verdicts.filter { it.level > RiskLevel.SAFE }
+    val visible = if (showAll) verdicts else verdicts.filter { it.level >= RiskLevel.SUSPICIOUS }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -68,14 +69,25 @@ fun AppsScreen(vm: MainViewModel) {
             }
         }
         if (visible.isEmpty()) {
-            item { Text("לא נמצאו אפליקציות חשודות 👍", modifier = Modifier.padding(vertical = 24.dp)) }
+            item {
+                Text(
+                    "לא נמצאו אפליקציות חשודות 👍\nלחץ על \"הצג הכל\" כדי לראות את כל האפליקציות וההרשאות שלהן.",
+                    modifier = Modifier.padding(vertical = 24.dp),
+                )
+            }
         }
-        items(visible, key = { it.app.packageName }) { AppCard(it) }
+        items(visible, key = { it.app.packageName }) { verdict ->
+            AppCard(
+                verdict,
+                trusted = vm.isTrusted(verdict.app.packageName),
+                onTrustedChange = { vm.setTrusted(verdict.app.packageName, it) },
+            )
+        }
     }
 }
 
 @Composable
-private fun AppCard(verdict: AppVerdict) {
+private fun AppCard(verdict: AppVerdict, trusted: Boolean, onTrustedChange: (Boolean) -> Unit) {
     val context = LocalContext.current
     var expanded by rememberSaveable(verdict.app.packageName) { mutableStateOf(verdict.level >= RiskLevel.SUSPICIOUS) }
     Card(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
@@ -95,7 +107,7 @@ private fun AppCard(verdict: AppVerdict) {
                 verdict.reasons.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
                 if (verdict.level == RiskLevel.SUSPICIOUS) {
                     Text(
-                        "חשודה = יש לה שילוב הרשאות שנפוץ בנוזקות. אם אתה לא מכיר אותה או לא התקנת אותה בעצמך - כדאי להסיר.",
+                        "חשודה = הותקנה מחוץ לחנות רשמית ויש לה שילוב הרשאות שנפוץ בנוזקות. אם אתה לא מכיר אותה או לא התקנת אותה בעצמך - כדאי להסיר.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -110,6 +122,11 @@ private fun AppCard(verdict: AppVerdict) {
                             )
                         }) { Text("הרשאות ופרטים") }
                     }
+                    if (verdict.level != RiskLevel.MALWARE) {
+                        TextButton(onClick = { onTrustedChange(!trusted) }) {
+                            Text(if (trusted) "בטל סימון כמהימנה" else "אני מכיר את האפליקציה - סמן כמהימנה")
+                        }
+                    }
                 }
             }
         }
@@ -121,7 +138,7 @@ fun LevelBadge(level: RiskLevel) {
     val (text, color) = when (level) {
         RiskLevel.MALWARE -> "נוזקה" to Red
         RiskLevel.SUSPICIOUS -> "חשודה" to Orange
-        RiskLevel.LOW -> "סיכון נמוך" to Color(0xFFF9A825)
+        RiskLevel.LOW -> "הרשאות רגישות" to Color(0xFF757575)
         RiskLevel.SAFE -> "תקינה" to Green
     }
     Surface(color = color.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {

@@ -148,6 +148,43 @@ class AppAnalyzerTest {
         assertTrue(verdict.level <= RiskLevel.LOW, verdict.toString())
     }
 
+    @Test fun launcherFromPlayIsNotSuspicious() {
+        val app = AppInfo(
+            "com.microsoft.launcher", "Microsoft Launcher",
+            permissions = perms("SYSTEM_ALERT_WINDOW", "RECORD_AUDIO", "CAMERA", "ACCESS_FINE_LOCATION", "READ_CONTACTS"),
+            installer = "com.android.vending",
+            hasAccessibilityService = true, hasDeviceAdmin = true, hasNotificationListener = true,
+        )
+        assertEquals(RiskLevel.LOW, analyzer.analyze(app).level)
+    }
+
+    @Test fun pluginInstalledBySameDeveloperIsNotSuspicious() {
+        val app = AppInfo(
+            "com.vendor.watchplugin", "Watch Plugin",
+            permissions = perms("READ_SMS", "SEND_SMS", "SYSTEM_ALERT_WINDOW", "REQUEST_INSTALL_PACKAGES", "READ_CALL_LOG"),
+            installer = "com.vendor.watchmanager", sameSignerAsInstaller = true,
+            hasNotificationListener = true, hasLauncherIcon = false,
+        )
+        val verdict = analyzer.analyze(app)
+        assertTrue(verdict.level <= RiskLevel.LOW, verdict.toString())
+        assertFalse(verdict.reasons.any { "ללא אייקון" in it })
+    }
+
+    @Test fun deviceMakerSignedAppIsSafe() {
+        val app = AppInfo("com.vendor.app", "Vendor", permissions = perms("READ_SMS"), hasAccessibilityService = true, signedLikeSystemApp = true)
+        assertEquals(RiskLevel.SAFE, analyzer.analyze(app).level)
+    }
+
+    @Test fun apkFileInstallIsNeverTrustedSource() {
+        val app = AppInfo(
+            "com.fake.bank", "Bank",
+            permissions = perms("RECEIVE_SMS", "READ_SMS"),
+            installer = "com.android.vending", sideloadedFromFile = true,
+            hasAccessibilityService = true,
+        )
+        assertEquals(RiskLevel.SUSPICIOUS, analyzer.analyze(app).level)
+    }
+
     @Test fun systemAppsAreTrusted() {
         val app = AppInfo("android.sys", "Sys", permissions = perms("READ_SMS", "SEND_SMS"), hasAccessibilityService = true, isSystem = true)
         assertEquals(RiskLevel.SAFE, analyzer.analyze(app).level)
