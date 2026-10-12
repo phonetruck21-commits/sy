@@ -12,8 +12,8 @@ android {
         applicationId = "com.sy.antivirus"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
 
         // AdMob IDs. The defaults are Google's public *test* IDs (they show sample ads and pay nothing).
         // Put your own in ~/.gradle/gradle.properties or pass -PadmobAppId=... -PadmobBannerId=...

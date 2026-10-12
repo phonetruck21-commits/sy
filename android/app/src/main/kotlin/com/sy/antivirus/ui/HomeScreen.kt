@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -79,6 +80,7 @@ import com.sy.antivirus.MainViewModel
 import com.sy.antivirus.R
 import com.sy.antivirus.data.CheckItem
 import com.sy.antivirus.data.DeviceCheck
+import com.sy.antivirus.data.FileAccess
 import com.sy.antivirus.data.SecurityReport
 
 @Composable
@@ -94,6 +96,9 @@ fun HomeScreen(vm: MainViewModel, onNavigate: (tab: Int) -> Unit) {
         // Re-check when coming back from the settings screen the user just fixed something in.
         vm.refreshSecurity()
         onPauseOrDispose { }
+    }
+    val legacyStorage = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        vm.refreshSecurity()
     }
     val toggleProtection = {
         val enable = !vm.protectionEnabled
@@ -118,6 +123,16 @@ fun HomeScreen(vm: MainViewModel, onNavigate: (tab: Int) -> Unit) {
                     }
                 }
             }
+            ShieldsCard(
+                vm,
+                onToggle = toggleProtection,
+                onEnableFiles = {
+                    val intent = FileAccess.settingsIntent(context)
+                    if (intent != null) openIntent(context, intent) else legacyStorage.launch(FileAccess.legacyPermissions)
+                },
+                onEnableMessages = { openSettings(context, Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS) },
+                onEnableBattery = { openSettings(context, Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) },
+            )
             StatsRow(vm)
             InfoBanner()
 
@@ -336,11 +351,86 @@ private fun CheckRow(item: CheckItem, onFix: (String) -> Unit) {
     }
 }
 
-private fun openSettings(context: Context, action: String) {
+private fun openSettings(context: Context, action: String) = openIntent(context, Intent(action))
+
+private fun openIntent(context: Context, intent: Intent) {
     try {
-        context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (_: ActivityNotFoundException) {
         context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
+
+/** Real-time protection, shield by shield, the way the big AVs show it. */
+@Composable
+private fun ShieldsCard(
+    vm: MainViewModel,
+    onToggle: () -> Unit,
+    onEnableFiles: () -> Unit,
+    onEnableMessages: () -> Unit,
+    onEnableBattery: () -> Unit,
+) {
+    val on = vm.protectionEnabled
+    val shields = vm.shields
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("הגנה בזמן אמת", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (on) "פועלת תמיד ברקע · כמעט ללא צריכת סוללה" else "כבויה - המכשיר לא מוגן ברקע",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (on) Green else Red,
+                    )
+                }
+                Switch(checked = on, onCheckedChange = { onToggle() })
+            }
+            ShieldRow("מגן אפליקציות", "כל התקנה ועדכון נסרקים מיד", on, active = on, onEnable = null)
+            ShieldRow(
+                "מגן קבצים", "סורק כל קובץ חדש בהורדות, וואטסאפ, טלגרם ובלוטות'",
+                on, active = on && shields.files, onEnable = if (shields.files) null else onEnableFiles,
+            )
+            ShieldRow(
+                "מגן הודעות", "בודק כל SMS והודעת וואטסאפ להונאה - במכשיר בלבד",
+                on, active = on && shields.messages, onEnable = if (shields.messages) null else onEnableMessages,
+            )
+            if (on && !shields.battery) {
+                ShieldRow(
+                    "פעולה ללא הגבלת סוללה", "מונע מהמכשיר לעצור את ההגנה (חשוב בסמסונג ושיאומי)",
+                    true, active = false, onEnable = onEnableBattery, enableLabel = "אפשר",
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShieldRow(
+    title: String,
+    detail: String,
+    masterOn: Boolean,
+    active: Boolean,
+    onEnable: (() -> Unit)?,
+    enableLabel: String = "הפעל",
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(10.dp).clip(CircleShape).background(
+                when {
+                    active -> Green
+                    masterOn -> Orange
+                    else -> MaterialTheme.colorScheme.outlineVariant
+                },
+            ),
+        )
+        Spacer(Modifier.size(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (masterOn && onEnable != null) {
+            FilledTonalButton(onClick = onEnable) { Text(enableLabel) }
+        }
     }
 }
 

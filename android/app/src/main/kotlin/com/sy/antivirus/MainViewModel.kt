@@ -3,12 +3,14 @@ package com.sy.antivirus
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.os.PowerManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sy.antivirus.data.DeviceCheck
+import com.sy.antivirus.data.FileAccess
 import com.sy.antivirus.data.FileFinding
 import com.sy.antivirus.data.SecurityReport
 import com.sy.antivirus.data.InstalledApps
@@ -22,6 +24,8 @@ import com.sy.antivirus.engine.MessageVerdict
 import com.sy.antivirus.engine.RiskLevel
 import com.sy.antivirus.engine.ScamDetector
 import com.sy.antivirus.engine.SignatureDb
+import com.sy.antivirus.service.MessageGuardService
+import com.sy.antivirus.service.ProtectionService
 import com.sy.antivirus.work.ProtectionWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +34,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class Progress(val done: Int, val total: Int, val current: String)
+
+/** Which real-time shields have the system access they need. */
+data class Shields(val files: Boolean, val messages: Boolean, val battery: Boolean)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
@@ -64,6 +71,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     var securityReport by mutableStateOf<SecurityReport?>(null)
+        private set
+    var shields by mutableStateOf(Shields(files = false, messages = false, battery = false))
         private set
 
     var scamInput by mutableStateOf("")
@@ -208,6 +217,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshSecurity() {
+        val power = context.getSystemService(PowerManager::class.java)
+        shields = Shields(
+            files = FileAccess.granted(context),
+            messages = MessageGuardService.isEnabled(context),
+            battery = power?.isIgnoringBatteryOptimizations(context.packageName) == true,
+        )
+        // Re-applies permissions the user may have just granted (e.g. file access).
+        if (protectionEnabled) ProtectionService.start(context)
         viewModelScope.launch {
             val suspicious = appVerdicts?.count { it.level >= RiskLevel.SUSPICIOUS }
             securityReport = withContext(Dispatchers.IO) {

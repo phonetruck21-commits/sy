@@ -10,7 +10,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.google.android.gms.ads.MobileAds
+import com.sy.antivirus.service.ProtectionService
 import com.sy.antivirus.ui.SyApp
+import com.sy.antivirus.work.ProtectionWorker
 import com.sy.antivirus.work.Notifications
 
 class MainActivity : ComponentActivity() {
@@ -21,10 +23,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // The branded top bar is navy, so keep the status bar icons light.
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
-        Notifications.ensureChannel(this)
+        Notifications.ensureChannels(this)
         // Initialising AdMob off the main thread keeps startup fast.
         Thread { MobileAds.initialize(this) {} }.start()
         if (savedInstanceState == null) handleShare(intent)
+        // Keep real-time protection alive: starting from the foreground is always allowed.
+        if (ProtectionWorker.isEnabled(this)) ProtectionService.start(this)
         setContent { SyApp(vm) }
     }
 
@@ -34,7 +38,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleShare(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_SEND) return
+        if (intent?.action != Intent.ACTION_SEND && intent?.action != Notifications.ACTION_CHECK_TEXT) return
         val text = listOfNotNull(
             intent.getStringExtra(Intent.EXTRA_SUBJECT),
             intent.getStringExtra(Intent.EXTRA_TEXT),

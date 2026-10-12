@@ -72,6 +72,10 @@ class StorageScanner(private val context: Context, private val db: SignatureDb) 
 
 /** Moves files between the user's storage and the private quarantine. */
 class QuarantineManager(private val context: Context) {
+    private companion object {
+        const val FILE_PREFIX = "file:"
+    }
+
     private val resolver = context.contentResolver
     val store = QuarantineStore(File(context.filesDir, "quarantine"))
 
@@ -84,7 +88,26 @@ class QuarantineManager(private val context: Context) {
         return deleted
     }
 
+    /** Quarantines a file reached by path (from the real-time file shield). */
+    fun quarantineFile(file: File, threat: String): Boolean {
+        val bytes = file.readBytes()
+        val entry = store.add(bytes, file.name, FILE_PREFIX + (file.parent ?: ""), threat)
+        if (!file.delete()) {
+            store.delete(entry.id)
+            return false
+        }
+        return true
+    }
+
     fun restore(entry: QuarantineEntry): Boolean {
+        if (entry.originalLocation.startsWith(FILE_PREFIX)) {
+            val dir = File(entry.originalLocation.removePrefix(FILE_PREFIX))
+            var target = File(dir, entry.originalName)
+            if (target.exists()) target = File(dir, "restored_${entry.originalName}")
+            target.writeBytes(store.read(entry.id))
+            store.delete(entry.id)
+            return true
+        }
         val target = runCatching {
             DocumentsContract.createDocument(
                 resolver, Uri.parse(entry.originalLocation), "application/octet-stream", entry.originalName,
