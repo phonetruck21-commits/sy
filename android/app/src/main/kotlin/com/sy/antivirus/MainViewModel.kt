@@ -8,7 +8,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sy.antivirus.data.DeviceCheck
 import com.sy.antivirus.data.FileFinding
+import com.sy.antivirus.data.SecurityReport
 import com.sy.antivirus.data.InstalledApps
 import com.sy.antivirus.data.QuarantineManager
 import com.sy.antivirus.data.SignatureStore
@@ -16,7 +18,9 @@ import com.sy.antivirus.data.StorageScanner
 import com.sy.antivirus.engine.AppAnalyzer
 import com.sy.antivirus.engine.AppVerdict
 import com.sy.antivirus.engine.QuarantineEntry
+import com.sy.antivirus.engine.MessageVerdict
 import com.sy.antivirus.engine.RiskLevel
+import com.sy.antivirus.engine.ScamDetector
 import com.sy.antivirus.engine.SignatureDb
 import com.sy.antivirus.work.ProtectionWorker
 import kotlinx.coroutines.CancellationException
@@ -59,6 +63,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var protectionEnabled by mutableStateOf(ProtectionWorker.isEnabled(application))
         private set
 
+    var securityReport by mutableStateOf<SecurityReport?>(null)
+        private set
+
+    var scamInput by mutableStateOf("")
+    var scamResult by mutableStateOf<MessageVerdict?>(null)
+        private set
+
+    /** Set when something outside the UI (e.g. a share) wants a specific tab shown. */
+    var requestedTab by mutableStateOf<Int?>(null)
+
     /** One-shot message for the snackbar. */
     var message by mutableStateOf<String?>(null)
 
@@ -83,6 +97,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             lastAppScan = System.currentTimeMillis()
             prefs.edit().putLong("lastAppScan", lastAppScan).apply()
             appProgress = null
+            refreshSecurity()
             val bad = appVerdicts.orEmpty().count { it.level >= RiskLevel.SUSPICIOUS }
             message = if (bad == 0) "נסרקו ${verdicts.size} אפליקציות - לא נמצאו איומים" else "נמצאו $bad אפליקציות חשודות"
         }
@@ -189,5 +204,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setProtection(enabled: Boolean) {
         ProtectionWorker.setEnabled(context, enabled)
         protectionEnabled = enabled
+        refreshSecurity()
+    }
+
+    fun refreshSecurity() {
+        viewModelScope.launch {
+            val suspicious = appVerdicts?.count { it.level >= RiskLevel.SUSPICIOUS }
+            securityReport = withContext(Dispatchers.IO) {
+                runCatching { DeviceCheck.run(context, protectionEnabled, lastAppScan, suspicious) }.getOrNull()
+            }
+        }
+    }
+
+    fun checkMessage() {
+        val text = scamInput.trim()
+        if (text.isEmpty()) {
+            scamResult = null
+            return
+        }
+        scamResult = ScamDetector(db).analyzeMessage(text)
+    }
+
+    /** Text shared to the app from WhatsApp, SMS, the browser... */
+    fun onSharedText(text: String) {
+        scamInput = text
+        checkMessage()
+        requestedTab = TAB_MESSAGES
+    }
+
+    companion object {
+        const val TAB_HOME = 0
+        const val TAB_APPS = 1
+        const val TAB_FILES = 2
+        const val TAB_MESSAGES = 3
+        const val TAB_QUARANTINE = 4
     }
 }

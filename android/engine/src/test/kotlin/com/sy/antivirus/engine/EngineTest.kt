@@ -217,3 +217,77 @@ class QuarantineStoreTest {
         }
     }
 }
+
+class ScamDetectorTest {
+    private val detector = ScamDetector(SignatureDb().apply { domains["known-evil.com"] = "Phishing.Kit" })
+
+    @Test fun officialSitesAreSafe() {
+        for (url in listOf("https://www.leumi.co.il/he", "https://bankhapoalim.co.il", "https://www.gov.il/he/departments", "https://www.paypal.com/signin")) {
+            assertEquals(ScamLevel.SAFE, detector.analyzeLink(url).level, url)
+        }
+    }
+
+    @Test fun brandImpersonationIsDangerous() {
+        val v = detector.analyzeLink("https://leumi-secure-login.xyz/verify")
+        assertEquals(ScamLevel.DANGEROUS, v.level)
+        assertTrue(v.reasons.any { "בנק לאומי" in it })
+        assertEquals(ScamLevel.DANGEROUS, detector.analyzeLink("http://www.leumi.co.il.account-update.top/").level)
+    }
+
+    @Test fun commonWordsAreNotImpersonation() {
+        assertEquals(ScamLevel.SAFE, detector.analyzeLink("https://pineapple.com/recipes").level)
+        assertEquals(ScamLevel.SAFE, detector.analyzeLink("https://discountshoes.com").level)
+    }
+
+    @Test fun ipShortenerAndHomograph() {
+        assertTrue(detector.analyzeLink("http://185.22.11.4/pay").score >= 35)
+        assertTrue(detector.analyzeLink("bit.ly/3xYz").reasons.any { "מקוצר" in it })
+        assertEquals(ScamLevel.CAUTION, detector.analyzeLink("https://xn--pypal-4ve.com").level.coerceAtMost(ScamLevel.CAUTION))
+        assertTrue(detector.analyzeLink("https://xn--pypal-4ve.com").score >= 40)
+    }
+
+    @Test fun knownBadDomainFromDatabase() {
+        val v = detector.analyzeLink("https://login.known-evil.com/x")
+        assertEquals(ScamLevel.DANGEROUS, v.level)
+        assertEquals(100, v.score)
+    }
+
+    @Test fun israeliParcelScam() {
+        val sms = "דואר ישראל: החבילה שלך ממתינה לתשלום דמי משלוח של 7.90 ש\"ח. לשחרור: israelpost-delivery.top/pay"
+        val v = detector.analyzeMessage(sms)
+        assertEquals(ScamLevel.DANGEROUS, v.level)
+        assertEquals(1, v.links.size)
+        assertTrue(v.reasons.any { "חבילה" in it })
+    }
+
+    @Test fun hiMomScam() {
+        val v = detector.analyzeMessage("היי אמא, הטלפון שלי התקלקל וזה המספר החדש שלי. תוכלי להעביר לי 2000 שח דחוף?")
+        assertEquals(ScamLevel.DANGEROUS, v.level)
+        assertTrue("התקשר" in v.advice)
+    }
+
+    @Test fun codeRequest() {
+        val v = detector.analyzeMessage("שלום, שלחנו לך בטעות קוד, תשלח לי את הקוד אימות שקיבלת בבקשה")
+        assertTrue(v.level >= ScamLevel.CAUTION)
+        assertTrue("קוד אימות" in v.advice)
+    }
+
+    @Test fun normalMessagesAreSafe() {
+        for (text in listOf(
+            "נפגשים מחר ב-8 בבית קפה, אל תשכח להביא את המטען",
+            "התור שלך לרופא נקבע ליום ראשון בשעה 10:00",
+            "תראה את הסרטון הזה https://www.youtube.com/watch?v=abc",
+            "שלחתי לך את הקובץ report.pdf במייל",
+        )) {
+            val v = detector.analyzeMessage(text)
+            assertEquals(ScamLevel.SAFE, v.level, "$text -> $v")
+        }
+    }
+
+    @Test fun extractsUrls() {
+        val urls = ScamDetector.extractUrls("כנסו ל-https://a.com/x או bit.ly/abc ולא לקובץ doc.pdf או user@gmail.com")
+        assertEquals(listOf("https://a.com/x", "bit.ly/abc"), urls)
+        assertEquals("evil.xyz", ScamDetector.registrableDomain("secure.leumi.co.il.evil.xyz"))
+        assertEquals("leumi.co.il", ScamDetector.registrableDomain("www.leumi.co.il"))
+    }
+}

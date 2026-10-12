@@ -1,6 +1,10 @@
 package com.sy.antivirus.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import android.os.Build
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,13 +36,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,14 +67,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.sy.antivirus.BuildConfig
 import com.sy.antivirus.MainViewModel
 import com.sy.antivirus.R
+import com.sy.antivirus.data.CheckItem
+import com.sy.antivirus.data.DeviceCheck
+import com.sy.antivirus.data.SecurityReport
 
 @Composable
 fun HomeScreen(vm: MainViewModel, onNavigate: (tab: Int) -> Unit) {
@@ -77,12 +89,35 @@ fun HomeScreen(vm: MainViewModel, onNavigate: (tab: Int) -> Unit) {
     val importFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(vm::importSignatures)
     }
-    var showAbout by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    LifecycleResumeEffect(Unit) {
+        // Re-check when coming back from the settings screen the user just fixed something in.
+        vm.refreshSecurity()
+        onPauseOrDispose { }
+    }
+    val toggleProtection = {
+        val enable = !vm.protectionEnabled
+        if (enable && Build.VERSION.SDK_INT >= 33) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            vm.setProtection(enable)
+        }
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Hero(vm)
 
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            vm.securityReport?.let { report ->
+                SecurityScoreCard(report) { fix ->
+                    when (fix) {
+                        DeviceCheck.FIX_PROTECTION -> toggleProtection()
+                        DeviceCheck.FIX_SCAN -> vm.scanApps()
+                        DeviceCheck.FIX_APPS -> onNavigate(MainViewModel.TAB_APPS)
+                        else -> openSettings(context, fix)
+                    }
+                }
+            }
             StatsRow(vm)
             InfoBanner()
 
@@ -90,41 +125,39 @@ fun HomeScreen(vm: MainViewModel, onNavigate: (tab: Int) -> Unit) {
             TileRow(
                 {
                     FeatureTile(Icons.AutoMirrored.Filled.List, "סריקת אפליקציות", "${vm.appVerdicts?.size ?: 0} נבדקו", Sky) {
-                        onNavigate(1)
+                        onNavigate(MainViewModel.TAB_APPS)
                     }
                 },
                 {
-                    FeatureTile(Icons.Filled.Search, "סריקת קבצים", "הורדות, WhatsApp ועוד", Teal) { onNavigate(2) }
+                    FeatureTile(Icons.Filled.Search, "סריקת קבצים", "הורדות, WhatsApp ועוד", Teal) {
+                        onNavigate(MainViewModel.TAB_FILES)
+                    }
                 },
             )
             TileRow(
+                {
+                    FeatureTile(Icons.Filled.Email, "בודק הונאות", "SMS, וואטסאפ וקישורים", Color(0xFFFF6B6B)) {
+                        onNavigate(MainViewModel.TAB_MESSAGES)
+                    }
+                },
                 {
                     FeatureTile(
                         Icons.Filled.Notifications, "הגנה בזמן אמת",
                         if (vm.protectionEnabled) "פעילה · הקש לכיבוי" else "כבויה · הקש להפעלה",
                         if (vm.protectionEnabled) Green else Orange,
-                    ) {
-                        val enable = !vm.protectionEnabled
-                        if (enable && Build.VERSION.SDK_INT >= 33) {
-                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            vm.setProtection(enable)
-                        }
-                    }
-                },
-                {
-                    FeatureTile(Icons.Filled.Lock, "הסגר", "${vm.quarantine.size} קבצים", Color(0xFF8E7CFF)) { onNavigate(3) }
+                        onClick = toggleProtection,
+                    )
                 },
             )
             TileRow(
                 {
-                    FeatureTile(Icons.Filled.Refresh, "מאגר חתימות", "${vm.db.size} חתימות · ייבוא", Color(0xFF0077E6)) {
-                        importFile.launch(arrayOf("*/*"))
+                    FeatureTile(Icons.Filled.Lock, "הסגר", "${vm.quarantine.size} קבצים", Color(0xFF8E7CFF)) {
+                        onNavigate(MainViewModel.TAB_QUARANTINE)
                     }
                 },
                 {
-                    FeatureTile(Icons.Filled.Info, "אודות SY Security", "גרסה ${BuildConfig.VERSION_NAME}", Color(0xFF607D8B)) {
-                        showAbout = true
+                    FeatureTile(Icons.Filled.Refresh, "מאגר חתימות", "${vm.db.size} חתימות · ייבוא", Color(0xFF0077E6)) {
+                        importFile.launch(arrayOf("*/*"))
                     }
                 },
             )
@@ -132,8 +165,6 @@ fun HomeScreen(vm: MainViewModel, onNavigate: (tab: Int) -> Unit) {
             AdBanner(Modifier.padding(top = 4.dp))
         }
     }
-
-    if (showAbout) AboutDialog { showAbout = false }
 }
 
 @Composable
@@ -241,6 +272,79 @@ private fun ScanOrb(statusColor: Color, scanning: Boolean, progress: Float, onCl
 }
 
 @Composable
+private fun SecurityScoreCard(report: SecurityReport, onFix: (String) -> Unit) {
+    val color = when {
+        report.score >= 80 -> Green
+        report.score >= 50 -> Orange
+        else -> Red
+    }
+    var expanded by remember { mutableStateOf(false) }
+    val problems = report.problems
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
+                    Canvas(Modifier.fillMaxSize()) {
+                        val stroke = 9.dp.toPx()
+                        val inset = stroke / 2
+                        val arc = Size(size.width - stroke, size.height - stroke)
+                        drawArc(color.copy(alpha = 0.15f), 135f, 270f, false, Offset(inset, inset), arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                        drawArc(color, 135f, 270f * report.score / 100f, false, Offset(inset, inset), arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                    }
+                    Text("${report.score}", color = color, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                }
+                Spacer(Modifier.size(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("ציון אבטחה", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        when {
+                            problems.isEmpty() -> "מושלם! המכשיר מוגדר בצורה בטוחה"
+                            problems.size == 1 -> "בעיה אחת לתיקון"
+                            else -> "${problems.size} בעיות לתיקון"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            val shown = if (expanded) report.items else problems.take(3)
+            shown.forEach { item -> CheckRow(item, onFix) }
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "הצג פחות" else "הצג את כל ${report.items.size} הבדיקות")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckRow(item: CheckItem, onFix: (String) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            if (item.ok) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+            contentDescription = null,
+            tint = if (item.ok) Green else Orange,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.size(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(item.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(item.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (!item.ok && item.fix != null) {
+            FilledTonalButton(onClick = { onFix(item.fix) }) { Text("תקן") }
+        }
+    }
+}
+
+private fun openSettings(context: Context, action: String) {
+    try {
+        context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (_: ActivityNotFoundException) {
+        context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
+
+@Composable
 private fun StatsRow(vm: MainViewModel) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         StatCard(vm.appVerdicts?.size?.toString() ?: "—", "אפליקציות נסרקו", Sky, Modifier.weight(1f))
@@ -287,7 +391,7 @@ private fun FeatureTile(icon: ImageVector, title: String, subtitle: String, colo
 }
 
 @Composable
-private fun AboutDialog(onDismiss: () -> Unit) {
+fun AboutDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Image(painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.height(56.dp)) },
@@ -295,12 +399,14 @@ private fun AboutDialog(onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("גרסה ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium)
-                Text("הגנה חכמה לאנדרואיד:")
+                Text("נבנה בישראל, נגד ההונאות של ישראל:", fontWeight = FontWeight.Bold)
                 Text("• זיהוי נוזקות לפי חתימות (APK, מפתח, שם חבילה)")
                 Text("• ניתוח הרשאות לזיהוי טרויאני בנקאות ורוגלות")
                 Text("• סריקת קבצים כולל ZIP ו-APK")
                 Text("• הסגר מוצפן ושחזור")
                 Text("• הגנה ברקע על כל התקנה חדשה")
+                Text("• בודק הונאות SMS/וואטסאפ וקישורים מתחזים")
+                Text("• ציון אבטחה למכשיר עם תיקון בלחיצה")
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("סגור") } },

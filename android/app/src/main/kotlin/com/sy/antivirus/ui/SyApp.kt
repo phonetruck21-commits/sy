@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -28,6 +31,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -55,13 +59,19 @@ private val TABS = listOf(
     Tab("בית", Icons.Filled.Home),
     Tab("אפליקציות", Icons.AutoMirrored.Filled.List),
     Tab("קבצים", Icons.Filled.Search),
+    Tab("הודעות", Icons.Filled.Email),
     Tab("הסגר", Icons.Filled.Lock),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BrandTopBar() {
+private fun BrandTopBar(onAbout: () -> Unit) {
     TopAppBar(
+        actions = {
+            IconButton(onClick = onAbout) {
+                Icon(Icons.Filled.Info, contentDescription = "אודות", tint = Color.White)
+            }
+        },
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.height(30.dp))
@@ -84,7 +94,14 @@ fun SyApp(vm: MainViewModel = viewModel()) {
     SyTheme {
         // The whole UI is Hebrew, so lay it out right-to-left regardless of the device language.
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            var tab by rememberSaveable { mutableIntStateOf(0) }
+            var tab by rememberSaveable { mutableIntStateOf(MainViewModel.TAB_HOME) }
+            var showAbout by remember { mutableStateOf(false) }
+            LaunchedEffect(vm.requestedTab) {
+                vm.requestedTab?.let {
+                    tab = it
+                    vm.requestedTab = null
+                }
+            }
             val snackbar = remember { SnackbarHostState() }
             LaunchedEffect(Unit) {
                 snapshotFlow { vm.message }.filterNotNull().collect {
@@ -93,7 +110,7 @@ fun SyApp(vm: MainViewModel = viewModel()) {
                 }
             }
             Scaffold(
-                topBar = { BrandTopBar() },
+                topBar = { BrandTopBar(onAbout = { showAbout = true }) },
                 containerColor = MaterialTheme.colorScheme.background,
                 bottomBar = {
                     NavigationBar {
@@ -102,7 +119,7 @@ fun SyApp(vm: MainViewModel = viewModel()) {
                                 selected = tab == index,
                                 onClick = { tab = index },
                                 icon = { Icon(t.icon, contentDescription = null) },
-                                label = { Text(t.title) },
+                                label = { Text(t.title, maxLines = 1) },
                             )
                         }
                     }
@@ -111,13 +128,15 @@ fun SyApp(vm: MainViewModel = viewModel()) {
             ) { padding ->
                 Box(Modifier.padding(padding)) {
                     when (tab) {
-                        0 -> HomeScreen(vm, onNavigate = { tab = it })
-                        1 -> AppsScreen(vm)
-                        2 -> FilesScreen(vm)
+                        MainViewModel.TAB_HOME -> HomeScreen(vm, onNavigate = { tab = it })
+                        MainViewModel.TAB_APPS -> AppsScreen(vm)
+                        MainViewModel.TAB_FILES -> FilesScreen(vm)
+                        MainViewModel.TAB_MESSAGES -> MessagesScreen(vm)
                         else -> QuarantineScreen(vm)
                     }
                 }
             }
+            if (showAbout) AboutDialog { showAbout = false }
         }
     }
 }

@@ -61,9 +61,9 @@ private val TIPS = listOf(
         listOf(Color(0xFF5E35B1), Color(0xFF8E7CFF)),
     ),
     Tip(
-        Icons.Filled.Info, "עדכן את המכשיר",
-        "עדכוני אבטחה של אנדרואיד סוגרים פרצות שנוזקות מנצלות. התקן אותם ברגע שהם זמינים.",
-        listOf(NavyLight, Color(0xFF3D6FB6)),
+        Icons.Filled.Info, "קיבלת SMS חשוד?",
+        "\"החבילה שלך ממתינה\", \"חשבונך נחסם\"... שתף את ההודעה ל-SY Security ותדע תוך שנייה אם זו הונאה.",
+        listOf(Color(0xFFC62828), Color(0xFFFF6B6B)),
     ),
 )
 

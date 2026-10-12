@@ -10,6 +10,7 @@ data class PatternSignature(val name: String, val regex: Regex)
  *     hash      <sha256 or md5 hex>   <threat name>
  *     package   <android package>     <threat name>
  *     cert      <signing cert sha256> <threat name>
+ *     domain    <malicious host>      <threat name>
  *     pattern   <threat name>         <regex over file bytes>
  *
  * Lines starting with '#' are comments.
@@ -18,9 +19,10 @@ class SignatureDb {
     val hashes = mutableMapOf<String, String>()
     val packages = mutableMapOf<String, String>()
     val certs = mutableMapOf<String, String>()
+    val domains = mutableMapOf<String, String>()
     val patterns = mutableListOf<PatternSignature>()
 
-    val size: Int get() = hashes.size + packages.size + certs.size + patterns.size
+    val size: Int get() = hashes.size + packages.size + certs.size + domains.size + patterns.size
 
     fun load(reader: Reader): SignatureDb {
         reader.forEachLine { raw ->
@@ -33,6 +35,7 @@ class SignatureDb {
                 "hash" -> if (isValidHash(key)) hashes[key.lowercase()] = value
                 "package" -> packages[key] = value
                 "cert" -> certs[key.lowercase().replace(":", "")] = value
+                "domain" -> domains[key.lowercase().removePrefix("www.")] = value
                 "pattern" -> addPattern(key, value)
             }
         }
@@ -43,6 +46,7 @@ class SignatureDb {
         hashes.putAll(other.hashes)
         packages.putAll(other.packages)
         certs.putAll(other.certs)
+        domains.putAll(other.domains)
         patterns.addAll(other.patterns)
         return this
     }
@@ -78,6 +82,7 @@ class SignatureDb {
         hashes.forEach { (k, v) -> append("hash\t$k\t$v\n") }
         packages.forEach { (k, v) -> append("package\t$k\t$v\n") }
         certs.forEach { (k, v) -> append("cert\t$k\t$v\n") }
+        domains.forEach { (k, v) -> append("domain\t$k\t$v\n") }
         patterns.forEach { append("pattern\t${it.name}\t${it.regex.pattern}\n") }
     }
 
@@ -87,6 +92,17 @@ class SignatureDb {
     fun matchPackage(packageName: String): String? = packages[packageName]
 
     fun matchCert(certSha256: String): String? = certs[certSha256.lowercase()]
+
+    /** Matches the host or any parent domain ("a.evil.com" matches an "evil.com" entry). */
+    fun matchDomain(host: String): String? {
+        var candidate = host.lowercase().removePrefix("www.")
+        while (true) {
+            domains[candidate]?.let { return it }
+            val dot = candidate.indexOf('.')
+            if (dot < 0 || candidate.indexOf('.', dot + 1) < 0) return null
+            candidate = candidate.substring(dot + 1)
+        }
+    }
 
     /** [content] must be the file bytes decoded as ISO-8859-1 (one char per byte). */
     fun matchPatterns(content: String): List<PatternSignature> =
