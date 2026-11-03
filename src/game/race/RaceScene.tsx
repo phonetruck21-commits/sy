@@ -1,0 +1,76 @@
+import { Suspense, useMemo, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Physics } from '@react-three/rapier';
+import { TrackView } from '../track/Track';
+import { Scenery } from '../track/Scenery';
+import { Environment } from './Environment';
+import { CameraRig } from '../camera/CameraRig';
+import { RaceDirector } from './RaceDirector';
+import { Truck } from '../vehicle/Truck';
+import { Dust } from './Dust';
+import type { TrackData } from '../track/trackData';
+import type { RacerRuntime } from './raceRuntime';
+import type { AIState } from '../ai/aiDriver';
+import type { TruckDesign } from '../../types';
+import type { TruckModelParams } from '../../data/trucks';
+
+export interface RacerSetup {
+  runtime: RacerRuntime;
+  design: TruckDesign;
+  model: TruckModelParams;
+  ai: AIState;
+  spawn: { x: number; z: number; yaw: number };
+}
+
+interface Props {
+  track: TrackData;
+  racers: RacerSetup[];
+  quality: 'low' | 'high';
+  paused: boolean;
+  autopilot: boolean;
+  onFinish: () => void;
+  onReady: () => void;
+}
+
+export function RaceScene({ track, racers, quality, paused, autopilot, onFinish, onReady }: Props) {
+  const hi = quality === 'high';
+  const [dpr] = useState(() => Math.min(window.devicePixelRatio || 1, hi ? 1.75 : 1));
+  const night = track.def.theme.night;
+  const dustColor = track.def.scenery === 'desert' ? '#d9b783' : track.def.scenery === 'neon' ? '#7a6cff' : '#bfbfbf';
+  const sceneKey = useMemo(() => `${track.def.id}`, [track]);
+  return (
+    <Canvas
+      key={sceneKey}
+      shadows={hi}
+      dpr={dpr}
+      camera={{ fov: 62, near: 0.3, far: 2600, position: [0, 20, -40] }}
+      gl={{ antialias: hi, powerPreference: 'high-performance' }}
+      onCreated={() => onReady()}
+    >
+      <Environment theme={track.def.theme} shadows={hi} />
+      <Suspense fallback={null}>
+        <Physics gravity={[0, -20, 0]} timeStep={1 / 60} paused={paused} interpolate>
+          <TrackView track={track} shadows={hi} />
+          {racers.map((r) => (
+            <Truck
+              key={r.runtime.id}
+              racer={r.runtime}
+              design={r.design}
+              model={r.model}
+              ai={r.ai}
+              autopilot={autopilot}
+              spawn={r.spawn}
+              hiRes={hi && r.runtime.isPlayer}
+              shadows={hi}
+              headlights={night && r.runtime.isPlayer}
+            />
+          ))}
+          <RaceDirector onFinish={onFinish} />
+        </Physics>
+      </Suspense>
+      <Scenery track={track} shadows={hi} />
+      <Dust color={dustColor} />
+      <CameraRig />
+    </Canvas>
+  );
+}

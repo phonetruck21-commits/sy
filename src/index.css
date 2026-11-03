@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@custom-variant short (@media (max-height: 520px));
+
+@theme {
+  --font-sans: "Heebo", "Arial Hebrew", Arial, sans-serif;
+  --color-neon: #1e9bff;
+  --color-neon2: #35e0ff;
+  --color-ink: #050b18;
+  --color-panel: rgba(8, 20, 45, 0.78);
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #050b18;
+  color: #fff;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, select { user-select: text; -webkit-user-select: text; }
+
+.glass {
+  background: linear-gradient(180deg, rgba(14, 32, 66, 0.82), rgba(6, 14, 32, 0.86));
+  border: 1px solid rgba(53, 160, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 10px 40px rgba(0,0,0,0.45);
+  backdrop-filter: blur(8px);
+}
+
+.neon-text {
+  text-shadow: 0 0 8px rgba(53, 200, 255, 0.9), 0 0 24px rgba(30, 155, 255, 0.6);
+}
+
+.btn-neon {
+  position: relative;
+  background: linear-gradient(180deg, #1e7bff, #0b4fc4);
+  border: 1px solid #5cc2ff;
+  box-shadow: 0 0 18px rgba(30, 155, 255, 0.55), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.btn-neon:hover { filter: brightness(1.12); }
+
+.btn-ghost {
+  background: linear-gradient(180deg, rgba(20, 40, 80, 0.8), rgba(8, 18, 40, 0.85));
+  border: 1px solid rgba(92, 194, 255, 0.35);
+}
+.btn-ghost:hover { border-color: #5cc2ff; box-shadow: 0 0 14px rgba(30,155,255,0.35); }
+
+@keyframes pop {
+  0% { transform: scale(2.2); opacity: 0; }
+  30% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.9; }
+}
+.animate-pop { animation: pop 0.9s ease-out both; }
+
+@keyframes floatIn {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-in { animation: floatIn 0.45s ease-out both; }
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(30,155,255,0.5); }
+  50% { box-shadow: 0 0 28px rgba(53,224,255,0.95); }
+}
+.animate-glow { animation: pulseGlow 1.8s ease-in-out infinite; }
+
+.speed-lines {
+  background-image: repeating-linear-gradient(115deg, rgba(53,224,255,0.07) 0 2px, transparent 2px 60px);
+}
+
+input[type="range"] { accent-color: #1e9bff; }
+input[type="color"] { -webkit-appearance: none; border: none; padding: 0; width: 44px; height: 32px; background: none; cursor: pointer; }
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.6); border-radius: 8px; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(92,194,255,0.35); border-radius: 4px; }
