@@ -34,7 +34,7 @@ export interface HistoryEntry {
   position: number;
   time: number;
   truckId: TruckId;
-  mode: 'quick' | 'championship';
+  mode: 'quick' | 'championship' | 'online';
 }
 
 type Upgrades = Record<UpgradeKey, number>;
@@ -65,7 +65,7 @@ interface ProfileState {
   setActiveDesign: (id: string) => void;
   activeDesign: () => TruckDesign;
   unlockAchievement: (id: string) => boolean;
-  recordRace: (r: RaceResult, extra: { nitroUsed: number; mode: 'quick' | 'championship'; playerTime: number; bestLap: number | null }) => string[];
+  recordRace: (r: RaceResult, extra: { nitroUsed: number; mode: 'quick' | 'championship' | 'online'; playerTime: number; bestLap: number | null }) => string[];
   startChampionship: (names: Record<string, string>) => void;
   applyChampionshipRound: (r: RaceResult) => void;
   abandonChampionship: () => void;

@@ -25,6 +25,7 @@ export function ResultsScreen() {
   const title = win ? 'ניצחון!' : pos <= 3 ? 'על הפודיום!' : 'סיימת את המירוץ';
   const medal = pos === 1 ? '🏆' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '🏁';
   const isChamp = cfg.mode === 'championship';
+  const isOnline = cfg.mode === 'online';
   const nextTrack = isChamp && champ && !champ.finished ? CHAMPIONSHIP_TRACKS[champ.round] : null;
 
   return (
@@ -35,6 +36,7 @@ export function ResultsScreen() {
           <div className="text-7xl md:text-8xl">{medal}</div>
           <h1 className={`text-4xl md:text-6xl font-black neon-text ${win ? 'text-yellow-300' : ''}`} data-testid="result-title">{title}</h1>
           <div className="text-xl mt-1">מקום <b data-testid="result-position">{pos}</b> מתוך {result.entries.length} · {TRACKS[result.trackId].nameHe}</div>
+          {isOnline && <div className="text-sky-300 mt-1">🌐 מירוץ אונליין</div>}
           {isChamp && <div className="text-sky-300 mt-1">אליפות · מירוץ {(result.championshipRound ?? 0) + 1} · +{CHAMPIONSHIP_POINTS[pos - 1] ?? 0} נקודות</div>}
         </div>
 
@@ -76,7 +78,8 @@ export function ResultsScreen() {
         <div className="flex flex-wrap gap-2 justify-center">
           {nextTrack && <Button variant="neon" size="lg" className="animate-glow" onClick={() => startRace({ trackId: nextTrack, mode: 'championship', laps: 3 })}>🏁 למירוץ הבא: {TRACKS[nextTrack].nameHe}</Button>}
           {isChamp && <Button size="lg" onClick={() => go('championship')}>🏆 טבלת האליפות</Button>}
-          {!isChamp && <Button variant="neon" size="lg" data-testid="race-again" onClick={() => restart()}>🔄 מירוץ חוזר</Button>}
+          {isOnline && <Button variant="neon" size="lg" data-testid="back-to-lobby" onClick={() => go('online')}>🌐 חזרה ללובי</Button>}
+          {!isChamp && !isOnline && <Button variant="neon" size="lg" data-testid="race-again" onClick={() => restart()}>🔄 מירוץ חוזר</Button>}
           <Button size="lg" onClick={() => go('garage')}>🚚 למוסך</Button>
           <Button size="lg" data-testid="to-home" onClick={() => go('home')}>🏠 תפריט ראשי</Button>
         </div>

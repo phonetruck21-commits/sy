@@ -2,7 +2,7 @@ import { Button, Panel } from '../components/UI';
 import { useProfile } from '../../store/profileStore';
 import { audio } from '../../game/audio/audio';
 
-export function PauseMenu({ onResume, onRestart, onExit, onCamera, camera }: { onResume: () => void; onRestart: () => void; onExit: () => void; onCamera: () => void; camera: string }) {
+export function PauseMenu({ onResume, onRestart, onExit, onCamera, camera }: { onResume: () => void; onRestart?: () => void; onExit: () => void; onCamera: () => void; camera: string }) {
   const volume = useProfile((s) => s.settings.volume);
   const update = useProfile((s) => s.updateSettings);
   const camName: Record<string, string> = { chase: 'מאחורי המשאית', cab: 'תא נהג', far: 'מרחוק' };
@@ -11,7 +11,7 @@ export function PauseMenu({ onResume, onRestart, onExit, onCamera, camera }: { o
       <Panel className="p-6 w-full max-w-sm flex flex-col gap-3 animate-in">
         <h2 className="text-3xl font-black text-center neon-text mb-2">⏸ הפסקה</h2>
         <Button variant="neon" size="lg" onClick={onResume}>▶ המשך מירוץ</Button>
-        <Button onClick={onRestart}>🔄 התחל מחדש</Button>
+        {onRestart && <Button onClick={onRestart}>🔄 התחל מחדש</Button>}
         <Button onClick={onCamera}>🎥 מצלמה: {camName[camera]}</Button>
         <label className="flex items-center gap-3 px-1">
           <span>🔊</span>

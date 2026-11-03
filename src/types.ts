@@ -7,7 +7,7 @@ export type TrackId = 'ashdod' | 'desert' | 'neon';
 export type TruckId = 'atleon' | 'hauler' | 'phantom';
 export type CameraMode = 'chase' | 'cab' | 'far';
 export type UpgradeKey = 'engine' | 'acceleration' | 'handling' | 'nitro';
-export type Difficulty = 'easy' | 'normal' | 'hard';
+export type Difficulty = 'easy' | 'normal' | 'hard' | 'expert';
 
 export interface SideDesign {
   theme: ThemeId;

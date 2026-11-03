@@ -11,6 +11,7 @@ import { ChampionshipScreen } from './ui/screens/ChampionshipScreen';
 import { SettingsScreen } from './ui/screens/SettingsScreen';
 import { RaceScreen } from './ui/screens/RaceScreen';
 import { ResultsScreen } from './ui/screens/ResultsScreen';
+import { OnlineScreen } from './ui/screens/OnlineScreen';
 
 export default function App() {
   const screen = useGame((s) => s.screen);
@@ -33,6 +34,7 @@ export default function App() {
       {screen === 'design' && <DesignScreen />}
       {screen === 'championship' && <ChampionshipScreen />}
       {screen === 'settings' && <SettingsScreen />}
+      {screen === 'online' && <OnlineScreen />}
       {screen === 'race' && <RaceScreen />}
       {screen === 'results' && <ResultsScreen />}
     </div>

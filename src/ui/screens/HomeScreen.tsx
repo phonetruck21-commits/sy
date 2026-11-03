@@ -9,6 +9,7 @@ const MENU = [
   { id: 'garage', icon: '🚚', label: 'המוסך שלי' },
   { id: 'design', icon: '🎨', label: 'עיצוב המשאית' },
   { id: 'championship', icon: '🏆', label: 'אליפות המשאיות' },
+  { id: 'online', icon: '🌐', label: 'אונליין עם חברים' },
   { id: 'settings', icon: '⚙️', label: 'הגדרות' },
 ] as const;
 

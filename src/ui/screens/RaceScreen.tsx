@@ -11,6 +11,7 @@ import { TouchControls } from '../hud/TouchControls';
 import { PauseMenu } from '../hud/PauseMenu';
 import type { CameraMode } from '../../types';
 import { TRACKS } from '../../data/tracks';
+import { useOnline } from '../../net/onlineStore';
 
 const CAMERAS: CameraMode[] = ['chase', 'cab', 'far'];
 
@@ -24,6 +25,8 @@ export function RaceScreen() {
   const [paused, setPaused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [camera, setCamera] = useState<CameraMode>(settings.camera);
+  const [waiting, setWaiting] = useState(false);
+  const online = cfg.online;
   const finished = useRef(false);
 
   const { track, setups } = useMemo(() => {
@@ -45,8 +48,15 @@ export function RaceScreen() {
   useLayoutEffect(() => {
     resetRace(track, cfg.laps, useProfile.getState().settings.camera);
     race.racers = setups.map((s) => s.runtime);
+    race.online = !!cfg.online;
     setCamera(race.camera);
-  }, [track, setups, cfg.laps]);
+  }, [track, setups, cfg.laps, cfg.online]);
+
+  // leaving an online race: stop publishing our truck
+  useEffect(() => {
+    if (!online) return;
+    return () => useOnline.getState().setPresence({ car: null, loaded: null, go: null });
+  }, [online]);
 
   const showTouch = settings.touchControls === 'on' || (settings.touchControls === 'auto' && window.matchMedia('(pointer: coarse)').matches);
 
@@ -91,19 +101,34 @@ export function RaceScreen() {
   }, [raceKey]);
 
   const onReady = useCallback(() => {
+    if (online) {
+      // online: tell the others we're loaded, the countdown starts when everyone is
+      setTimeout(() => {
+        setLoading(false);
+        setWaiting(true);
+        useOnline.getState().setPresence({ loaded: online.raceId });
+      }, 600);
+      return;
+    }
     // give textures / shaders a moment to compile before the countdown
     setTimeout(() => {
       race.phase = 'countdown';
       race.countdown = 4;
       setLoading(false);
     }, 600);
+  }, [online]);
+
+  const onGo = useCallback(() => {
+    setWaiting(false);
+    race.phase = 'countdown';
+    race.countdown = 4;
   }, []);
 
   const onFinish = useCallback(() => {
     if (finished.current) return;
     finished.current = true;
     const prof = useProfile.getState();
-    const result = computeResult(cfg, prof.settings.difficulty);
+    const result = computeResult(cfg, online ? 'normal' : prof.settings.difficulty);
     const player = getPlayer();
     const prevBest = prof.records[cfg.trackId]?.bestLap ?? null;
     const bestLap = player?.bestLap ?? null;
@@ -121,7 +146,7 @@ export function RaceScreen() {
     }
     audio.fanfare(result.playerPosition <= 3);
     finishRace(result);
-  }, [cfg, finishRace]);
+  }, [cfg, finishRace, online]);
 
   return (
     <div className="absolute inset-0 bg-black" data-testid="race-screen">
@@ -134,8 +159,18 @@ export function RaceScreen() {
         autopilot={cfg.autopilot}
         onFinish={onFinish}
         onReady={onReady}
+        online={online ? { info: online, ready: waiting, onGo } : null}
       />
-      {!loading && <HUD track={track} onPause={togglePause} onCamera={cycleCamera} />}
+      {waiting && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+          <div className="glass rounded-2xl px-6 py-4 text-center animate-in">
+            <div className="text-4xl">🌐</div>
+            <div className="text-2xl font-black mt-1">ממתין לשאר הנהגים…</div>
+            <div className="text-sky-300 text-sm mt-1">המירוץ יתחיל כשכולם יטענו את המסלול</div>
+          </div>
+        </div>
+      )}
+      {!loading && !waiting && <HUD track={track} onPause={togglePause} onCamera={cycleCamera} />}
       {!loading && showTouch && !paused && <TouchControls onRespawn={respawn} />}
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: 'radial-gradient(ellipse at center, #0d2450 0%, #050b18 70%)' }}>
@@ -149,9 +184,9 @@ export function RaceScreen() {
         <PauseMenu
           camera={camera}
           onResume={() => setPaused(false)}
-          onRestart={() => restartRace()}
+          onRestart={online ? undefined : () => restartRace()}
           onCamera={cycleCamera}
-          onExit={() => go(cfg.mode === 'championship' ? 'championship' : 'home')}
+          onExit={() => go(online ? 'online' : cfg.mode === 'championship' ? 'championship' : 'home')}
         />
       )}
     </div>

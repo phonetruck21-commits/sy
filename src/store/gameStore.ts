@@ -1,12 +1,21 @@
 import { create } from 'zustand';
-import type { RaceResult, TrackId } from '../types';
+import type { RaceResult, TrackId, TruckId } from '../types';
+import type { Look } from '../net/onlineStore';
 
-export type Screen = 'home' | 'race-setup' | 'garage' | 'design' | 'championship' | 'settings' | 'race' | 'results';
+export type Screen = 'home' | 'race-setup' | 'garage' | 'design' | 'championship' | 'settings' | 'online' | 'race' | 'results';
+
+export interface OnlineRaceInfo {
+  raceId: string;
+  order: string[]; // peer labels in grid order
+  myPeer: string;
+  players: Record<string, { name: string; look: Look; truck: TruckId }>;
+}
 
 export interface RaceConfig {
   trackId: TrackId;
-  mode: 'quick' | 'championship';
+  mode: 'quick' | 'championship' | 'online';
   laps: number;
+  online: OnlineRaceInfo | null;
   autopilot: boolean; // demo / test mode: player truck driven by AI
 }
 
@@ -30,6 +39,7 @@ export const useGame = create<GameState>()((set, get) => ({
     mode: 'quick',
     laps: Number(params.get('laps')) || 3,
     autopilot: params.get('autopilot') === '1',
+    online: null,
   },
   raceKey: 0,
   lastResult: null,
@@ -37,7 +47,7 @@ export const useGame = create<GameState>()((set, get) => ({
   startRace: (cfg) =>
     set({
       screen: 'race',
-      raceConfig: { ...get().raceConfig, mode: 'quick', ...cfg },
+      raceConfig: { ...get().raceConfig, mode: 'quick', online: null, ...cfg },
       raceKey: get().raceKey + 1,
     }),
   restartRace: () => set({ screen: 'race', raceKey: get().raceKey + 1 }),

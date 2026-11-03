@@ -7,6 +7,7 @@ export interface AIProfile {
   aggression: number; // nitro usage tendency
   lane: number; // preferred lateral offset (m)
   rubberBand: number; // 0..1 strength of catch-up
+  cornerGrip: number; // lateral acceleration budget in corners (m/s^2) — higher = braver
 }
 
 export interface AIState {
@@ -58,13 +59,13 @@ export function aiThink(r: RacerRuntime, ai: AIState, track: TrackData, all: Rac
   let maxCurv = 0;
   const horizon = Math.round((25 + speed * 1.6) / sp);
   for (let k = 2; k < horizon; k += 3) maxCurv = Math.max(maxCurv, track.curvature[wrapIndex(r.idx + k, n)]);
-  const cornerSpeed = Math.sqrt(9.5 / Math.max(maxCurv, 0.002)); // lateral accel budget
+  const cornerSpeed = Math.sqrt(ai.profile.cornerGrip / Math.max(maxCurv, 0.002)); // lateral accel budget
   let targetSpeed = Math.min(r.stats.maxSpeed * ai.profile.skill, cornerSpeed);
 
   // rubber banding keeps races close
   if (player) {
     const gap = ((r.total - player.total) * sp);
-    if (gap > 60) targetSpeed *= 1 - Math.min(0.12, (gap - 60) / 800) * ai.profile.rubberBand;
+    if (gap > 90) targetSpeed *= 1 - Math.min(0.06, (gap - 90) / 1500) * ai.profile.rubberBand;
     else if (gap < -60) targetSpeed *= 1 + Math.min(0.1, (-gap - 60) / 800) * ai.profile.rubberBand;
   }
   targetSpeed = Math.max(11, targetSpeed);

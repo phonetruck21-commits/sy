@@ -8,6 +8,9 @@ import { CameraRig } from '../camera/CameraRig';
 import { RaceDirector } from './RaceDirector';
 import { Truck } from '../vehicle/Truck';
 import { Dust } from './Dust';
+import { RemoteTruck } from '../vehicle/RemoteTruck';
+import { OnlineSync } from '../../net/OnlineSync';
+import type { OnlineRaceInfo } from '../../store/gameStore';
 import type { TrackData } from '../track/trackData';
 import type { RacerRuntime } from './raceRuntime';
 import type { AIState } from '../ai/aiDriver';
@@ -20,6 +23,7 @@ export interface RacerSetup {
   model: TruckModelParams;
   ai: AIState;
   spawn: { x: number; z: number; yaw: number };
+  remote?: boolean;
 }
 
 interface Props {
@@ -30,9 +34,10 @@ interface Props {
   autopilot: boolean;
   onFinish: () => void;
   onReady: () => void;
+  online?: { info: OnlineRaceInfo; ready: boolean; onGo: () => void } | null;
 }
 
-export function RaceScene({ track, racers, quality, paused, autopilot, onFinish, onReady }: Props) {
+export function RaceScene({ track, racers, quality, paused, autopilot, onFinish, onReady, online }: Props) {
   const hi = quality === 'high';
   const [dpr] = useState(() => Math.min(window.devicePixelRatio || 1, hi ? 1.75 : 1));
   const night = track.def.theme.night;
@@ -51,7 +56,9 @@ export function RaceScene({ track, racers, quality, paused, autopilot, onFinish,
       <Suspense fallback={null}>
         <Physics gravity={[0, -20, 0]} timeStep={1 / 60} paused={paused} interpolate>
           <TrackView track={track} shadows={hi} />
-          {racers.map((r) => (
+          {racers.map((r) => r.remote ? (
+            <RemoteTruck key={r.runtime.id} racer={r.runtime} design={r.design} model={r.model} spawn={r.spawn} />
+          ) : (
             <Truck
               key={r.runtime.id}
               racer={r.runtime}
@@ -71,6 +78,7 @@ export function RaceScene({ track, racers, quality, paused, autopilot, onFinish,
       <Scenery track={track} shadows={hi} />
       <Dust color={dustColor} />
       <CameraRig />
+      {online && <OnlineSync info={online.info} ready={online.ready} onGo={online.onGo} />}
     </Canvas>
   );
 }

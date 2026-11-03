@@ -39,6 +39,10 @@ export interface RacerRuntime {
   lastCheckTotal: number;
   respawnRequested: boolean;
   shake: number; // camera shake impulse (player)
+  /** online: another human, driven by network state instead of physics */
+  remote: boolean;
+  net: { x: number; y: number; z: number; yaw: number; sp: number; recv: number } | null;
+  gone: boolean; // remote player left the room
 }
 
 export type RacePhase = 'loading' | 'countdown' | 'racing' | 'finished';
@@ -53,6 +57,7 @@ export interface RaceRuntime {
   paused: boolean;
   camera: CameraMode;
   playerFinishedAt: number | null;
+  online: boolean;
 }
 
 export const race: RaceRuntime = {
@@ -65,6 +70,7 @@ export const race: RaceRuntime = {
   paused: false,
   camera: 'chase',
   playerFinishedAt: null,
+  online: false,
 };
 
 export function resetRace(track: TrackData, laps: number, camera: CameraMode) {
@@ -77,6 +83,7 @@ export function resetRace(track: TrackData, laps: number, camera: CameraMode) {
   race.paused = false;
   race.camera = camera;
   race.playerFinishedAt = null;
+  race.online = false;
 }
 
 export function createRacer(p: { id: string; name: string; isPlayer: boolean; color: string; stats: TruckStats; idx: number; total: number }): RacerRuntime {
@@ -106,6 +113,9 @@ export function createRacer(p: { id: string; name: string; isPlayer: boolean; co
     lastCheckTotal: p.total,
     respawnRequested: false,
     shake: 0,
+    remote: false,
+    net: null,
+    gone: false,
   };
 }
 

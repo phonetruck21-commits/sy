@@ -40,6 +40,7 @@ export function RaceDirector({ onFinish }: { onFinish: () => void }) {
 
     // progress + laps
     for (const r of race.racers) {
+      if (r.remote) continue; // progress of other humans comes from the network
       if (!r.body) continue;
       const prev = lastIdx.current.get(r.id);
       if (prev !== undefined) {
@@ -92,7 +93,10 @@ export function RaceDirector({ onFinish }: { onFinish: () => void }) {
         race.phase = 'finished';
         race.playerFinishedAt = race.time;
       }
-      if (race.phase === 'finished' && !finishSent.current && race.time - (race.playerFinishedAt ?? 0) > 3) {
+      const sinceFinish = race.time - (race.playerFinishedAt ?? 0);
+      // online: wait (up to 45 s) for the other humans to cross the line too
+      const othersDone = !race.online || race.racers.every((r) => !r.remote || r.finished || r.gone);
+      if (race.phase === 'finished' && !finishSent.current && sinceFinish > 3 && (othersDone || sinceFinish > 45)) {
         finishSent.current = true;
         onFinish();
       }
