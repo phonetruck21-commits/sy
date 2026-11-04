@@ -60,6 +60,7 @@ export function ResultsScreen() {
           <Panel className="p-4 text-center">
             <div className="text-sm text-sky-300">פרס המירוץ</div>
             <div className="text-4xl font-black text-yellow-300" dir="ltr">+{result.coinsEarned} 🪙</div>
+            {!!result.xpEarned && <div className="text-cyan-300 font-bold mt-1" dir="ltr">+{result.xpEarned} XP</div>}
             {result.bestLapRecord && <div className="mt-1 text-emerald-300 font-bold">⏱ שיא הקפה חדש!</div>}
           </Panel>
           <Panel className="p-4">

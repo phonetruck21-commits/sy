@@ -8,8 +8,9 @@ import { TRUCKS } from '../../data/trucks';
 import { formatTime } from '../../utils/random';
 import { Button, Panel, ScreenFrame } from '../components/UI';
 import { TRACK_GRADIENT } from './RaceSetupScreen';
+import { Leaderboard } from './Leaderboard';
 
-type Tab = 'cup' | 'trophies' | 'records';
+type Tab = 'cup' | 'world' | 'trophies' | 'records';
 
 export function ChampionshipScreen() {
   const [tab, setTab] = useState<Tab>('cup');
@@ -17,11 +18,12 @@ export function ChampionshipScreen() {
     <ScreenFrame title="אליפות המשאיות" icon="🏆">
       <div className="max-w-5xl mx-auto">
         <div className="flex gap-2 mb-4 overflow-x-auto">
-          {([['cup', '🏆 אליפות'], ['trophies', '🎖️ גביעים והישגים'], ['records', '📊 דירוג ושיאים']] as [Tab, string][]).map(([id, l]) => (
+          {([['cup', '🏆 אליפות'], ['world', '🌍 דירוג עולמי'], ['trophies', '🎖️ גביעים והישגים'], ['records', '📊 השיאים שלי']] as [Tab, string][]).map(([id, l]) => (
             <Button key={id} variant={tab === id ? 'neon' : 'ghost'} onClick={() => setTab(id)} className="shrink-0">{l}</Button>
           ))}
         </div>
         {tab === 'cup' && <Cup />}
+        {tab === 'world' && <Leaderboard />}
         {tab === 'trophies' && <Trophies />}
         {tab === 'records' && <Records />}
       </div>
@@ -108,8 +110,7 @@ function Cup() {
       <Panel className="p-4 md:col-span-2 border-dashed">
         <h3 className="font-black">🌐 מרוץ אונליין עם חברים</h3>
         <p className="text-sm text-slate-300 mt-1">
-          אפשר להתחרות בזמן אמת בחדר עם קוד — דרך "אונליין עם חברים" בתפריט הראשי. דירוג עולמי וחשבונות שחקנים עוד לא קיימים;
-          האליפות, השיאים וההתקדמות נשמרים במכשיר שלך.
+          אפשר להתחרות בזמן אמת בחדר עם קוד — דרך "אונליין עם חברים" בתפריט הראשי. כל מירוץ מוסיף XP לדירוג העולמי.
         </p>
       </Panel>
     </div>

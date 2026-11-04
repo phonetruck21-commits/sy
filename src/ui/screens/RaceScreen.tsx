@@ -10,7 +10,8 @@ import { HUD } from '../hud/HUD';
 import { TouchControls } from '../hud/TouchControls';
 import { PauseMenu } from '../hud/PauseMenu';
 import type { CameraMode } from '../../types';
-import { TRACKS } from '../../data/tracks';
+import { TRACKS, CHAMPIONSHIP_POINTS } from '../../data/tracks';
+import { DIFFICULTY } from '../../game/race/buildRace';
 import { useOnline } from '../../net/onlineStore';
 
 const CAMERAS: CameraMode[] = ['chase', 'cab', 'far'];
@@ -132,7 +133,13 @@ export function RaceScreen() {
     const player = getPlayer();
     const prevBest = prof.records[cfg.trackId]?.bestLap ?? null;
     const bestLap = player?.bestLap ?? null;
+    // leaderboard XP: placing points × difficulty (online races count 1.5×), scaled by race length
+    const mult = online ? 1.5 : DIFFICULTY[prof.settings.difficulty].coins;
+    const fieldScale = Math.min(1, (result.entries.length - 1) / 5); // no free XP for an empty online race
+    const xp = Math.round((CHAMPIONSHIP_POINTS[result.playerPosition - 1] ?? 0) * 10 * mult * (cfg.laps / 3) * Math.max(0.2, fieldScale));
+    result.xpEarned = xp;
     const unlocked = prof.recordRace(result, {
+      xp,
       nitroUsed: player?.nitroUsed ?? 0,
       mode: cfg.mode,
       playerTime: result.entries.find((e) => e.isPlayer)!.time,

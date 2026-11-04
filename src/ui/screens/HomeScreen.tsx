@@ -3,6 +3,7 @@ import { useProfile } from '../../store/profileStore';
 import { TRUCKS } from '../../data/trucks';
 import { TruckPreview } from '../../game/truck/TruckPreview';
 import { Button, Coins } from '../components/UI';
+import { AccountBadge } from '../components/AccountBadge';
 
 const MENU = [
   { id: 'race-setup', icon: '🏁', label: 'התחל מירוץ', primary: true },
@@ -30,7 +31,7 @@ export function HomeScreen() {
       </div>
 
       <div className="absolute top-3 left-3 right-3 flex justify-between items-start pointer-events-none">
-        <Coins className="pointer-events-auto" />
+        <div className="flex flex-col items-start gap-1.5 pointer-events-auto"><Coins /><AccountBadge /></div>
         <div className="pointer-events-auto text-left" dir="ltr">
           <div className="text-[10px] md:text-sm text-sky-300 tracking-[0.3em] font-bold">PHONE TRUCK PRESENTS</div>
           <h1 className="text-2xl md:text-5xl font-black leading-none neon-text italic short:text-2xl">

@@ -12,6 +12,7 @@ import { SettingsScreen } from './ui/screens/SettingsScreen';
 import { RaceScreen } from './ui/screens/RaceScreen';
 import { ResultsScreen } from './ui/screens/ResultsScreen';
 import { OnlineScreen } from './ui/screens/OnlineScreen';
+import { startCloudSync } from './net/cloudSync';
 
 export default function App() {
   const screen = useGame((s) => s.screen);
@@ -19,6 +20,7 @@ export default function App() {
 
   useEffect(() => audio.setVolume(volume), [volume]);
   useEffect(() => {
+    void startCloudSync();
     const unlock = () => audio.unlock();
     window.addEventListener('pointerdown', unlock, { once: true });
     window.addEventListener('keydown', unlock, { once: true });

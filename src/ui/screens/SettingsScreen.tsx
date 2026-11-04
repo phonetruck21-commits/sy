@@ -3,6 +3,7 @@ import { useProfile } from '../../store/profileStore';
 import { audio } from '../../game/audio/audio';
 import { DIFFICULTY } from '../../game/race/buildRace';
 import { Button, Panel, ScreenFrame } from '../components/UI';
+import { useCloud } from '../../net/cloud';
 import type { CameraMode, Difficulty } from '../../types';
 
 function Choice<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
@@ -64,13 +65,13 @@ export function SettingsScreen() {
             <p className="text-xs text-slate-400 mt-2">בטלפון: כפתורי היגוי משמאל, גז/בלם/ניטרו מימין. מומלץ לשחק לרוחב המסך.</p>
           </Panel>
           <Panel className="p-4">
-            <h3 className="font-bold mb-2">💾 התקדמות</h3>
-            <p className="text-sm text-slate-300">ההתקדמות, העיצובים והשיאים נשמרים בדפדפן במכשיר הזה (LocalStorage).</p>
+            <h3 className="font-bold mb-2">💾 חשבון והתקדמות</h3>
+            <AccountInfo />
             {!confirm ? (
               <Button variant="danger" className="mt-3" onClick={() => setConfirm(true)}>🗑 איפוס כל ההתקדמות</Button>
             ) : (
               <div className="flex gap-2 mt-3 items-center">
-                <span className="text-sm text-red-300">בטוח? הפעולה תמחק הכל.</span>
+                <span className="text-sm text-red-300">בטוח? הפעולה תמחק הכל (גם בחשבון).</span>
                 <Button variant="danger" size="sm" onClick={() => { reset(); setConfirm(false); }}>כן, אפס</Button>
                 <Button size="sm" onClick={() => setConfirm(false)}>ביטול</Button>
               </div>
@@ -85,5 +86,25 @@ export function SettingsScreen() {
         </div>
       </div>
     </ScreenFrame>
+  );
+}
+
+function AccountInfo() {
+  const status = useCloud((s) => s.status);
+  const cloud = useCloud((s) => s.cloud);
+  const lastSync = useCloud((s) => s.lastSync);
+  const err = useCloud((s) => s.syncError);
+  const canWrite = useCloud((s) => s.canWriteScores);
+  if (status === 'loading') return <p className="text-sm text-slate-300">בודק חשבון…</p>;
+  if (status !== 'on' || !cloud) {
+    return <p className="text-sm text-slate-300">לא מחובר לחשבון — ההתקדמות נשמרת רק בדפדפן במכשיר הזה. פתח את המשחק מהקישור שלו ב־claude.ai כשאתה מחובר כדי לשמור בענן ולהופיע בדירוג העולמי.</p>;
+  }
+  return (
+    <div className="text-sm text-slate-300 flex flex-col gap-1">
+      <div>☁️ מחובר כ־<b className="text-white" dir="auto">{cloud.accountName || 'חשבון Claude'}</b></div>
+      <div>ההתקדמות, המטבעות, המשאיות והעיצובים נשמרים בחשבון ומסתנכרנים בין המכשירים שלך.</div>
+      {err ? <div className="text-amber-300">הסנכרון נכשל ({err}) — ההתקדמות נשמרת במכשיר וננסה שוב.</div> : lastSync && <div className="text-emerald-300">✓ סונכרן לאחרונה {new Date(lastSync).toLocaleTimeString('he-IL')}</div>}
+      {!canWrite && <div className="text-amber-300">אין לך הרשאת כתיבה לדירוג העולמי בעמוד הזה (צריך הרשאת Contributor ומעלה).</div>}
+    </div>
   );
 }

@@ -43,6 +43,7 @@ const emptyUpgrades = (): Upgrades => ({ engine: 0, acceleration: 0, handling: 0
 interface ProfileState {
   playerName: string;
   coins: number;
+  xp: number;
   achievements: string[];
   selectedTruck: TruckId;
   upgrades: Record<TruckId, Upgrades>;
@@ -65,7 +66,7 @@ interface ProfileState {
   setActiveDesign: (id: string) => void;
   activeDesign: () => TruckDesign;
   unlockAchievement: (id: string) => boolean;
-  recordRace: (r: RaceResult, extra: { nitroUsed: number; mode: 'quick' | 'championship' | 'online'; playerTime: number; bestLap: number | null }) => string[];
+  recordRace: (r: RaceResult, extra: { nitroUsed: number; mode: 'quick' | 'championship' | 'online'; playerTime: number; bestLap: number | null; xp: number }) => string[];
   startChampionship: (names: Record<string, string>) => void;
   applyChampionshipRound: (r: RaceResult) => void;
   abandonChampionship: () => void;
@@ -77,6 +78,7 @@ const initialDesign = createDefaultDesign();
 const initial = () => ({
   playerName: 'PHONE TRUCK',
   coins: 500,
+  xp: 0,
   achievements: [] as string[],
   selectedTruck: 'atleon' as TruckId,
   upgrades: { atleon: emptyUpgrades(), hauler: emptyUpgrades(), phantom: emptyUpgrades() },
@@ -155,6 +157,7 @@ export const useProfile = create<ProfileState>()(
         };
         set({
           coins: s.coins + r.coinsEarned,
+          xp: (s.xp ?? 0) + extra.xp,
           records: { ...s.records, [r.trackId]: newRec },
           stats: {
             ...s.stats,

@@ -99,6 +99,7 @@ export interface RaceResult {
   entries: RaceResultEntry[];
   playerPosition: number;
   coinsEarned: number;
+  xpEarned?: number;
   newAchievements: string[];
   bestLapRecord: boolean;
   championshipRound?: number;
