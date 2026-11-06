@@ -63,7 +63,8 @@ export function stepVehicle(r: RacerRuntime, input: DriveInput, dt: number, trac
   const off = lateralOffset(track, r.idx, t.x, t.z);
   r.offroad = Math.abs(off) > track.halfWidth + 0.5;
 
-  const throttle = controlEnabled && input.throttle;
+  // nitro always counts as full throttle (kids often hold only the 🔥 button)
+  const throttle = controlEnabled && (input.throttle || input.nitro);
   const brake = controlEnabled && input.brake;
   const steerIn = controlEnabled ? (input.steer ?? (input.left ? 1 : 0) - (input.right ? 1 : 0)) : 0;
 
