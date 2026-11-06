@@ -12,6 +12,9 @@ export function GarageScreen() {
   const selected = useProfile((s) => s.selectedTruck);
   const selectTruck = useProfile((s) => s.selectTruck);
   const achievements = useProfile((s) => s.achievements);
+  const owned = useProfile((s) => s.ownedTrucks ?? []);
+  const buyTruck = useProfile((s) => s.buyTruck);
+  const isOpen = (id: TruckId) => !TRUCKS[id].unlock.achievement || achievements.includes(TRUCKS[id].unlock.achievement!) || owned.includes(id);
   const upgrades = useProfile((s) => s.upgrades);
   const coins = useProfile((s) => s.coins);
   const buyUpgrade = useProfile((s) => s.buyUpgrade);
@@ -19,7 +22,7 @@ export function GarageScreen() {
   const [viewing, setViewing] = useState<TruckId>(selected);
 
   const def = TRUCKS[viewing];
-  const unlocked = !def.unlock.achievement || achievements.includes(def.unlock.achievement);
+  const unlocked = isOpen(viewing);
   const up = upgrades[viewing];
   const st = applyUpgrades(def.stats, up);
 
@@ -43,7 +46,7 @@ export function GarageScreen() {
             <h3 className="font-bold mb-2 text-sky-200">המשאיות שלי</h3>
             <div className="grid grid-cols-3 gap-2">
               {TRUCK_LIST.map((t) => {
-                const un = !t.unlock.achievement || achievements.includes(t.unlock.achievement);
+                const un = isOpen(t.id);
                 return (
                   <button
                     key={t.id}
@@ -57,9 +60,20 @@ export function GarageScreen() {
                 );
               })}
             </div>
-            <Button variant="neon" className="w-full mt-3" disabled={!unlocked || selected === viewing} onClick={() => selectTruck(viewing)}>
-              {selected === viewing ? '✓ המשאית הנבחרת' : unlocked ? 'בחר משאית זו' : '🔒 נעולה'}
-            </Button>
+            {unlocked ? (
+              <Button variant="neon" className="w-full mt-3" disabled={selected === viewing} onClick={() => selectTruck(viewing)}>
+                {selected === viewing ? '✓ המשאית הנבחרת' : 'בחר משאית זו'}
+              </Button>
+            ) : (
+              <div className="mt-3 flex flex-col gap-1.5">
+                <Button variant="neon" className="w-full" data-testid="buy-truck" disabled={coins < def.unlock.price} onClick={() => { if (buyTruck(viewing)) audio.coin(); }}>
+                  🔓 קנה ב־<span dir="ltr">🪙 {def.unlock.price.toLocaleString()}</span>
+                </Button>
+                <div className="text-xs text-center text-slate-300">
+                  {coins < def.unlock.price ? `חסרים לך 🪙 ${(def.unlock.price - coins).toLocaleString()} · ` : ''}או בחינם: {def.unlock.textHe}
+                </div>
+              </div>
+            )}
           </Panel>
 
           <Panel className="p-3 flex flex-col gap-2">
@@ -72,7 +86,13 @@ export function GarageScreen() {
           </Panel>
 
           <Panel className="p-3">
-            <h3 className="font-bold mb-2 text-sky-200">שדרוגים</h3>
+            <h3 className="font-bold mb-2 text-sky-200">שדרוגים · {def.nameHe}</h3>
+            {!unlocked && (
+              <div className="mb-2 rounded-xl bg-amber-500/15 border border-amber-400/50 p-2 text-sm" data-testid="locked-note">
+                🔒 אי אפשר לשדרג משאית נעולה. קנה אותה למעלה, או שדרג את המשאית שלך —{' '}
+                <button className="underline font-bold text-amber-200" onClick={() => setViewing(selected)}>{TRUCKS[selected].nameHe}</button>
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               {(Object.keys(UPGRADE_INFO) as UpgradeKey[]).map((k) => {
                 const lvl = up[k];
@@ -97,7 +117,7 @@ export function GarageScreen() {
                       data-testid={`upgrade-${k}`}
                       onClick={() => { if (buyUpgrade(viewing, k)) audio.coin(); }}
                     >
-                      {maxed ? 'מקס׳' : <span dir="ltr">🪙 {cost}</span>}
+                      {!unlocked ? '🔒' : maxed ? 'מקס׳' : <span dir="ltr">🪙 {cost}</span>}
                     </Button>
                   </div>
                 );

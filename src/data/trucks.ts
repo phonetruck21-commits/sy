@@ -14,7 +14,8 @@ export interface TruckDef {
   description: string;
   stats: TruckStats;
   model: TruckModelParams;
-  unlock: { achievement: string | null; textHe: string };
+  /** unlocked by an achievement, or bought with coins (price) */
+  unlock: { achievement: string | null; textHe: string; price: number };
 }
 
 export const TRUCKS: Record<TruckId, TruckDef> = {
@@ -25,7 +26,7 @@ export const TRUCKS: Record<TruckId, TruckDef> = {
     description: 'משאית הארגז המקורית של PHONE TRUCK — סרן אחורי יחיד ורמפה אחורית DHOLLANDIA.',
     stats: { maxSpeed: 33, accel: 9, handling: 1.5, nitroCapacity: 4, mass: 1, offroad: 0.5 },
     model: { boxLength: 6.2, boxHeight: 2.5, cabStyle: 'atleon', dualRear: true },
-    unlock: { achievement: null, textHe: 'זמינה מההתחלה' },
+    unlock: { achievement: null, textHe: 'זמינה מההתחלה', price: 0 },
   },
   hauler: {
     id: 'hauler',
@@ -34,7 +35,7 @@ export const TRUCKS: Record<TruckId, TruckDef> = {
     description: 'משאית שטח קשוחה עם מתלה מוגבה — שומרת מהירות בחול ובשטח.',
     stats: { maxSpeed: 34, accel: 10.5, handling: 1.55, nitroCapacity: 5, mass: 1.15, offroad: 0.85 },
     model: { boxLength: 5.4, boxHeight: 2.3, cabStyle: 'heavy', dualRear: true },
-    unlock: { achievement: 'first_win', textHe: 'נפתחת בניצחון ראשון במירוץ' },
+    unlock: { achievement: 'first_win', textHe: 'נפתחת בניצחון ראשון במירוץ', price: 3000 },
   },
   phantom: {
     id: 'phantom',
@@ -43,7 +44,7 @@ export const TRUCKS: Record<TruckId, TruckDef> = {
     description: 'משאית מירוץ עתידנית — המהירה ביותר במוסך.',
     stats: { maxSpeed: 37, accel: 11.5, handling: 1.65, nitroCapacity: 5.5, mass: 0.95, offroad: 0.6 },
     model: { boxLength: 5.8, boxHeight: 2.2, cabStyle: 'sleek', dualRear: false },
-    unlock: { achievement: 'champion', textHe: 'נפתחת בזכייה באליפות המשאיות' },
+    unlock: { achievement: 'champion', textHe: 'נפתחת בזכייה באליפות המשאיות', price: 8000 },
   },
 };
 

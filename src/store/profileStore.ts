@@ -65,6 +65,9 @@ interface ProfileState {
   updateSettings: (s: Partial<Settings>) => void;
   selectTruck: (id: TruckId) => void;
   isTruckUnlocked: (id: TruckId) => boolean;
+  /** trucks bought with coins */
+  ownedTrucks: TruckId[];
+  buyTruck: (id: TruckId) => boolean;
   buyUpgrade: (truck: TruckId, key: UpgradeKey) => boolean;
   saveDesign: (d: TruckDesign) => void;
   deleteDesign: (id: string) => void;
@@ -86,6 +89,7 @@ const initial = () => ({
   xp: 0,
   achievements: [] as string[],
   selectedTruck: 'atleon' as TruckId,
+  ownedTrucks: [] as TruckId[],
   upgrades: { atleon: emptyUpgrades(), hauler: emptyUpgrades(), phantom: emptyUpgrades() },
   designs: [initialDesign],
   activeDesignId: initialDesign.id,
@@ -124,7 +128,14 @@ export const useProfile = create<ProfileState>()(
       },
       isTruckUnlocked: (id) => {
         const a = TRUCKS[id].unlock.achievement;
-        return !a || get().achievements.includes(a);
+        return !a || get().achievements.includes(a) || (get().ownedTrucks ?? []).includes(id);
+      },
+      buyTruck: (id) => {
+        const s = get();
+        const price = TRUCKS[id].unlock.price;
+        if (s.isTruckUnlocked(id) || s.coins < price) return false;
+        set({ coins: s.coins - price, ownedTrucks: [...(s.ownedTrucks ?? []), id], selectedTruck: id });
+        return true;
       },
       buyUpgrade: (truck, key) => {
         const s = get();
