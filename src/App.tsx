@@ -12,6 +12,7 @@ import { SettingsScreen } from './ui/screens/SettingsScreen';
 import { RaceScreen } from './ui/screens/RaceScreen';
 import { ResultsScreen } from './ui/screens/ResultsScreen';
 import { OnlineScreen } from './ui/screens/OnlineScreen';
+import { ClubScreen } from './ui/screens/ClubScreen';
 import { startCloudSync } from './net/cloudSync';
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
       {screen === 'championship' && <ChampionshipScreen />}
       {screen === 'settings' && <SettingsScreen />}
       {screen === 'online' && <OnlineScreen />}
+      {screen === 'club' && <ClubScreen />}
       {screen === 'race' && <RaceScreen />}
       {screen === 'results' && <ResultsScreen />}
     </div>

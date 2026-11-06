@@ -24,14 +24,16 @@ export interface ProfileSnapshot {
   design: TruckDesign;
   difficulty: Difficulty;
   camera: CameraMode;
+  /** tournament fairness: standard truck, no upgrades */
+  equal?: boolean;
 }
 
 export function buildRace(cfg: RaceConfig, p: ProfileSnapshot) {
   const track = getTrackData(TRACKS[cfg.trackId]);
   resetRace(track, cfg.laps, p.camera);
   const diff = DIFFICULTY[p.difficulty];
-  const truck = TRUCKS[p.selectedTruck];
-  const playerStats = applyUpgrades(truck.stats, p.upgrades[p.selectedTruck]);
+  const truck = p.equal ? TRUCKS.atleon : TRUCKS[p.selectedTruck];
+  const playerStats = p.equal ? { ...TRUCKS.atleon.stats } : applyUpgrades(truck.stats, p.upgrades[p.selectedTruck]);
 
   if (cfg.online) return buildOnline(cfg, p, track, playerStats);
   if (cfg.mode === 'explore') {

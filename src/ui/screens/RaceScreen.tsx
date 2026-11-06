@@ -14,6 +14,9 @@ import { TRACKS, CHAMPIONSHIP_POINTS } from '../../data/tracks';
 import { DIFFICULTY } from '../../game/race/buildRace';
 import { useOnline } from '../../net/onlineStore';
 import { buildPickups } from '../../game/race/pickups';
+import { submitTournamentTime } from '../../net/club';
+import { getCloud } from '../../net/cloud';
+import { useTournamentResult } from '../../net/tournamentResult';
 
 const CAMERAS: CameraMode[] = ['chase', 'cab', 'far'];
 
@@ -38,8 +41,9 @@ export function RaceScreen() {
       selectedTruck: p.selectedTruck,
       upgrades: p.upgrades,
       design: p.activeDesign(),
-      difficulty: p.settings.difficulty,
+      difficulty: cfg.tournament?.difficulty ?? p.settings.difficulty,
       camera: p.settings.camera,
+      equal: !!cfg.tournament?.equal,
     });
     // a new raceKey rebuilds the whole race
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,19 +141,20 @@ export function RaceScreen() {
     if (finished.current) return;
     finished.current = true;
     const prof = useProfile.getState();
-    const result = computeResult(cfg, online ? 'normal' : prof.settings.difficulty);
+    const diffUsed = cfg.tournament?.difficulty ?? prof.settings.difficulty;
+    const result = computeResult(cfg, online ? 'normal' : diffUsed);
     const player = getPlayer();
     const prevBest = prof.records[cfg.trackId]?.bestLap ?? null;
     const bestLap = player?.bestLap ?? null;
     // leaderboard XP: placing points × difficulty (online races count 1.5×), scaled by race length
-    const mult = online ? 1.5 : DIFFICULTY[prof.settings.difficulty].coins;
+    const mult = online ? 1.5 : DIFFICULTY[diffUsed].coins;
     const fieldScale = Math.min(1, (result.entries.length - 1) / 5); // no free XP for an empty online race
     const xp = Math.round((CHAMPIONSHIP_POINTS[result.playerPosition - 1] ?? 0) * 10 * mult * (cfg.laps / 3) * Math.max(0.2, fieldScale));
     result.xpEarned = xp;
     const unlocked = prof.recordRace(result, {
       xp,
       nitroUsed: player?.nitroUsed ?? 0,
-      mode: cfg.mode === 'explore' ? 'quick' : cfg.mode,
+      mode: cfg.mode === 'explore' || cfg.mode === 'tournament' ? 'quick' : cfg.mode,
       playerTime: result.entries.find((e) => e.isPlayer)!.time,
       bestLap,
     });
@@ -158,6 +163,20 @@ export function RaceScreen() {
     if (cfg.mode === 'championship' && prof.championship) {
       result.championshipRound = prof.championship.round;
       prof.applyChampionshipRound(result);
+    }
+    if (cfg.tournament) {
+      const t = cfg.tournament;
+      const myTime = result.entries.find((e) => e.isPlayer)!.time;
+      useTournamentResult.setState({ status: 'saving', time: myTime, best: null, improved: false, tid: t.id });
+      void getCloud().then(async (cloud) => {
+        if (!cloud) return useTournamentResult.setState({ status: 'error' });
+        try {
+          const r = await submitTournamentTime(cloud, t.id, myTime, prof.playerName || 'נהג', prof.activeDesign().cabColor);
+          useTournamentResult.setState({ status: 'saved', best: r.best, improved: r.improved });
+        } catch {
+          useTournamentResult.setState({ status: 'error' });
+        }
+      });
     }
     audio.fanfare(result.playerPosition <= 3);
     finishRace(result);

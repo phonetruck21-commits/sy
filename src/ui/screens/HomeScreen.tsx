@@ -11,6 +11,7 @@ const MENU = [
   { id: 'design', icon: '🎨', label: 'עיצוב המשאית' },
   { id: 'championship', icon: '🏆', label: 'אליפות המשאיות' },
   { id: 'online', icon: '🌐', label: 'אונליין עם חברים' },
+  { id: 'club', icon: '🏅', label: 'מועדון חברים וטורנירים' },
   { id: 'settings', icon: '⚙️', label: 'הגדרות' },
 ] as const;
 
@@ -41,7 +42,7 @@ export function HomeScreen() {
         </div>
       </div>
 
-      <nav className="absolute bottom-0 inset-x-0 p-3 md:p-0 md:inset-y-0 md:left-auto md:right-8 md:w-[30%] md:max-w-sm flex flex-col justify-end md:justify-center gap-2.5 md:gap-3 short:gap-1.5 short:inset-y-0 short:left-auto short:right-3 short:w-64 short:p-0 short:pt-14 short:pb-2 short:justify-center">
+      <nav className="absolute bottom-0 inset-x-0 p-3 md:p-0 md:inset-y-0 md:left-auto md:right-8 md:w-[30%] md:max-w-sm flex flex-col justify-end md:justify-center gap-2.5 md:gap-3 short:gap-1 short:inset-y-0 short:left-auto short:right-3 short:w-64 short:p-0 short:pt-14 short:pb-2 short:justify-center">
         <div className="glass rounded-2xl px-4 py-2 text-sm flex justify-between items-center mb-1 short:hidden">
           <span>👤 {name}</span>
           <span className="text-sky-300">🏁 {stats.races} · 🥇 {stats.wins} · 🏆 {stats.championships}</span>
@@ -51,7 +52,7 @@ export function HomeScreen() {
             key={m.id}
             variant={'primary' in m ? 'neon' : 'ghost'}
             size="lg"
-            className={`w-full flex items-center justify-between animate-in short:py-2 short:text-base ${'primary' in m ? 'animate-glow' : ''}`}
+            className={`w-full flex items-center justify-between animate-in short:py-1.5 short:text-sm ${'primary' in m ? 'animate-glow' : ''}`}
             style={{ animationDelay: `${i * 70}ms` }}
             onClick={() => go(m.id)}
             data-testid={`menu-${m.id}`}

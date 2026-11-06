@@ -11,6 +11,7 @@ import { create } from 'zustand';
 export type Unsub = () => void;
 export interface DocSnap { id: string; exists: boolean; data(): Record<string, unknown> | undefined; metadata: { fromCache: boolean; hasPendingWrites: boolean } }
 export interface QuerySnap { docs: DocSnap[] }
+
 export interface DocRef {
   id: string;
   get(): Promise<DocSnap>;

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { RaceResult, TrackId, TruckId } from '../types';
 import type { Look } from '../net/onlineStore';
 
-export type Screen = 'home' | 'race-setup' | 'garage' | 'design' | 'championship' | 'settings' | 'online' | 'race' | 'results';
+export type Screen = 'home' | 'race-setup' | 'garage' | 'design' | 'championship' | 'settings' | 'online' | 'club' | 'race' | 'results';
 
 export interface OnlineRaceInfo {
   raceId: string;
@@ -13,7 +13,8 @@ export interface OnlineRaceInfo {
 
 export interface RaceConfig {
   trackId: TrackId;
-  mode: 'quick' | 'championship' | 'online' | 'explore';
+  mode: 'quick' | 'championship' | 'online' | 'explore' | 'tournament';
+  tournament?: { id: string; name: string; difficulty: import('../types').Difficulty; equal: boolean } | null;
   laps: number;
   online: OnlineRaceInfo | null;
   autopilot: boolean; // demo / test mode: player truck driven by AI
@@ -47,7 +48,7 @@ export const useGame = create<GameState>()((set, get) => ({
   startRace: (cfg) =>
     set({
       screen: 'race',
-      raceConfig: { ...get().raceConfig, mode: 'quick', online: null, ...cfg },
+      raceConfig: { ...get().raceConfig, mode: 'quick', online: null, tournament: null, ...cfg },
       raceKey: get().raceKey + 1,
     }),
   restartRace: () => set({ screen: 'race', raceKey: get().raceKey + 1 }),

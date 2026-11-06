@@ -6,6 +6,7 @@ import { ACHIEVEMENT_MAP } from '../../data/achievements';
 import { formatTime } from '../../utils/random';
 import { audio } from '../../game/audio/audio';
 import { usePickupFx } from '../../game/race/pickups';
+import { useTournamentResult } from '../../net/tournamentResult';
 import { Button, Panel, Coins } from '../components/UI';
 
 export function ResultsScreen() {
@@ -28,6 +29,7 @@ export function ResultsScreen() {
   const medal = pos === 1 ? '🏆' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '🏁';
   const isChamp = cfg.mode === 'championship';
   const isOnline = cfg.mode === 'online';
+  const isTour = cfg.mode === 'tournament';
   const nextTrack = isChamp && champ && !champ.finished ? CHAMPIONSHIP_TRACKS[champ.round] : null;
 
   return (
@@ -41,6 +43,8 @@ export function ResultsScreen() {
           {isOnline && <div className="text-sky-300 mt-1">🌐 מירוץ אונליין</div>}
           {isChamp && <div className="text-sky-300 mt-1">אליפות · מירוץ {(result.championshipRound ?? 0) + 1} · +{CHAMPIONSHIP_POINTS[pos - 1] ?? 0} נקודות</div>}
         </div>
+
+        {isTour && <TournamentBox name={cfg.tournament?.name ?? ''} />}
 
         <Panel className="p-3 md:p-4">
           <table className="w-full text-sm md:text-base">
@@ -83,11 +87,27 @@ export function ResultsScreen() {
           {nextTrack && <Button variant="neon" size="lg" className="animate-glow" onClick={() => startRace({ trackId: nextTrack, mode: 'championship', laps: 3 })}>🏁 למירוץ הבא: {TRACKS[nextTrack].nameHe}</Button>}
           {isChamp && <Button size="lg" onClick={() => go('championship')}>🏆 טבלת האליפות</Button>}
           {isOnline && <Button variant="neon" size="lg" data-testid="back-to-lobby" onClick={() => go('online')}>🌐 חזרה ללובי</Button>}
-          {!isChamp && !isOnline && <Button variant="neon" size="lg" data-testid="race-again" onClick={() => restart()}>🔄 מירוץ חוזר</Button>}
+          {isTour && <Button size="lg" onClick={() => go('club')}>🏅 למועדון</Button>}
+          {!isChamp && !isOnline && <Button variant="neon" size="lg" data-testid="race-again" onClick={() => restart()}>{isTour ? '🔄 נסה לשפר' : '🔄 מירוץ חוזר'}</Button>}
           <Button size="lg" onClick={() => go('garage')}>🚚 למוסך</Button>
           <Button size="lg" data-testid="to-home" onClick={() => go('home')}>🏠 תפריט ראשי</Button>
         </div>
       </div>
     </div>
+  );
+}
+
+function TournamentBox({ name }: { name: string }) {
+  const r = useTournamentResult();
+  return (
+    <div data-testid="tournament-result"><Panel className="p-4 text-center border-cyan-300/50">
+      <div className="text-sm text-cyan-300 font-bold">🏅 טורניר: {name}</div>
+      <div className="text-2xl font-black mt-1">הזמן שלך: <span dir="ltr">{formatTime(r.time)}</span></div>
+      {r.status === 'saving' && <div className="text-slate-300 text-sm mt-1 animate-pulse">שומר בטבלת הטורניר…</div>}
+      {r.status === 'saved' && (r.improved
+        ? <div className="text-emerald-300 font-bold mt-1">✓ שיא אישי חדש בטורניר! נכנס לטבלה</div>
+        : <div className="text-slate-300 text-sm mt-1">השיא שלך נשאר <span dir="ltr">{formatTime(r.best)}</span> — נסה שוב לשפר</div>)}
+      {r.status === 'error' && <div className="text-amber-300 text-sm mt-1">לא הצלחנו לשמור את התוצאה בטורניר (צריך להיות מחובר עם הרשאת השתתפות).</div>}
+    </Panel></div>
   );
 }
