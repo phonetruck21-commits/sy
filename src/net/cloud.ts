@@ -52,8 +52,11 @@ export function getCloud(): Promise<Cloud | null> {
     let cloud: Cloud | null = null;
     if (claude?.use) {
       try {
-        const [db, user] = (await Promise.all([claude.use('db'), claude.use('user')])) as [DB | null, UserNs | null];
-        const uid = user ? await user.id() : null;
+        // Ask who is viewing first. A signed-out viewer has no account and no
+        // cloud data, so the database is never touched for them (no sign-in prompt mid-game).
+        const user = (await claude.use('user')) as UserNs | null;
+        const uid = user ? await user.id().catch(() => null) : null;
+        const db = uid ? ((await claude.use('db')) as DB | null) : null;
         if (db && user && uid) {
           const [isOwner, accountName] = await Promise.all([user.isOwner().catch(() => false), user.name ? user.name().catch(() => '') : Promise.resolve('')]);
           cloud = { db, uid, isOwner, accountName, mock: false };

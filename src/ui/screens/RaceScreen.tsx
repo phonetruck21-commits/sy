@@ -187,7 +187,7 @@ export function RaceScreen() {
           </div>
         </div>
       )}
-      {!loading && !waiting && <HUD explore={explore} pickups={pickups} track={track} onPause={togglePause} onCamera={cycleCamera} />}
+      {!loading && !waiting && <HUD touch={showTouch} explore={explore} pickups={pickups} track={track} onPause={togglePause} onCamera={cycleCamera} />}
       {!loading && showTouch && !paused && <TouchControls onRespawn={respawn} />}
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: 'radial-gradient(ellipse at center, #0d2450 0%, #050b18 70%)' }}>

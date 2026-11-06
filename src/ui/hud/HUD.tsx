@@ -82,7 +82,7 @@ function Minimap({ track, dots, stash }: { track: TrackData; dots: Snapshot['dot
   );
 }
 
-export function HUD({ track, onPause, onCamera, explore = false, pickups = [] }: { track: TrackData; onPause: () => void; onCamera: () => void; explore?: boolean; pickups?: Pickup[] }) {
+export function HUD({ track, onPause, onCamera, explore = false, pickups = [], touch = false }: { track: TrackData; onPause: () => void; onCamera: () => void; explore?: boolean; pickups?: Pickup[]; touch?: boolean }) {
   const s = useRaceSnapshot();
   const [mapOpen, setMapOpen] = useState(false);
   const collected = usePickupFx((x) => x.total);
@@ -137,10 +137,10 @@ export function HUD({ track, onPause, onCamera, explore = false, pickups = [] }:
         </div>
         )}
 
-        <div className="flex flex-col items-center gap-2">
-          {!explore && <div className="glass rounded-2xl px-4 py-2 text-center">
+        <div className={`flex flex-col items-center gap-2 ${touch ? 'mt-11' : ''}`}>
+          {!explore && <div className={`glass rounded-2xl text-center ${touch ? 'px-3 py-0.5 flex items-baseline gap-2' : 'px-4 py-2'}`}>
             <div className="text-xs text-sky-300">הקפה</div>
-            <div className="text-2xl md:text-3xl font-black" data-testid="hud-lap"><span dir="ltr">{s.lap}/{s.laps}</span></div>
+            <div className={`${touch ? 'text-lg' : 'text-2xl md:text-3xl'} font-black`} data-testid="hud-lap"><span dir="ltr">{s.lap}/{s.laps}</span></div>
           </div>}
           <div className="flex gap-2 pointer-events-auto">
             <button className="glass rounded-xl px-3 py-2 text-lg" onClick={onPause} aria-label="השהיה">⏸</button>
@@ -159,8 +159,17 @@ export function HUD({ track, onPause, onCamera, explore = false, pickups = [] }:
         </div>
       </div>
 
-      {/* speedometer + nitro */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center">
+      {/* speedometer + nitro — with touch controls it moves to the top so it never covers the pedals */}
+      <div className={touch ? 'absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center' : 'absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center'} data-testid="speedo">
+        {touch ? (
+          <div className="glass rounded-xl px-3 py-1 flex items-center gap-2" dir="ltr">
+            <span className="text-2xl font-black tabular-nums neon-text" data-testid="hud-speed">{s.speed}</span>
+            <span className="text-[10px] text-sky-300">קמ"ש</span>
+            <span className="h-2 w-14 rounded-full bg-slate-800 overflow-hidden">
+              <span className={`block h-full ${s.nitroActive ? 'bg-cyan-200' : 'bg-gradient-to-r from-orange-500 to-yellow-300'}`} style={{ width: `${Math.round(s.nitro * 100)}%` }} />
+            </span>
+          </div>
+        ) : (
         <div className="glass rounded-2xl px-5 py-2 text-center min-w-36 short:px-3 short:py-1">
           <div className="text-5xl md:text-6xl short:text-4xl font-black tabular-nums neon-text" data-testid="hud-speed">{s.speed}</div>
           <div className="text-xs text-sky-300 -mt-1">קמ"ש</div>
@@ -169,6 +178,7 @@ export function HUD({ track, onPause, onCamera, explore = false, pickups = [] }:
           </div>
           <div className="text-[10px] text-orange-300 mt-0.5">NITRO</div>
         </div>
+        )}
       </div>
 
       {/* center messages */}

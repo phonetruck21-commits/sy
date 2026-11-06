@@ -27,7 +27,12 @@ function Pad({ k, children, className = '', label }: { k: Key; children: ReactNo
 /** On-screen controls for phones / tablets (multi-touch: steer + gas simultaneously). */
 export function TouchControls({ onRespawn }: { onRespawn: () => void }) {
   return (
-    <div className="absolute inset-x-0 bottom-0 pointer-events-none p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-between items-end" dir="ltr" data-testid="touch-controls">
+    <div
+      className="absolute inset-x-0 bottom-0 pointer-events-none p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-between items-end"
+      style={{ paddingLeft: 'max(0.75rem, env(safe-area-inset-left))', paddingRight: 'max(0.75rem, env(safe-area-inset-right))' }}
+      dir="ltr"
+      data-testid="touch-controls"
+    >
       <div className="flex gap-3">
         <Pad k="left" label="שמאלה" className="w-20 h-20 md:w-24 md:h-24 text-4xl">◀</Pad>
         <Pad k="right" label="ימינה" className="w-20 h-20 md:w-24 md:h-24 text-4xl">▶</Pad>
