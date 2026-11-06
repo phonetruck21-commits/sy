@@ -8,6 +8,8 @@ import { CameraRig } from '../camera/CameraRig';
 import { RaceDirector } from './RaceDirector';
 import { Truck } from '../vehicle/Truck';
 import { Dust } from './Dust';
+import { Pickups } from './Pickups';
+import type { Pickup } from './pickups';
 import { RemoteTruck } from '../vehicle/RemoteTruck';
 import { OnlineSync } from '../../net/OnlineSync';
 import type { OnlineRaceInfo } from '../../store/gameStore';
@@ -35,9 +37,11 @@ interface Props {
   onFinish: () => void;
   onReady: () => void;
   online?: { info: OnlineRaceInfo; ready: boolean; onGo: () => void } | null;
+  pickups?: Pickup[];
+  respawnPickups?: boolean;
 }
 
-export function RaceScene({ track, racers, quality, paused, autopilot, onFinish, onReady, online }: Props) {
+export function RaceScene({ track, racers, quality, paused, autopilot, onFinish, onReady, online, pickups, respawnPickups = false }: Props) {
   const hi = quality === 'high';
   const [dpr] = useState(() => Math.min(window.devicePixelRatio || 1, hi ? 1.75 : 1));
   const night = track.def.theme.night;
@@ -50,7 +54,10 @@ export function RaceScene({ track, racers, quality, paused, autopilot, onFinish,
       dpr={dpr}
       camera={{ fov: 62, near: 0.3, far: 2600, position: [0, 20, -40] }}
       gl={{ antialias: hi, powerPreference: 'high-performance' }}
-      onCreated={() => onReady()}
+      onCreated={(st) => {
+        if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__three = st;
+        onReady();
+      }}
     >
       <Environment theme={track.def.theme} shadows={hi} />
       <Suspense fallback={null}>
@@ -76,6 +83,7 @@ export function RaceScene({ track, racers, quality, paused, autopilot, onFinish,
         </Physics>
       </Suspense>
       <Scenery track={track} shadows={hi} />
+      {pickups && pickups.length > 0 && <Pickups items={pickups} trackId={track.def.id} respawn={respawnPickups} />}
       <Dust color={dustColor} />
       <CameraRig />
       {online && <OnlineSync info={online.info} ready={online.ready} onGo={online.onGo} />}

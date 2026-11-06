@@ -13,6 +13,7 @@ import type { CameraMode } from '../../types';
 import { TRACKS, CHAMPIONSHIP_POINTS } from '../../data/tracks';
 import { DIFFICULTY } from '../../game/race/buildRace';
 import { useOnline } from '../../net/onlineStore';
+import { buildPickups } from '../../game/race/pickups';
 
 const CAMERAS: CameraMode[] = ['chase', 'cab', 'far'];
 
@@ -44,10 +45,17 @@ export function RaceScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raceKey]);
 
+  const explore = cfg.mode === 'explore';
+  const pickups = useMemo(
+    () => (online ? [] : buildPickups(track, useProfile.getState().stashAvailable(cfg.trackId))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [raceKey],
+  );
+
   // useMemo may run twice in StrictMode; make sure the shared runtime points at
   // exactly the racer objects that are rendered.
   useLayoutEffect(() => {
-    resetRace(track, cfg.laps, useProfile.getState().settings.camera);
+    resetRace(track, cfg.mode === 'explore' ? 9999 : cfg.laps, useProfile.getState().settings.camera);
     race.racers = setups.map((s) => s.runtime);
     race.online = !!cfg.online;
     setCamera(race.camera);
@@ -141,7 +149,7 @@ export function RaceScreen() {
     const unlocked = prof.recordRace(result, {
       xp,
       nitroUsed: player?.nitroUsed ?? 0,
-      mode: cfg.mode,
+      mode: cfg.mode === 'explore' ? 'quick' : cfg.mode,
       playerTime: result.entries.find((e) => e.isPlayer)!.time,
       bestLap,
     });
@@ -167,6 +175,8 @@ export function RaceScreen() {
         onFinish={onFinish}
         onReady={onReady}
         online={online ? { info: online, ready: waiting, onGo } : null}
+        pickups={pickups}
+        respawnPickups={explore}
       />
       {waiting && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
@@ -177,7 +187,7 @@ export function RaceScreen() {
           </div>
         </div>
       )}
-      {!loading && !waiting && <HUD track={track} onPause={togglePause} onCamera={cycleCamera} />}
+      {!loading && !waiting && <HUD explore={explore} pickups={pickups} track={track} onPause={togglePause} onCamera={cycleCamera} />}
       {!loading && showTouch && !paused && <TouchControls onRespawn={respawn} />}
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: 'radial-gradient(ellipse at center, #0d2450 0%, #050b18 70%)' }}>

@@ -8,6 +8,7 @@ export const TRACKS: Record<TrackId, TrackDef> = {
     description: 'מירוץ עירוני בין מגדלים, אזור התעשייה ומנופי הנמל — בשקיעה.',
     emoji: '🏙️',
     scenery: 'city',
+    stash: { at: 0.44, lateral: -11.2, height: 0, hintHe: 'צמוד לקיר הפנימי, ביציאה מהפנייה ליד הנמל' },
     width: 18,
     points: [
       [0, -200], [120, -210], [195, -150], [205, -40], [150, 20], [165, 110], [100, 195],
@@ -25,6 +26,7 @@ export const TRACKS: Record<TrackId, TrackDef> = {
     description: 'אבק, קפיצות ופניות חדות במדבר הנגב. משאיות שטח מרגישות כאן בבית.',
     emoji: '🏜️',
     scenery: 'desert',
+    stash: { at: 0.52, ahead: 1, lateral: 0, height: 3.4, hintHe: 'באוויר מעל הרמפה השנייה — עלה עליה באמצע' },
     width: 18,
     points: [
       [0, -220], [150, -200], [230, -100], [170, -20], [240, 80], [180, 200], [40, 180],
@@ -43,6 +45,7 @@ export const TRACKS: Record<TrackId, TrackDef> = {
     description: 'מירוץ לילי עתידני עם תאורת ניאון זוהרת ומגדלים מוארים.',
     emoji: '🌃',
     scenery: 'neon',
+    stash: { at: 0.78, lateral: 11.2, height: 0, hintHe: 'בשוליים החיצוניים, אחרי השער הוורוד' },
     width: 18,
     points: [
       [0, -180], [140, -170], [200, -90], [130, -20], [200, 60], [150, 170], [20, 150],
@@ -60,3 +63,5 @@ export const CHAMPIONSHIP_TRACKS: TrackId[] = ['ashdod', 'desert', 'neon'];
 export const CHAMPIONSHIP_POINTS = [10, 8, 6, 4, 2, 1];
 export const RACE_COINS = [500, 350, 250, 150, 100, 50];
 export const LAPS = 3;
+export const STASH_COINS = 2500;
+export const COIN_VALUE = 20;

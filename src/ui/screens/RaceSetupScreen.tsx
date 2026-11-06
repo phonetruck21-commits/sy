@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGame } from '../../store/gameStore';
 import { useProfile } from '../../store/profileStore';
-import { TRACK_LIST } from '../../data/tracks';
+import { TRACK_LIST, TRACKS, STASH_COINS } from '../../data/tracks';
 import { TRUCKS } from '../../data/trucks';
 import { DIFFICULTY } from '../../game/race/buildRace';
 import { formatTime } from '../../utils/random';
@@ -24,6 +24,8 @@ export function RaceSetupScreen() {
   const truckId = useProfile((s) => s.selectedTruck);
   const [track, setTrack] = useState<TrackId>('ashdod');
   const [laps, setLaps] = useState(defaultLaps);
+  const stashDay = useProfile((s) => s.stashDay);
+  const stashAvailable = useProfile((s) => s.stashAvailable);
 
   return (
     <ScreenFrame title="מירוץ מהיר" icon="🏁">
@@ -88,6 +90,19 @@ export function RaceSetupScreen() {
         <Button variant="neon" size="lg" className="w-full md:w-auto md:self-center md:px-16 animate-glow" data-testid="start-race" onClick={() => startRace({ trackId: track, mode: 'quick', laps })}>
           🏁 לזינוק!
         </Button>
+        <Panel className="p-4 flex flex-col sm:flex-row items-center gap-3 border-purple-400/40">
+          <div className="text-4xl">💰</div>
+          <div className="flex-1 text-center sm:text-right">
+            <div className="font-black">סיור חופשי — מצא את המטמון הסודי</div>
+            <div className="text-sm text-slate-300">
+              נסיעה חופשית בלי יריבים ובלי זמן. אסוף מטבעות ומצא את המטמון המוסתר ב{TRACKS[track].nameHe} (🪙 {STASH_COINS.toLocaleString()}, פעם ביום). פתח את המפה 🗺️ לקו GPS סגול.
+            </div>
+            <div className={`text-xs mt-1 ${stashAvailable(track) ? 'text-purple-300' : 'text-emerald-300'}`} data-stash={stashDay[track] ?? ''}>
+              {stashAvailable(track) ? '💰 המטמון מחכה לך היום' : '✓ כבר מצאת היום את המטמון במסלול הזה'}
+            </div>
+          </div>
+          <Button size="lg" data-testid="start-explore" onClick={() => startRace({ trackId: track, mode: 'explore', laps: 1 })}>🗺️ צא לסיור</Button>
+        </Panel>
         <p className="text-center text-xs text-slate-400">6 משאיות · AI ממוחשב · מקלדת: חצים / WASD, Shift לניטרו, C מצלמה · בטלפון: כפתורי מגע</p>
       </div>
     </ScreenFrame>

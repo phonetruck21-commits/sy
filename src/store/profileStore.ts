@@ -54,8 +54,13 @@ interface ProfileState {
   stats: { races: number; wins: number; podiums: number; championships: number };
   championship: ChampionshipState | null;
   history: HistoryEntry[];
+  /** day (YYYY-MM-DD) the hidden treasure was last collected, per track */
+  stashDay: Partial<Record<TrackId, string>>;
 
   // actions
+  addCoins: (n: number) => void;
+  claimStash: (t: TrackId) => boolean;
+  stashAvailable: (t: TrackId) => boolean;
   setPlayerName: (n: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
   selectTruck: (id: TruckId) => void;
@@ -95,13 +100,23 @@ const initial = () => ({
   stats: { races: 0, wins: 0, podiums: 0, championships: 0 },
   championship: null as ChampionshipState | null,
   history: [] as HistoryEntry[],
+  stashDay: {} as Partial<Record<TrackId, string>>,
 });
+
+export const todayKey = () => new Date().toISOString().slice(0, 10);
 
 export const useProfile = create<ProfileState>()(
   persist(
     (set, get) => ({
       ...initial(),
 
+      addCoins: (n) => set({ coins: get().coins + Math.max(0, Math.round(n)) }),
+      stashAvailable: (t) => (get().stashDay ?? {})[t] !== todayKey(),
+      claimStash: (t) => {
+        if (!get().stashAvailable(t)) return false;
+        set({ stashDay: { ...(get().stashDay ?? {}), [t]: todayKey() } });
+        return true;
+      },
       setPlayerName: (n) => set({ playerName: n.slice(0, 24) }),
       updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
       selectTruck: (id) => {

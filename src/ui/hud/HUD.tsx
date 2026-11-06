@@ -3,6 +3,10 @@ import { race } from '../../game/race/raceRuntime';
 import { compareRacers } from '../../game/race/RaceDirector';
 import type { TrackData } from '../../game/track/trackData';
 import { formatTime } from '../../utils/random';
+import type { Pickup } from '../../game/race/pickups';
+import { usePickupFx } from '../../game/race/pickups';
+import { MoneyFx } from './MoneyFx';
+import { BigMap } from './BigMap';
 
 interface Snapshot {
   phase: typeof race.phase;
@@ -19,6 +23,7 @@ interface Snapshot {
   nitroActive: boolean;
   wrongWay: boolean;
   offroad: boolean;
+  me: { x: number; z: number; idx: number };
   dots: { id: string; x: number; z: number; color: string; player: boolean }[];
   board: { id: string; name: string; player: boolean; finished: boolean; color: string }[];
 }
@@ -42,6 +47,7 @@ function snapshot(): Snapshot | null {
     nitroActive: p.nitroActive,
     wrongWay: p.wrongWay,
     offroad: p.offroad,
+    me: { x: p.x, z: p.z, idx: p.idx },
     dots: race.racers.map((r) => ({ id: r.id, x: r.x, z: r.z, color: r.color, player: r.isPlayer })),
     board: sorted.map((r) => ({ id: r.id, name: r.name, player: r.isPlayer, finished: r.finished, color: r.color })),
   };
@@ -56,7 +62,7 @@ export function useRaceSnapshot(hz = 12) {
   return s;
 }
 
-function Minimap({ track, dots }: { track: TrackData; dots: Snapshot['dots'] }) {
+function Minimap({ track, dots, stash }: { track: TrackData; dots: Snapshot['dots']; stash?: Pickup | null }) {
   const { path, view } = useMemo(() => {
     const b = track.bounds;
     const pad = 20;
@@ -69,18 +75,27 @@ function Minimap({ track, dots }: { track: TrackData; dots: Snapshot['dots'] }) 
       <polygon points={path} fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth={22} strokeLinejoin="round" />
       <polygon points={path} fill="none" stroke="rgba(160,210,255,0.85)" strokeWidth={10} strokeLinejoin="round" />
       <circle cx={s.x} cy={s.z} r={9} fill="#fff" stroke="#000" strokeWidth={3} />
+      {stash && <circle cx={stash.x} cy={stash.z} r={13} fill="#b44dff" stroke="#fff" strokeWidth={3} />}
       {dots.filter((d) => !d.player).map((d) => <circle key={d.id} cx={d.x} cy={d.z} r={11} fill={d.color} stroke="#000" strokeWidth={3} />)}
       {dots.filter((d) => d.player).map((d) => <circle key={d.id} cx={d.x} cy={d.z} r={16} fill="#35e0ff" stroke="#fff" strokeWidth={5} />)}
     </svg>
   );
 }
 
-export function HUD({ track, onPause, onCamera }: { track: TrackData; onPause: () => void; onCamera: () => void }) {
+export function HUD({ track, onPause, onCamera, explore = false, pickups = [] }: { track: TrackData; onPause: () => void; onCamera: () => void; explore?: boolean; pickups?: Pickup[] }) {
   const s = useRaceSnapshot();
+  const [mapOpen, setMapOpen] = useState(false);
+  const collected = usePickupFx((x) => x.total);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.code === 'KeyM' && !e.repeat) setMapOpen((v) => !v); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
+  const stashPickup = pickups.find((p) => p.kind === 'stash' && p.takenAt == null) ?? null;
   const [goFlash, setGoFlash] = useState(false);
   const slowSince = useRef<number | null>(null);
   let stuck = false;
-  if (s && s.phase === 'racing' && s.speed < 6) {
+  if (s && s.phase === 'racing' && s.time > 4 && s.speed < 6) {
     if (slowSince.current == null) slowSince.current = s.time;
     stuck = s.time - slowSince.current > 3;
   } else slowSince.current = null;
@@ -94,6 +109,15 @@ export function HUD({ track, onPause, onCamera }: { track: TrackData; onPause: (
     <div className="absolute inset-0 pointer-events-none select-none" data-testid="hud">
       {/* top bar */}
       <div className="absolute top-2 right-2 left-2 flex justify-between items-start gap-2">
+        {explore ? (
+          <div className="flex flex-col gap-2">
+            <div className="glass rounded-2xl px-4 py-2">
+              <div className="text-xs text-sky-300">מצב</div>
+              <div className="text-xl font-black">🗺️ סיור חופשי</div>
+            </div>
+            <div className="glass rounded-xl px-3 py-1.5 text-sm">נאספו: <b className="text-yellow-300" dir="ltr">🪙 {collected.toLocaleString()}</b></div>
+          </div>
+        ) : (
         <div className="flex flex-col gap-2">
           <div className="glass rounded-2xl px-4 py-2 flex items-baseline gap-2">
             <span className="text-xs text-sky-300">מיקום</span>
@@ -111,25 +135,27 @@ export function HUD({ track, onPause, onCamera }: { track: TrackData; onPause: (
             ))}
           </div>
         </div>
+        )}
 
         <div className="flex flex-col items-center gap-2">
-          <div className="glass rounded-2xl px-4 py-2 text-center">
+          {!explore && <div className="glass rounded-2xl px-4 py-2 text-center">
             <div className="text-xs text-sky-300">הקפה</div>
             <div className="text-2xl md:text-3xl font-black" data-testid="hud-lap"><span dir="ltr">{s.lap}/{s.laps}</span></div>
-          </div>
+          </div>}
           <div className="flex gap-2 pointer-events-auto">
             <button className="glass rounded-xl px-3 py-2 text-lg" onClick={onPause} aria-label="השהיה">⏸</button>
             <button className="glass rounded-xl px-3 py-2 text-lg" onClick={onCamera} aria-label="החלפת מצלמה">🎥</button>
+            <button className="glass rounded-xl px-3 py-2 text-lg" onClick={() => setMapOpen(true)} aria-label="מפה" data-testid="open-map">🗺️</button>
           </div>
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <div className="glass rounded-2xl p-1.5"><Minimap track={track} dots={s.dots} /></div>
-          <div className="glass rounded-xl px-3 py-1.5 text-sm text-left" dir="ltr">
+          <button className="glass rounded-2xl p-1.5 pointer-events-auto" onClick={() => setMapOpen(true)} aria-label="פתח מפה"><Minimap track={track} dots={s.dots} stash={stashPickup} /></button>
+          {!explore && <div className="glass rounded-xl px-3 py-1.5 text-sm text-left" dir="ltr">
             <div>⏱ {formatTime(s.time)}</div>
             <div className="text-sky-300">LAP {formatTime(s.lapTime)}</div>
             <div className="text-emerald-300">BEST {formatTime(s.bestLap)}</div>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -166,7 +192,9 @@ export function HUD({ track, onPause, onCamera }: { track: TrackData; onPause: (
           <div className="inline-block bg-red-600/90 rounded-2xl px-6 py-3 text-3xl font-black animate-pulse">⚠ כיוון שגוי!</div>
         </div>
       )}
-      {s.phase === 'racing' && s.lap === s.laps && s.lapTime < 2.5 && s.time > 3 && (
+      <MoneyFx />
+      {mapOpen && <BigMap track={track} me={s.me} pickups={pickups} onClose={() => setMapOpen(false)} />}
+      {!explore && s.phase === 'racing' && s.lap === s.laps && s.lapTime < 2.5 && s.time > 3 && (
         <div className="absolute inset-x-0 top-1/4 text-center">
           <div className="inline-block glass rounded-2xl px-6 py-3 text-3xl font-black text-yellow-300 animate-pop">הקפה אחרונה!</div>
         </div>

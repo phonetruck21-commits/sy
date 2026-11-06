@@ -5,6 +5,7 @@ import { TRACKS, CHAMPIONSHIP_TRACKS, CHAMPIONSHIP_POINTS } from '../../data/tra
 import { ACHIEVEMENT_MAP } from '../../data/achievements';
 import { formatTime } from '../../utils/random';
 import { audio } from '../../game/audio/audio';
+import { usePickupFx } from '../../game/race/pickups';
 import { Button, Panel, Coins } from '../components/UI';
 
 export function ResultsScreen() {
@@ -14,6 +15,7 @@ export function ResultsScreen() {
   const restart = useGame((s) => s.restartRace);
   const startRace = useGame((s) => s.startRace);
   const champ = useProfile((s) => s.championship);
+  const picked = usePickupFx((s) => s.total);
 
   useEffect(() => {
     if (result && result.coinsEarned > 0) setTimeout(() => audio.coin(), 600);
@@ -60,6 +62,7 @@ export function ResultsScreen() {
           <Panel className="p-4 text-center">
             <div className="text-sm text-sky-300">פרס המירוץ</div>
             <div className="text-4xl font-black text-yellow-300" dir="ltr">+{result.coinsEarned} 🪙</div>
+            {picked > 0 && <div className="text-yellow-200 text-sm mt-1">+ 🪙 {picked.toLocaleString()} שנאספו במסלול</div>}
             {!!result.xpEarned && <div className="text-cyan-300 font-bold mt-1" dir="ltr">+{result.xpEarned} XP</div>}
             {result.bestLapRecord && <div className="mt-1 text-emerald-300 font-bold">⏱ שיא הקפה חדש!</div>}
           </Panel>

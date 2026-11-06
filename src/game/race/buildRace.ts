@@ -34,6 +34,16 @@ export function buildRace(cfg: RaceConfig, p: ProfileSnapshot) {
   const playerStats = applyUpgrades(truck.stats, p.upgrades[p.selectedTruck]);
 
   if (cfg.online) return buildOnline(cfg, p, track, playerStats);
+  if (cfg.mode === 'explore') {
+    // free roam: just you, no laps to finish
+    race.laps = 9999;
+    const { idx, lateral, spawn } = gridSpawn(track, 0);
+    const runtime = createRacer({ id: 'player', name: p.playerName || 'אתה', isPlayer: true, color: '#35e0ff', stats: playerStats, idx, total: idx - track.count });
+    const ai = { profile: { skill: 0.98, aggression: 0.5, lane: lateral, rubberBand: 0, cornerGrip: 17 }, laneOffset: lateral, laneTimer: 2, nitroTimer: 0 };
+    const setups: RacerSetup[] = [{ runtime, design: p.design, model: truck.model, ai, spawn }];
+    race.racers = setups.map((s) => s.runtime);
+    return { track, setups };
+  }
 
   const ais = [...OPPONENTS].sort((a, b) => b.skill - a.skill);
   const order: ('player' | (typeof OPPONENTS)[number])[] = [...ais];

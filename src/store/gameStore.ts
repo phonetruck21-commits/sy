@@ -13,7 +13,7 @@ export interface OnlineRaceInfo {
 
 export interface RaceConfig {
   trackId: TrackId;
-  mode: 'quick' | 'championship' | 'online';
+  mode: 'quick' | 'championship' | 'online' | 'explore';
   laps: number;
   online: OnlineRaceInfo | null;
   autopilot: boolean; // demo / test mode: player truck driven by AI

@@ -169,9 +169,10 @@ export function TrackView({ track, shadows }: { track: TrackData; shadows: boole
       <RigidBody type="fixed" colliders={false} userData={{ kind: 'ground' }}>
         <CuboidCollider args={[3000, 1, 3000]} position={[0, -1, 0]} friction={0} />
       </RigidBody>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow={shadows}>
-        <planeGeometry args={[4000, 4000]} />
-        <meshStandardMaterial color={th.ground} roughness={1} />
+      {/* ground: slightly below the road, subdivided and depth-offset so it never draws over the asphalt */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]} receiveShadow={shadows}>
+        <planeGeometry args={[4000, 4000, 64, 64]} />
+        <meshStandardMaterial color={th.ground} roughness={1} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />
       </mesh>
       {neon && <gridHelper args={[1600, 160, '#ff2bd6', '#1b2f6b']} position={[0, 0.01, 0]} />}
 

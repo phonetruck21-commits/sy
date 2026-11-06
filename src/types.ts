@@ -79,6 +79,8 @@ export interface TrackDef {
   width: number;
   theme: TrackTheme;
   ramps?: number[]; // fraction along track [0..1) where ramps are placed
+  /** hidden treasure: fraction along the track, lateral offset (m, + = right), height above ground (m) */
+  stash: { at: number; lateral: number; height: number; hintHe: string; /** metres past the point, straight along the track direction there (for jump lines) */ ahead?: number };
   scenery: 'city' | 'desert' | 'neon';
   emoji: string;
 }
