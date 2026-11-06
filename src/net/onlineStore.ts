@@ -4,6 +4,7 @@ import type { ThemeId, TrackId, TruckId } from '../types';
 import { BRAND_THEMES } from '../data/themes';
 import { TRACKS } from '../data/tracks';
 import { TRUCKS } from '../data/trucks';
+import { AVATARS as AVATAR_SET } from './players';
 
 /**
  * Online protocol — everything travels in each player's room *presence*
@@ -28,6 +29,8 @@ export interface Look {
   a: string; // accent
   t: ThemeId;
   n: string; // brand title
+  av?: string; // account avatar
+  pc?: string; // account colour
 }
 
 export interface CarState {
@@ -80,6 +83,8 @@ export function readPlayer(p: Peer): PlayerView | null {
     a: HEX.test(String(lk.a)) ? String(lk.a) : '#1e7bff',
     t: (String(lk.t) in BRAND_THEMES ? lk.t : 'tech-blue') as ThemeId,
     n: str(lk.n, 20) || 'TRUCK',
+    av: typeof lk.av === 'string' && AVATAR_SET.includes(lk.av) ? lk.av : undefined,
+    pc: HEX.test(String(lk.pc)) ? String(lk.pc) : undefined,
   };
   const truck = (String(pr.truck) in TRUCKS ? pr.truck : 'atleon') as TruckId;
   let race: RaceAnnounce | null = null;

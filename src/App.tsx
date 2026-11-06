@@ -13,6 +13,9 @@ import { RaceScreen } from './ui/screens/RaceScreen';
 import { ResultsScreen } from './ui/screens/ResultsScreen';
 import { OnlineScreen } from './ui/screens/OnlineScreen';
 import { ClubScreen } from './ui/screens/ClubScreen';
+import { ProfileScreen } from './ui/screens/ProfileScreen';
+import { PlayerCardModal, SignupModal } from './ui/components/PlayerUI';
+import { startPlayersDirectory } from './net/players';
 import { startCloudSync } from './net/cloudSync';
 
 export default function App() {
@@ -22,6 +25,7 @@ export default function App() {
   useEffect(() => audio.setVolume(volume), [volume]);
   useEffect(() => {
     void startCloudSync();
+    void startPlayersDirectory();
     const unlock = () => audio.unlock();
     window.addEventListener('pointerdown', unlock, { once: true });
     window.addEventListener('keydown', unlock, { once: true });
@@ -39,6 +43,9 @@ export default function App() {
       {screen === 'settings' && <SettingsScreen />}
       {screen === 'online' && <OnlineScreen />}
       {screen === 'club' && <ClubScreen />}
+      {screen === 'profile' && <ProfileScreen />}
+      {screen !== 'race' && <SignupModal />}
+      <PlayerCardModal />
       {screen === 'race' && <RaceScreen />}
       {screen === 'results' && <ResultsScreen />}
     </div>

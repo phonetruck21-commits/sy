@@ -3,6 +3,8 @@ import { useGame } from '../../store/gameStore';
 import { useProfile } from '../../store/profileStore';
 import { hostOf, MAX_ONLINE_PLAYERS, normalizeCode, PUBLIC_ROOM, randomCode, readPlayers, useOnline } from '../../net/onlineStore';
 import { lookFromDesign } from '../../net/onlineRace';
+import { usePlayers } from '../../net/players';
+import { Avatar } from '../components/PlayerUI';
 import { TRACK_LIST, TRACKS } from '../../data/tracks';
 import { TRUCKS } from '../../data/trucks';
 import { Button, Panel, ScreenFrame } from '../components/UI';
@@ -43,7 +45,8 @@ function Join() {
 
   const go = (c: string) => {
     const p = useProfile.getState();
-    void connect(c, { name: p.playerName, look: lookFromDesign(p.activeDesign()), truck: p.selectedTruck });
+    const me = usePlayers.getState().me;
+    void connect(c, { name: p.playerName, look: { ...lookFromDesign(p.activeDesign()), av: me?.avatar, pc: me?.color }, truck: p.selectedTruck });
   };
 
   return (
@@ -51,7 +54,7 @@ function Join() {
       <Panel className="p-4 flex flex-col gap-3">
         <label className="block">
           <span className="text-sm text-sky-200">השם שיופיע לשאר הנהגים</span>
-          <input id="online-name" className="mt-1 w-full rounded-lg bg-slate-900/80 border border-sky-500/30 px-3 py-2 outline-none focus:border-cyan-300" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} />
+          <input id="online-name" disabled={!!usePlayers.getState().me} className="mt-1 w-full rounded-lg bg-slate-900/80 border border-sky-500/30 px-3 py-2 outline-none focus:border-cyan-300" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} />
         </label>
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-2">
@@ -137,7 +140,7 @@ function Lobby({ code, mock }: { code: string; mock: boolean }) {
           <div className="flex flex-col gap-1.5" data-testid="lobby-players">
             {players.map((p, i) => (
               <div key={p.peer} className={`flex items-center gap-2 rounded-xl p-2 border ${p.isMe ? 'border-cyan-300 bg-sky-900/40' : 'border-white/10 bg-slate-900/40'}`}>
-                <span className="w-5 h-5 rounded" style={{ background: p.look.c, boxShadow: `inset 0 -6px 0 ${p.look.a}` }} />
+                {p.look.av ? <Avatar avatar={p.look.av} color={p.look.pc ?? '#35e0ff'} size={26} /> : <span className="w-5 h-5 rounded" style={{ background: p.look.c, boxShadow: `inset 0 -6px 0 ${p.look.a}` }} />}
                 <span className="flex-1 truncate" dir="auto">{p.name}</span>
                 <span className="text-xs text-slate-400">{TRUCKS[p.truck].name}</span>
                 {i === 0 && <span title="מארח">👑</span>}

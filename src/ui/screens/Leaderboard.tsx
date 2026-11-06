@@ -5,6 +5,7 @@ import { TRUCKS } from '../../data/trucks';
 import { formatTime } from '../../utils/random';
 import { Button, Panel } from '../components/UI';
 import type { TrackId, TruckId } from '../../types';
+import { PlayerName } from '../components/PlayerUI';
 
 interface Entry {
   id: string;
@@ -119,8 +120,7 @@ export function Leaderboard() {
                   <tr key={r.id} className={`border-t border-white/10 ${r.id === cloud.uid ? 'text-cyan-300 font-bold bg-sky-900/30' : ''}`}>
                     <td className="py-2 px-1">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
                     <td>
-                      <span className="inline-block w-3 h-3 rounded-sm ml-2 align-middle" style={{ background: r.color }} />
-                      <span dir="auto">{r.name}</span>
+                      <PlayerName uid={r.id} fallback={r.name} />
                       {r.champs > 0 && <span title="אלוף" className="mr-1">🏆</span>}
                       {r.id === cloud.uid && <span className="text-xs mr-2">(אתה)</span>}
                       <span className="block text-[11px] text-slate-400 font-normal">{TRUCKS[r.truck].name}</span>

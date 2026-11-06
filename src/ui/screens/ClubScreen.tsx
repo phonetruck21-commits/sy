@@ -8,6 +8,8 @@ import { DIFFICULTY } from '../../game/race/buildRace';
 import { formatTime } from '../../utils/random';
 import { Button, Panel, ScreenFrame, Toggle } from '../components/UI';
 import type { Difficulty, TrackId } from '../../types';
+import { PlayerName } from '../components/PlayerUI';
+import { removePlayer, resetPlayerName, usePlayers } from '../../net/players';
 
 const medal = (i: number) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1));
 
@@ -163,7 +165,7 @@ function Table({ rows, me }: { rows: ReturnType<typeof entriesFor>; me: string }
           {rows.slice(0, 50).map((r, i) => (
             <tr key={r.uid} className={`border-t border-white/10 ${r.uid === me ? 'text-cyan-300 font-bold bg-sky-900/30' : ''}`}>
               <td className="py-1.5">{medal(i)}</td>
-              <td><span className="inline-block w-3 h-3 rounded-sm ml-2 align-middle" style={{ background: r.color }} /><span dir="auto">{r.name}</span>{r.uid === me && ' (אתה)'}</td>
+              <td><PlayerName uid={r.uid} fallback={r.name} />{r.uid === me && ' (אתה)'}</td>
               <td className="text-left tabular-nums" dir="ltr">{formatTime(r.best)}</td>
               <td className="text-left tabular-nums">{r.tries}</td>
             </tr>
@@ -246,6 +248,8 @@ function OwnerPanel({ data }: { data: ReturnType<typeof useClubData> }) {
         <Button variant="neon" size="lg" className="mt-3" disabled={!!busy || !name.trim()} data-testid="create-tournament" onClick={() => void run('create', () => createTournament(cloud, { name: name.trim(), track, laps, difficulty: diff, equal, prizes: prizes.map((p) => p.trim()), endsAt: Date.now() + days * 86400000 }), 'הטורניר נפתח ✓ החברים יראו אותו במועדון')}>🚀 פתח טורניר</Button>
       </details>
 
+      <UsersAdmin />
+
       <div className="mt-5">
         <h4 className="font-bold mb-2">🎟️ שוברים שהונפקו ({issued.length})</h4>
         {issued.length === 0 && <p className="text-sm text-slate-400">עוד לא הונפקו שוברים.</p>}
@@ -262,5 +266,40 @@ function OwnerPanel({ data }: { data: ReturnType<typeof useClubData> }) {
         </div>
       </div>
     </Panel>
+  );
+}
+
+function UsersAdmin() {
+  const cloud = useCloud((s) => s.cloud);
+  const byUid = usePlayers((s) => s.byUid);
+  const players = useMemo(() => Object.values(byUid), [byUid]);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  if (!cloud) return null;
+  return (
+    <div className="mt-5">
+      <h4 className="font-bold mb-2">👥 משתמשים ({players.length})</h4>
+      {players.length === 0 && <p className="text-sm text-slate-400">עוד אין משתמשים רשומים.</p>}
+      <div className="flex flex-col gap-1.5">
+        {players.sort((a, b) => b.createdAt - a.createdAt).map((p) => (
+          <div key={p.uid} className="flex flex-wrap items-center gap-2 rounded-lg bg-slate-900/50 p-2 text-sm">
+            <PlayerName uid={p.uid} fallback={p.username} />
+            <span className="text-xs text-slate-400">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('he-IL') : ''}</span>
+            <span className="mr-auto" />
+            {p.uid !== cloud.uid && (confirm === p.uid ? (
+              <>
+                <span className="text-xs text-red-300">להסיר את המשתמש?</span>
+                <Button size="sm" variant="danger" onClick={() => { setConfirm(null); void removePlayer(cloud, p.uid); }}>הסר</Button>
+                <Button size="sm" onClick={() => setConfirm(null)}>ביטול</Button>
+              </>
+            ) : (
+              <>
+                <Button size="sm" onClick={() => void resetPlayerName(cloud, p)} title="מחליף שם לא מתאים בשם כללי">איפוס שם</Button>
+                <Button size="sm" variant="danger" onClick={() => setConfirm(p.uid)}>הסר</Button>
+              </>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

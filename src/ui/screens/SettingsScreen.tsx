@@ -4,6 +4,8 @@ import { audio } from '../../game/audio/audio';
 import { DIFFICULTY } from '../../game/race/buildRace';
 import { Button, Panel, ScreenFrame } from '../components/UI';
 import { useCloud } from '../../net/cloud';
+import { usePlayers } from '../../net/players';
+import { useGame } from '../../store/gameStore';
 import type { CameraMode, Difficulty } from '../../types';
 
 function Choice<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
@@ -21,6 +23,8 @@ export function SettingsScreen() {
   const setName = useProfile((x) => x.setPlayerName);
   const reset = useProfile((x) => x.resetProgress);
   const [confirm, setConfirm] = useState(false);
+  const registered = usePlayers((s) => !!s.me);
+  const go = useGame((s) => s.go);
 
   return (
     <ScreenFrame title="הגדרות" icon="⚙️">
@@ -28,7 +32,11 @@ export function SettingsScreen() {
         <Panel className="p-4 flex flex-col gap-4">
           <div>
             <div className="font-bold mb-1">👤 שם הנהג</div>
-            <input className="w-full rounded-lg bg-slate-900/80 border border-sky-500/30 px-3 py-2 outline-none focus:border-cyan-300" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} />
+            {registered ? (
+              <div className="text-sm text-slate-300">{name} — השם מנוהל במשתמש שלך. <button className="underline text-cyan-300" onClick={() => go('profile')}>שנה בפרופיל</button></div>
+            ) : (
+              <input className="w-full rounded-lg bg-slate-900/80 border border-sky-500/30 px-3 py-2 outline-none focus:border-cyan-300" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} />
+            )}
           </div>
           <div>
             <div className="font-bold mb-1">🔊 עוצמת צליל: {Math.round(s.volume * 100)}%</div>

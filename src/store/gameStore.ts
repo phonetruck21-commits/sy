@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { RaceResult, TrackId, TruckId } from '../types';
 import type { Look } from '../net/onlineStore';
 
-export type Screen = 'home' | 'race-setup' | 'garage' | 'design' | 'championship' | 'settings' | 'online' | 'club' | 'race' | 'results';
+export type Screen = 'home' | 'race-setup' | 'garage' | 'design' | 'championship' | 'settings' | 'online' | 'club' | 'profile' | 'race' | 'results';
 
 export interface OnlineRaceInfo {
   raceId: string;
