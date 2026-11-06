@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { distanceToTrack, type TrackData } from './trackData';
 import { mulberry32 } from '../../utils/random';
 import { WALL_DIST_FROM_EDGE } from './Track';
+import { findStands, insideStand } from './Crowd';
 
 interface Inst {
   p: [number, number, number];
@@ -191,6 +192,14 @@ export function Scenery({ track, shadows }: { track: TrackData; shadows: boolean
     return { kind: 'neon' as const, towers, strips, arches, lamps, stars };
   }, [track, kind]);
 
+  const clean = useMemo(() => {
+    const stands = findStands(track);
+    const f = (arr: Inst[], margin = 3) => arr.filter((it) => !insideStand(stands, it.p[0], it.p[2], margin + Math.max(it.s[0], it.s[2]) / 2));
+    const out: Record<string, unknown> = { ...data };
+    for (const [k, v] of Object.entries(data)) if (Array.isArray(v)) out[k] = f(v as Inst[]);
+    return out as typeof data;
+  }, [data, track]);
+
   const mats = useMemo(() => ({
     std: new THREE.MeshStandardMaterial({ roughness: 0.85 }),
     windows: new THREE.MeshStandardMaterial({ map: windowsTexture(false), roughness: 0.6, metalness: 0.2 }),
@@ -215,48 +224,48 @@ export function Scenery({ track, shadows }: { track: TrackData; shadows: boolean
     return items;
   }, [track, kind]);
 
-  if (data.kind === 'city') {
+  if (clean.kind === 'city') {
     return (
       <group>
-        <Instanced geo={GEO.box} mat={mats.windows} items={data.buildings} shadows={shadows} />
-        <Instanced geo={GEO.box} mat={mats.std} items={data.containers} />
-        <Instanced geo={GEO.box} mat={mats.std} items={data.cranes} />
-        <Instanced geo={GEO.box} mat={mats.std} items={data.craneArms} />
-        <Instanced geo={GEO.trunk} mat={mats.flat} items={data.palms.filter((_, i) => i % 2 === 0)} />
-        <Instanced geo={GEO.crown} mat={mats.flat} items={data.palms.filter((_, i) => i % 2 === 1)} />
-        <Instanced geo={GEO.box} mat={mats.std} items={data.lamps.filter((_, i) => i % 2 === 0)} />
-        <Instanced geo={GEO.box} mat={mats.lamp} items={data.lamps.filter((_, i) => i % 2 === 1)} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[data.sea.x + 600, 0.05, 0]} material={mats.sea}>
+        <Instanced geo={GEO.box} mat={mats.windows} items={clean.buildings} shadows={shadows} />
+        <Instanced geo={GEO.box} mat={mats.std} items={clean.containers} />
+        <Instanced geo={GEO.box} mat={mats.std} items={clean.cranes} />
+        <Instanced geo={GEO.box} mat={mats.std} items={clean.craneArms} />
+        <Instanced geo={GEO.trunk} mat={mats.flat} items={clean.palms.filter((_, i) => i % 2 === 0)} />
+        <Instanced geo={GEO.crown} mat={mats.flat} items={clean.palms.filter((_, i) => i % 2 === 1)} />
+        <Instanced geo={GEO.box} mat={mats.std} items={clean.lamps.filter((_, i) => i % 2 === 0)} />
+        <Instanced geo={GEO.box} mat={mats.lamp} items={clean.lamps.filter((_, i) => i % 2 === 1)} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[clean.sea.x + 600, 0.05, 0]} material={mats.sea}>
           <planeGeometry args={[1200, 4000]} />
         </mesh>
         <Instanced geo={GEO.cone} mat={mats.flat} items={ring} />
       </group>
     );
   }
-  if (data.kind === 'desert') {
+  if (clean.kind === 'desert') {
     return (
       <group>
-        <Instanced geo={GEO.rock} mat={mats.flat} items={data.rocks} shadows={shadows} />
-        <Instanced geo={GEO.sphere} mat={mats.flat} items={data.dunes} />
-        <Instanced geo={GEO.trunk} mat={mats.flat} items={data.trees.filter((_, i) => i % 2 === 0)} />
-        <Instanced geo={GEO.sphere} mat={mats.flat} items={data.trees.filter((_, i) => i % 2 === 1)} />
-        <Instanced geo={GEO.cyl} mat={mats.std} items={data.tires} />
-        <Instanced geo={GEO.box} mat={mats.flat} items={data.flags} />
+        <Instanced geo={GEO.rock} mat={mats.flat} items={clean.rocks} shadows={shadows} />
+        <Instanced geo={GEO.sphere} mat={mats.flat} items={clean.dunes} />
+        <Instanced geo={GEO.trunk} mat={mats.flat} items={clean.trees.filter((_, i) => i % 2 === 0)} />
+        <Instanced geo={GEO.sphere} mat={mats.flat} items={clean.trees.filter((_, i) => i % 2 === 1)} />
+        <Instanced geo={GEO.cyl} mat={mats.std} items={clean.tires} />
+        <Instanced geo={GEO.box} mat={mats.flat} items={clean.flags} />
         <Instanced geo={GEO.cone} mat={mats.flat} items={ring} />
       </group>
     );
   }
-  if (data.kind === 'neon') {
+  if (clean.kind === 'neon') {
     return (
       <group>
-        <Instanced geo={GEO.box} mat={mats.dark} items={data.towers} />
-        <Instanced geo={GEO.box} mat={mats.basic} items={data.strips} />
-        <Instanced geo={GEO.box} mat={mats.basic} items={data.arches} />
-        <Instanced geo={GEO.box} mat={mats.basic} items={data.lamps} />
+        <Instanced geo={GEO.box} mat={mats.dark} items={clean.towers} />
+        <Instanced geo={GEO.box} mat={mats.basic} items={clean.strips} />
+        <Instanced geo={GEO.box} mat={mats.basic} items={clean.arches} />
+        <Instanced geo={GEO.box} mat={mats.basic} items={clean.lamps} />
         <Instanced geo={GEO.box} mat={mats.dark} items={ring} />
         <points>
           <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[data.stars, 3]} />
+            <bufferAttribute attach="attributes-position" args={[clean.stars, 3]} />
           </bufferGeometry>
           <pointsMaterial size={2.2} sizeAttenuation={false} color="#ffffff" fog={false} />
         </points>

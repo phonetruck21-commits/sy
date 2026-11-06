@@ -39,6 +39,13 @@ export interface RacerRuntime {
   lastCheckTotal: number;
   respawnRequested: boolean;
   shake: number; // camera shake impulse (player)
+  /** drivetrain (sound + tachometer) */
+  gear: number; // 1..8, 0 = reverse
+  rpm: number;
+  shiftTimer: number; // >0 while a gear change is in progress
+  throttle: boolean;
+  braking: boolean;
+  slip: number; // 0..1 how much the tyres are sliding (squeal)
   /** online: another human, driven by network state instead of physics */
   remote: boolean;
   net: { x: number; y: number; z: number; yaw: number; sp: number; recv: number } | null;
@@ -58,6 +65,8 @@ export interface RaceRuntime {
   camera: CameraMode;
   playerFinishedAt: number | null;
   online: boolean;
+  /** 0..1 how close the player is to the grandstands (crowd sound) */
+  crowd: number;
 }
 
 export const race: RaceRuntime = {
@@ -71,6 +80,7 @@ export const race: RaceRuntime = {
   camera: 'chase',
   playerFinishedAt: null,
   online: false,
+  crowd: 0,
 };
 
 export function resetRace(track: TrackData, laps: number, camera: CameraMode) {
@@ -84,6 +94,7 @@ export function resetRace(track: TrackData, laps: number, camera: CameraMode) {
   race.camera = camera;
   race.playerFinishedAt = null;
   race.online = false;
+  race.crowd = 0;
 }
 
 export function createRacer(p: { id: string; name: string; isPlayer: boolean; color: string; stats: TruckStats; idx: number; total: number }): RacerRuntime {
@@ -113,6 +124,12 @@ export function createRacer(p: { id: string; name: string; isPlayer: boolean; co
     lastCheckTotal: p.total,
     respawnRequested: false,
     shake: 0,
+    gear: 1,
+    rpm: 650,
+    shiftTimer: 0,
+    throttle: false,
+    braking: false,
+    slip: 0,
     remote: false,
     net: null,
     gone: false,

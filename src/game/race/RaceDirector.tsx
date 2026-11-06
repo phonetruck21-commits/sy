@@ -33,6 +33,8 @@ export function RaceDirector({ onFinish }: { onFinish: () => void }) {
         race.phase = 'racing';
         race.time = 0;
         audio.beep(true);
+        audio.airBrake(1); // parking brake off
+        audio.cheer(1);
       }
     } else {
       race.time += dt;
@@ -88,8 +90,19 @@ export function RaceDirector({ onFinish }: { onFinish: () => void }) {
 
     const player = getPlayer();
     if (player) {
-      audio.updateEngine(Math.max(0, player.speed) / player.stats.maxSpeed, player.speed > 1 || race.phase === 'countdown', player.nitroActive);
+      audio.updateEngine({
+        rpm: race.phase === 'countdown' ? 650 + Math.max(0, Math.sin(race.time * 3 + race.countdown * 5)) * 500 : player.rpm,
+        throttle: race.phase === 'countdown' ? race.countdown < 1.2 : player.throttle,
+        speed: player.speed,
+        maxSpeed: player.stats.maxSpeed,
+        nitro: player.nitroActive,
+        shifting: player.shiftTimer > 0,
+        slip: player.slip,
+        braking: player.braking,
+        crowd: race.crowd,
+      });
       if (player.finished && race.phase === 'racing') {
+        audio.cheer(player.position <= 3 ? 1.4 : 0.8);
         race.phase = 'finished';
         race.playerFinishedAt = race.time;
       }

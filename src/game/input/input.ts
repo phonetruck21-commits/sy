@@ -41,8 +41,9 @@ const KEYMAP: Record<string, BoolKey> = {
   ShiftLeft: 'nitro', ShiftRight: 'nitro', KeyN: 'nitro',
 };
 
-export function attachKeyboard(handlers: { onCamera: () => void; onPause: () => void; onRespawn: () => void }) {
+export function attachKeyboard(handlers: { onCamera: () => void; onPause: () => void; onRespawn: () => void; onHorn?: (on: boolean) => void }) {
   const down = (e: KeyboardEvent) => {
+    if (e.code === 'KeyH') { handlers.onHorn?.(true); return; }
     const k = KEYMAP[e.code];
     if (k) {
       keyboardInput[k] = true;
@@ -55,6 +56,7 @@ export function attachKeyboard(handlers: { onCamera: () => void; onPause: () => 
     else if (e.code === 'KeyR') handlers.onRespawn();
   };
   const up = (e: KeyboardEvent) => {
+    if (e.code === 'KeyH') handlers.onHorn?.(false);
     const k = KEYMAP[e.code];
     if (k) keyboardInput[k] = false;
   };

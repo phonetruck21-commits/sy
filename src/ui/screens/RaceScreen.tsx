@@ -94,7 +94,7 @@ export function RaceScreen() {
   }, [paused]);
 
   useEffect(() => {
-    const detach = attachKeyboard({ onCamera: cycleCamera, onPause: togglePause, onRespawn: respawn });
+    const detach = attachKeyboard({ onCamera: cycleCamera, onPause: togglePause, onRespawn: respawn, onHorn: (on) => audio.setHorn(on) });
     const vis = () => { if (document.hidden && race.phase !== 'loading' && !finished.current) setPaused(true); };
     document.addEventListener('visibilitychange', vis);
     audio.unlock();

@@ -76,7 +76,7 @@ function run(cloud: Cloud) {
   const upload = () => {
     writing = writing.then(async () => {
       try {
-        await profileRef.set({ v: 1, updatedAt: meta.updatedAt, profile: serializeProfile() });
+        await profileRef.set({ v: 2, updatedAt: meta.updatedAt, profile: serializeProfile() });
         const entry = scoreEntry();
         const j = JSON.stringify(entry);
         if (j !== lastScoreJson && useCloud.getState().canWriteScores) {
@@ -114,7 +114,9 @@ function run(cloud: Cloud) {
       const sameAccount = meta.uid === null || meta.uid === cloud.uid;
       if (d && looksLikeProfile(d.profile) && (cloudAt > meta.updatedAt || !sameAccount)) {
         applying = true;
-        useProfile.setState(d.profile as never);
+        // saves from before the longer tracks (v<2) carry lap records that no longer compare
+        const incoming = (d.v as number) >= 2 ? d.profile : { ...(d.profile as Record<string, unknown>), records: {} };
+        useProfile.setState(incoming as never);
         applying = false;
         meta = { updatedAt: cloudAt, uid: cloud.uid };
         writeMeta(meta);

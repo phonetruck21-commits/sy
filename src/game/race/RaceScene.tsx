@@ -1,8 +1,10 @@
 import { Suspense, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { TrackView } from '../track/Track';
 import { Scenery } from '../track/Scenery';
+import { Crowd } from '../track/Crowd';
 import { Environment } from './Environment';
 import { CameraRig } from '../camera/CameraRig';
 import { RaceDirector } from './RaceDirector';
@@ -83,9 +85,16 @@ export function RaceScene({ track, racers, quality, paused, autopilot, onFinish,
         </Physics>
       </Suspense>
       <Scenery track={track} shadows={hi} />
+      <Crowd track={track} hi={hi} />
       {pickups && pickups.length > 0 && <Pickups items={pickups} trackId={track.def.id} respawn={respawnPickups} />}
       <Dust color={dustColor} />
       <CameraRig />
+      {hi && (
+        <EffectComposer multisampling={4}>
+          <Bloom intensity={night ? 1.1 : 0.45} luminanceThreshold={night ? 0.45 : 0.82} luminanceSmoothing={0.25} mipmapBlur />
+          <Vignette offset={0.32} darkness={0.55} />
+        </EffectComposer>
+      )}
       {online && <OnlineSync info={online.info} ready={online.ready} onGo={online.onGo} />}
     </Canvas>
   );

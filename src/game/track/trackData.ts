@@ -25,7 +25,7 @@ export function getTrackData(def: TrackDef): TrackData {
   const hit = cache.get(def.id);
   if (hit) return hit;
   const curve = new THREE.CatmullRomCurve3(
-    def.points.map(([x, z]) => new THREE.Vector3(x, 0, z)),
+    def.points.map(([x, z]) => new THREE.Vector3(x * (def.scale ?? 1), 0, z * (def.scale ?? 1))),
     true,
     'centripetal',
   );

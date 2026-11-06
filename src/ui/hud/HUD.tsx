@@ -21,6 +21,9 @@ interface Snapshot {
   bestLap: number | null;
   nitro: number;
   nitroActive: boolean;
+  gear: number;
+  rpm: number;
+  shifting: boolean;
   wrongWay: boolean;
   offroad: boolean;
   me: { x: number; z: number; idx: number };
@@ -44,6 +47,9 @@ function snapshot(): Snapshot | null {
     lapTime: race.phase === 'countdown' ? 0 : race.time - p.lapStartTime,
     bestLap: p.bestLap,
     nitro: p.nitro / p.stats.nitroCapacity,
+    gear: p.gear,
+    rpm: p.rpm,
+    shifting: p.shiftTimer > 0,
     nitroActive: p.nitroActive,
     wrongWay: p.wrongWay,
     offroad: p.offroad,
@@ -163,6 +169,7 @@ export function HUD({ track, onPause, onCamera, explore = false, pickups = [], t
       <div className={touch ? 'absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center' : 'absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center'} data-testid="speedo">
         {touch ? (
           <div className="glass rounded-xl px-3 py-1 flex items-center gap-2" dir="ltr">
+            <span className={`text-lg font-black tabular-nums ${s.shifting ? 'text-yellow-300' : 'text-white'}`}>{s.gear === 0 ? 'R' : s.gear}</span>
             <span className="text-2xl font-black tabular-nums neon-text" data-testid="hud-speed">{s.speed}</span>
             <span className="text-[10px] text-sky-300">קמ"ש</span>
             <span className="h-2 w-14 rounded-full bg-slate-800 overflow-hidden">
@@ -171,8 +178,14 @@ export function HUD({ track, onPause, onCamera, explore = false, pickups = [], t
           </div>
         ) : (
         <div className="glass rounded-2xl px-5 py-2 text-center min-w-36 short:px-3 short:py-1">
-          <div className="text-5xl md:text-6xl short:text-4xl font-black tabular-nums neon-text" data-testid="hud-speed">{s.speed}</div>
-          <div className="text-xs text-sky-300 -mt-1">קמ"ש</div>
+          <div className="flex items-end justify-center gap-3" dir="ltr">
+            <div className={`text-2xl md:text-3xl font-black tabular-nums w-9 text-center rounded-md ${s.shifting ? 'text-yellow-300' : 'text-white'}`} title="הילוך">{s.gear === 0 ? 'R' : s.gear}</div>
+            <div>
+              <div className="text-5xl md:text-6xl short:text-4xl font-black tabular-nums neon-text" data-testid="hud-speed">{s.speed}</div>
+              <div className="text-xs text-sky-300 -mt-1">קמ"ש</div>
+            </div>
+          </div>
+          <Tacho rpm={s.rpm} />
           <div className="mt-1.5 h-2.5 w-40 short:w-28 rounded-full bg-slate-800 overflow-hidden" dir="ltr">
             <div className={`h-full ${s.nitroActive ? 'bg-gradient-to-r from-cyan-300 to-white' : 'bg-gradient-to-r from-orange-500 to-yellow-300'}`} style={{ width: `${Math.round(s.nitro * 100)}%` }} />
           </div>
@@ -222,6 +235,19 @@ export function HUD({ track, onPause, onCamera, explore = false, pickups = [], t
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Segmented rev counter: idle 650 … red line 2300 RPM. */
+function Tacho({ rpm }: { rpm: number }) {
+  const segs = 16;
+  const lit = Math.round(((rpm - 650) / 1650) * segs);
+  return (
+    <div className="flex gap-0.5 mt-1 justify-center" dir="ltr" aria-label={`${Math.round(rpm)} סל"ד`}>
+      {Array.from({ length: segs }).map((_, i) => (
+        <span key={i} className="w-2 h-2.5 rounded-sm" style={{ background: i < lit ? (i >= 13 ? '#ff3b3b' : i >= 10 ? '#ffcc33' : '#35e0ff') : '#1c2433' }} />
+      ))}
     </div>
   );
 }

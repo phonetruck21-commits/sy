@@ -77,6 +77,8 @@ export interface TrackDef {
   points: [number, number][]; // control points x,z (closed loop)
   heights?: number[]; // optional elevation per control point (visual only, kept flat for MVP)
   width: number;
+  /** multiplies the control points: bigger = longer lap */
+  scale?: number;
   theme: TrackTheme;
   ramps?: number[]; // fraction along track [0..1) where ramps are placed
   /** hidden treasure: fraction along the track, lateral offset (m, + = right), height above ground (m) */

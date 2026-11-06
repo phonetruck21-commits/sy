@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { touchInput, type DriveInput } from '../../game/input/input';
+import { audio } from '../../game/audio/audio';
 
 type Key = Exclude<keyof DriveInput, 'steer'>;
 
@@ -39,7 +40,17 @@ export function TouchControls({ onRespawn }: { onRespawn: () => void }) {
       </div>
       <div className="flex gap-3 items-end">
         <div className="flex flex-col gap-3 items-center">
-          <button className="pointer-events-auto glass rounded-full w-12 h-12 text-xl" onClick={onRespawn} aria-label="חזרה למסלול">↺</button>
+          <div className="flex gap-2">
+            <button
+              className="pointer-events-auto touch-none glass rounded-full w-12 h-12 text-xl active:scale-95"
+              aria-label="צופר"
+              onPointerDown={(e) => { e.preventDefault(); audio.setHorn(true); }}
+              onPointerUp={() => audio.setHorn(false)}
+              onPointerCancel={() => audio.setHorn(false)}
+              onPointerLeave={() => audio.setHorn(false)}
+            >📯</button>
+            <button className="pointer-events-auto glass rounded-full w-12 h-12 text-xl" onClick={onRespawn} aria-label="חזרה למסלול">↺</button>
+          </div>
           <Pad k="brake" label="בלם" className="w-16 h-16 md:w-20 md:h-20 text-sm bg-red-900/60">בלם</Pad>
         </div>
         <div className="flex flex-col gap-3 items-center">

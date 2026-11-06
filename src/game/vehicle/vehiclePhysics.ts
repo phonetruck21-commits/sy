@@ -114,6 +114,10 @@ export function stepVehicle(r: RacerRuntime, input: DriveInput, dt: number, trac
   body.setAngvel({ x: 0, y: yawRate, z: 0 }, true);
 
   r.speed = fwd;
+  r.throttle = throttle;
+  r.braking = brake && fwd > 1;
+  r.slip = Math.min(1, Math.abs(lat) / 6 + (r.offroad ? 0 : Math.abs(r.steer) * Math.max(0, speedAbs - 18) / 40));
+  updateGearbox(r, dt);
   r.x = t.x;
   r.y = t.y;
   r.z = t.z;
@@ -137,4 +141,39 @@ export function respawnAt(r: RacerRuntime, track: TrackData, idx: number, lane =
   r.idx = idx;
   r.steer = 0;
   r.stuckTimer = 0;
+}
+
+// ---------------------------------------------------------------------------
+// 8-speed truck gearbox: drives engine RPM for the sound and the tachometer.
+export const IDLE_RPM = 650;
+export const SHIFT_UP_RPM = 2050;
+export const RED_RPM = 2300;
+const GEAR_TOP = [0.13, 0.21, 0.31, 0.43, 0.56, 0.7, 0.85, 1.02]; // fraction of top speed each gear reaches at red line
+
+export function updateGearbox(r: RacerRuntime, dt: number) {
+  const vmax = r.stats.maxSpeed * 1.3;
+  const v = Math.abs(r.speed);
+  if (r.speed < -0.5) {
+    r.gear = 0;
+  } else if (r.gear === 0) {
+    r.gear = 1;
+  }
+  const g = Math.max(1, r.gear);
+  const topV = GEAR_TOP[g - 1] * vmax;
+  let target = IDLE_RPM + (v / topV) * (RED_RPM - IDLE_RPM);
+  if (r.gear === 0) target = IDLE_RPM + (v / (0.12 * vmax)) * (RED_RPM - IDLE_RPM);
+  if (r.throttle && v < 2) target = Math.max(target, 1100); // pulling away
+  if (r.shiftTimer > 0) {
+    r.shiftTimer -= dt;
+  } else if (r.gear > 0) {
+    if (target > SHIFT_UP_RPM && r.gear < 8 && r.throttle) {
+      r.gear++;
+      r.shiftTimer = 0.32;
+    } else if (r.gear > 1 && target < 1050) {
+      r.gear--;
+      r.shiftTimer = 0.2;
+    }
+  }
+  const blend = r.shiftTimer > 0 ? 6 : 12;
+  r.rpm += (Math.min(RED_RPM, Math.max(IDLE_RPM, target)) - r.rpm) * Math.min(1, blend * dt);
 }

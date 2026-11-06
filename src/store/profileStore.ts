@@ -225,7 +225,13 @@ export const useProfile = create<ProfileState>()(
     {
       name: 'truck-racing-profile-v1',
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
+      // v2: tracks became 1.6x longer, so old lap/race records no longer compare
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as Record<string, unknown>;
+        if (version < 2) p.records = {};
+        return p as never;
+      },
     },
   ),
 );

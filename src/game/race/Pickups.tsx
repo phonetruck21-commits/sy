@@ -110,7 +110,10 @@ export function Pickups({ items, trackId, respawn }: { items: Pickup[]; trackId:
             <circleGeometry args={[3, 32]} />
             <meshBasicMaterial color="#ffd54a" transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
           </mesh>
-          <pointLight color="#ffcc33" intensity={20} distance={14} />
+          <mesh>
+            <sphereGeometry args={[1.6, 16, 12]} />
+            <meshBasicMaterial color="#ffcc33" transparent opacity={0.18} blending={THREE.AdditiveBlending} depthWrite={false} />
+          </mesh>
         </group>
       )}
     </group>
