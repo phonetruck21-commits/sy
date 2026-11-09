@@ -1,0 +1,34 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #0f172a;
+  font-family: "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif;
+}
+
+#hud {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  left: 12px;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  color: #0f172a;
+}
+
+#hud > div {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#hud-title { font-weight: 700; font-size: 18px; }
+#hud-cart  { font-size: 15px; }
+#hud-help  { font-size: 13px; line-height: 1.5; flex-basis: 100%; max-width: 560px; }
+
+/* בתוך VR אין צורך בשכבת ה-HTML */
+.a-fullscreen #hud.in-vr { display: none; }
