@@ -13,10 +13,32 @@
   <!-- שכבת מידע למסך רגיל (מוסתרת בתוך משקף VR) -->
   <div id="hud">
     <div id="hud-title"></div>
-    <div id="hud-cart">🛒 <span id="hud-count">0</span> פריטים · <span id="hud-total"></span></div>
+    <div id="hud-cart">🛒 <span id="hud-count">0</span> פריטים · <span id="hud-total"></span>
+      <button id="hud-pay" type="button" hidden>לתשלום</button></div>
     <div id="hud-help">
       במשקף: לחצו על כפתור <b>VR</b> למטה · כוונו עם הבקר ולחצו על ההדק · סטיק שמאלי = הליכה, סטיק ימני = סיבוב<br>
       במחשב: גררו עם העכבר כדי להסתכל, W/A/S/D להליכה, לחיצה על מוצר לפרטים
+    </div>
+  </div>
+
+  <!-- חלון תשלום PayPal -->
+  <div id="checkout" hidden>
+    <div class="co-card" role="dialog" aria-modal="true" aria-labelledby="co-title">
+      <button id="co-close" class="co-x" type="button" aria-label="סגירה">✕</button>
+      <div id="co-summary">
+        <h2 id="co-title">תשלום מאובטח</h2>
+        <ul id="co-lines"></ul>
+        <div id="co-total"></div>
+        <div id="paypal-buttons"></div>
+      </div>
+      <div id="co-done" hidden>
+        <h2>תודה! ההזמנה התקבלה 🎉</h2>
+        <p id="co-done-text"></p>
+        <p class="co-note">אישור נשלח אליכם במייל מ-PayPal.</p>
+        <button id="co-back-vr" class="co-btn" type="button" hidden>חזרה לחנות ב-VR 🥽</button>
+        <button id="co-close-done" class="co-btn co-btn-secondary" type="button">המשך קנייה</button>
+      </div>
+      <div id="co-status" aria-live="polite"></div>
     </div>
   </div>
 

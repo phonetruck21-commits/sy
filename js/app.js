@@ -40,13 +40,116 @@
 
   function findProduct(id) { return window.PRODUCTS.find((p) => p.id === id); }
 
-  /* שליחת הזמנה – כאן מחברים שרת / סליקה אמיתית (Stripe, PayPal, Tranzila וכו').
-   * כרגע זו הדמיה שמחזירה מספר הזמנה. */
-  function submitOrder(lines, total) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ orderId: String(Math.floor(100000 + Math.random() * 900000)) }), 700);
+  /* ------------------------------------------------------------------ *
+   *  תשלום עם PayPal                                                    *
+   *  כפתורי PayPal הם חלון רגיל של הדפדפן, ולכן בזמן התשלום יוצאים       *
+   *  ממצב VR, ואחרי התשלום אפשר לחזור לחנות בלחיצה.                       *
+   * ------------------------------------------------------------------ */
+  async function api(url, body) {
+    const res = await fetch(url, {
+      method: body === undefined ? 'GET' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(json.error || `HTTP ${res.status}`), { issue: json.issue });
+    return json;
   }
+
+  const Checkout = {
+    sdk: null,
+    returnToVR: false,
+
+    loadPayPal() {
+      if (window.paypal && window.paypal.Buttons) return Promise.resolve(window.paypal);
+      if (!this.sdk) {
+        this.sdk = api('api/config').then((cfg) => {
+          if (!cfg.clientId) throw new Error('config');
+          return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cfg.clientId)}`
+              + `&currency=${encodeURIComponent(cfg.currency)}&intent=capture&locale=he_IL`;
+            s.onload = () => resolve(window.paypal);
+            s.onerror = () => reject(new Error('sdk'));
+            document.head.appendChild(s);
+          });
+        });
+        this.sdk.catch(() => { this.sdk = null; }); // לאפשר ניסיון חוזר
+      }
+      return this.sdk;
+    },
+
+    status(msg, kind = '') {
+      const el = $('#co-status');
+      el.textContent = msg;
+      el.className = kind;
+    },
+
+    open(fromVR) {
+      const lines = Cart.lines();
+      if (!lines.length) return;
+      this.returnToVR = !!fromVR;
+      $('#co-lines').innerHTML = '';
+      lines.forEach((l) => {
+        const li = document.createElement('li');
+        li.innerHTML = '<span></span><span></span>';
+        li.children[0].textContent = `${l.product.name} × ${l.qty}`;
+        li.children[1].textContent = fmt(l.subtotal);
+        $('#co-lines').appendChild(li);
+      });
+      $('#co-total').textContent = `סה״כ לתשלום: ${fmt(Cart.total())}`;
+      $('#co-summary').hidden = false;
+      $('#co-done').hidden = true;
+      $('#paypal-buttons').innerHTML = '';
+      $('#checkout').hidden = false;
+      this.status('טוען את PayPal…');
+
+      this.loadPayPal().then((paypal) => {
+        this.status('');
+        return paypal.Buttons({
+          style: { layout: 'vertical', shape: 'rect', label: 'pay' },
+          createOrder: () => api('api/orders', { items: Cart.items }).then((d) => d.id),
+          onApprove: (data, actions) => {
+            this.status('מאשר את התשלום…');
+            return api(`api/orders/${data.orderID}/capture`, {})
+              .then((r) => {
+                if (r.status === 'COMPLETED') this.success(r);
+                else this.status('התשלום לא הושלם. נסו שוב.', 'error');
+              })
+              .catch((err) => {
+                if (err.issue === 'INSTRUMENT_DECLINED') return actions.restart(); // כרטיס נדחה – בחירת אמצעי אחר
+                this.status('גביית התשלום נכשלה. לא חויבתם – נסו שוב.', 'error');
+              });
+          },
+          onCancel: () => this.status('התשלום בוטל. אפשר לנסות שוב.'),
+          onError: () => this.status('אירעה שגיאה מול PayPal. נסו שוב בעוד רגע.', 'error'),
+        }).render('#paypal-buttons');
+      }).catch(() => {
+        this.status('התשלום לא זמין כרגע: השרת או פרטי PayPal לא מוגדרים (ראו README).', 'error');
+      });
+    },
+
+    success(r) {
+      const total = Cart.total();
+      Cart.clear();
+      $('#co-summary').hidden = true;
+      $('#co-done').hidden = false;
+      $('#co-done-text').textContent = `מספר אישור: ${r.captureId || r.orderId}\nסכום: ${fmt(r.amount ? r.amount.value : total)}`;
+      $('#co-back-vr').hidden = !this.returnToVR;
+      this.status('');
+      this.lastReceipt = r;
+    },
+
+    close() {
+      $('#checkout').hidden = true;
+      $('#paypal-buttons').innerHTML = '';
+    },
+
+    backToVR() {
+      this.close();
+      document.querySelector('a-scene').enterVR();
+    },
+  };
 
   /* ------------------------------------------------------------------ *
    *  רכיב טקסט עברי (ציור על Canvas – תומך RTL, בניגוד לטקסט המובנה)     *
@@ -293,29 +396,23 @@
       Panel.show({ title: 'הסל ריק', text: 'בחרו מוצר מהמדפים כדי להתחיל.', buttons: [{ label: 'המשך קנייה', onClick: Panel.hide }] });
       return;
     }
-    const text = lines.map((l) => `${l.product.name} × ${l.qty} – ${fmt(l.subtotal)}`).join('\n') + `\n\nסה״כ לתשלום: ${fmt(Cart.total())}`;
+    const text = lines.map((l) => `${l.product.name} × ${l.qty} – ${fmt(l.subtotal)}`).join('\n') + `\n\nסה״כ לתשלום: ${fmt(Cart.total())}\n\nהתשלום מאובטח דרך PayPal (המשקף ייצא רגע ממצב VR).`;
     Panel.show({
       title: 'סיכום הזמנה',
       text,
       buttons: [
-        { label: 'אישור ותשלום', bg: '#16a34a', onClick: confirmOrder },
+        { label: 'לתשלום ב-PayPal', bg: '#0070ba', onClick: confirmOrder },
         { label: 'המשך קנייה', bg: '#6b7280', onClick: Panel.hide },
       ],
     });
   }
 
   function confirmOrder() {
-    const lines = Cart.lines();
-    const total = Cart.total();
-    Panel.show({ title: 'מעבד תשלום…', text: 'רק רגע', buttons: [] });
-    submitOrder(lines, total).then(({ orderId }) => {
-      Cart.clear();
-      Panel.show({
-        title: 'תודה! ההזמנה התקבלה 🎉',
-        text: `מספר הזמנה: ${orderId}\nסכום: ${fmt(total)}\n\nאישור יישלח אליכם במייל.`,
-        buttons: [{ label: 'סגור', onClick: Panel.hide }],
-      });
-    });
+    const scene = document.querySelector('a-scene');
+    const inVR = scene.is('vr-mode');
+    Panel.hide();
+    if (inVR) scene.exitVR(); // חלון PayPal נפתח בדפדפן הרגיל
+    Checkout.open(inVR);
   }
 
   /* ------------------------------------------------------------------ *
@@ -480,11 +577,17 @@
       $('#hud-title').textContent = CFG.name;
       const hud = () => { $('#hud-count').textContent = Cart.count(); $('#hud-total').textContent = fmt(Cart.total()); };
       Cart.onChange(hud); hud();
-      this.el.addEventListener('enter-vr', () => { $('#hud').style.display = 'none'; Panel.hide(); });
+      this.el.addEventListener('enter-vr', () => { $('#hud').style.display = 'none'; Panel.hide(); Checkout.close(); });
+      $('#hud-pay').addEventListener('click', () => confirmOrder());
+      $('#co-close').addEventListener('click', () => Checkout.close());
+      $('#co-close-done').addEventListener('click', () => Checkout.close());
+      $('#co-back-vr').addEventListener('click', () => Checkout.backToVR());
+      const updatePayBtn = () => { $('#hud-pay').hidden = Cart.count() === 0; };
+      Cart.onChange(updatePayBtn); updatePayBtn();
       this.el.addEventListener('exit-vr', () => { $('#hud').style.display = ''; });
     },
   });
 
   // חשיפה לבדיקות / הרחבות
-  window.VRStore = { Cart, Panel, openProduct, openCheckout };
+  window.VRStore = { Cart, Panel, Checkout, openProduct, openCheckout, confirmOrder };
 })();

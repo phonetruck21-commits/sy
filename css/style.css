@@ -1,3 +1,5 @@
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
@@ -32,3 +34,84 @@ html, body {
 
 /* בתוך VR אין צורך בשכבת ה-HTML */
 .a-fullscreen #hud.in-vr { display: none; }
+
+#hud-pay {
+  pointer-events: auto;
+  margin-inline-start: 8px;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 12px;
+  background: #0070ba;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- חלון תשלום ---------- */
+#checkout {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  overflow-y: auto;
+}
+#checkout[hidden] { display: none; }
+
+.co-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 16px;
+  padding: 24px 20px 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+.co-card h2 { margin: 0 0 14px; font-size: 22px; }
+.co-x {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #e5e7eb;
+  font-size: 16px;
+  cursor: pointer;
+}
+#co-lines { list-style: none; margin: 0 0 12px; padding: 0; }
+#co-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 15px;
+}
+#co-total { font-weight: 700; font-size: 18px; margin: 4px 0 16px; }
+#paypal-buttons { min-height: 50px; }
+#co-status { margin-top: 10px; font-size: 14px; color: #475569; min-height: 1em; }
+#co-status.error { color: #b91c1c; }
+#co-done-text { white-space: pre-line; font-size: 16px; }
+.co-note { color: #64748b; font-size: 14px; }
+.co-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+.co-btn-secondary { background: #e5e7eb; color: #0f172a; }

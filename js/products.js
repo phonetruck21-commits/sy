@@ -5,18 +5,20 @@
 // scale: גודל הדגם בתלת-ממד (במטרים, בערך)
 // אפשר גם להחליף צורה בדגם תלת-ממדי אמיתי: model: 'assets/shoe.glb'
 
-window.STORE_CONFIG = {
+(function (root) {
+const STORE_CONFIG = {
   name: 'החנות שלי',
-  currency: '₪',
+  currency: '₪',        // סימן להצגה
+  currencyCode: 'ILS',  // קוד מטבע לסליקה ב-PayPal (ILS / USD / EUR ...)
 };
 
-window.CATEGORIES = [
+const CATEGORIES = [
   { id: 'electronics', name: 'אלקטרוניקה', color: '#3b82f6' },
   { id: 'home',        name: 'בית ועיצוב', color: '#f59e0b' },
   { id: 'sport',       name: 'ספורט ופנאי', color: '#10b981' },
 ];
 
-window.PRODUCTS = [
+const PRODUCTS = [
   // אלקטרוניקה
   { id: 'e1', category: 'electronics', name: 'רמקול חכם', price: 349,
     description: 'רמקול אלחוטי עם סאונד היקפי, עוזר קולי וסוללה ל-12 שעות.',
@@ -59,3 +61,9 @@ window.PRODUCTS = [
     description: 'מזרן יוגה מונע החלקה, עובי 6 מ"מ.',
     shape: 'box', color: '#ec4899', scale: 0.3 },
 ];
+
+// משותף לדפדפן ולשרת (השרת מחשב את המחירים מכאן – הלקוח לא יכול לשנות אותם)
+const data = { STORE_CONFIG, CATEGORIES, PRODUCTS };
+if (typeof module !== 'undefined' && module.exports) module.exports = data;
+else Object.assign(root, data);
+})(this);
