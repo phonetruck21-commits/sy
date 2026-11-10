@@ -116,6 +116,7 @@ app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/healthz', (req, res) => res.send('ok')); // בדיקת תקינות לשירות האירוח
 
 // ה-Client ID ציבורי (נדרש בדפדפן), ה-Secret נשאר בשרת
 app.get('/api/config', (req, res) => {
