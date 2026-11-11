@@ -467,7 +467,7 @@ function receiptHTML(sale, copy = false) {
     <div class="c"><b style="font-size:16px">${esc(s.storeName)}</b><br>
       ${s.taxId ? `ע.מ / ח.פ ${esc(s.taxId)}<br>` : ''}${s.address ? esc(s.address) + '<br>' : ''}${s.phone ? 'טל׳ ' + esc(s.phone) : ''}</div>
     <hr>
-    <div class="c"><b>${sale.type === 'refund' ? 'קבלה / תעודת זיכוי' : 'חשבונית מס / קבלה'} מס׳ ${sale.number}</b>${copy ? '<br>** העתק **' : ''}</div>
+    <div class="c"><b>${sale.type === 'refund' ? 'קבלה / תעודת זיכוי' : 'קבלה'} מס׳ ${sale.number}</b>${copy ? '<br>** העתק **' : ''}</div>
     <div>${fmtDate(sale.ts)} · ${esc(sale.cashier)}</div>
     ${sale.customer?.name ? `<div>לקוח: ${esc(sale.customer.name)} ${esc(sale.customer.phone || '')}</div>` : ''}
     <hr>
