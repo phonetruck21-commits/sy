@@ -3,100 +3,107 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>חנות VR</title>
-  <meta name="theme-color" content="#1e1b4b">
+  <title>לוּמָה · סטודיו לעיצוב הבית</title>
+  <meta name="theme-color" content="#1d1c1a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;700&display=swap">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-v1.6.0.min.js"></script>
   <script src="js/products.js"></script>
-  <script src="js/models.js"></script>
+  <script src="js/env.js"></script>
   <script src="js/fx.js"></script>
   <script src="js/app.js"></script>
 </head>
 <body>
-  <!-- מסך כניסה -->
-  <div id="intro">
-    <div class="intro-card">
-      <div class="intro-logo">🛍️</div>
-      <h1 id="intro-title"></h1>
-      <p class="intro-sub">חוויית קנייה במציאות מדומה</p>
-      <ul class="intro-points">
-        <li>⭐ מוצר החודש במחיר מבצע</li>
-        <li>🚚 משלוח חינם בהזמנות גדולות</li>
-        <li>🔒 תשלום מאובטח ב-PayPal</li>
-      </ul>
-      <button id="intro-vr" class="intro-btn intro-btn-vr" type="button" hidden>כניסה ב-VR 🥽</button>
-      <button id="intro-enter" class="intro-btn" type="button">כניסה לחנות 🛍️</button>
-      <p class="intro-help">
-        <b>במשקף:</b> כוונו עם הבקר ולחצו על ההדק · Grip = להרים מוצר ביד · סטיק שמאלי = הליכה, ימני = סיבוב<br>
-        <b>במחשב:</b> גררו עם העכבר כדי להסתכל · W/A/S/D להליכה · לחיצה על מוצר לפרטים
-      </p>
+  <!-- מסך פתיחה -->
+  <section id="intro" aria-labelledby="intro-title">
+    <div class="intro-inner">
+      <p class="intro-eyebrow">חנות במציאות מדומה</p>
+      <h1 id="intro-title" class="brand-name">לוּמָה</h1>
+      <p class="intro-tagline brand-tagline">סטודיו לעיצוב הבית</p>
+      <p class="intro-lede">היכנסו לחנות, הסתובבו בין הרהיטים בגודלם האמיתי, הרימו מוצרים כדי לבחון אותם מקרוב, ובחרו צבע לפני שאתם מזמינים.</p>
+      <div class="intro-actions">
+        <button id="intro-vr" class="btn btn-primary" type="button" hidden>כניסה עם משקף VR</button>
+        <button id="intro-enter" class="btn" type="button">כניסה לחנות</button>
+      </div>
+      <div class="intro-load" aria-live="polite">
+        <div class="intro-track"><div id="intro-bar"></div></div>
+        <p id="intro-progress">טוען את המוצרים…</p>
+      </div>
+      <dl class="intro-controls">
+        <div><dt>במשקף</dt><dd>כוונו עם הבקר ולחצו על ההדק לבחירה. כפתור Grip מרים מוצר ביד. סטיק שמאלי להליכה, ימני לסיבוב.</dd></div>
+        <div><dt>במחשב</dt><dd>גררו כדי להסתכל, W A S D להליכה, לחיצה על מוצר לפרטים.</dd></div>
+      </dl>
     </div>
-  </div>
+  </section>
 
-  <!-- שכבת מידע למסך רגיל (מוסתרת בתוך משקף VR) -->
-  <div id="hud">
-    <div id="hud-title"></div>
-    <div id="hud-cart">🛒 <span id="hud-count">0</span> פריטים · <span id="hud-total"></span>
-      <button id="hud-pay" type="button" hidden>לתשלום</button></div>
-    <div id="hud-ship"></div>
-    <button id="hud-music" type="button" aria-label="מוזיקה">🔊</button>
-  </div>
+  <!-- סרגל עליון (מוסתר במשקף) -->
+  <header id="hud">
+    <div class="hud-brand"><span class="brand-name">לוּמָה</span><span class="brand-tagline">סטודיו לעיצוב הבית</span></div>
+    <button id="hud-cart" type="button" aria-label="סל הקניות">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>סל</span>
+      <span id="hud-cart-count" class="hud-count" hidden>0</span>
+      <span id="hud-cart-total" class="hud-total"></span>
+    </button>
+  </header>
+  <p id="hint">גררו כדי להסתכל · W A S D להליכה · לחיצה על מוצר לפרטים</p>
+  <div id="dom-toast" role="status" aria-live="polite"></div>
 
-  <!-- חלון תשלום PayPal -->
+  <!-- תשלום -->
   <div id="checkout" hidden>
     <div class="co-card" role="dialog" aria-modal="true" aria-labelledby="co-title">
-      <button id="co-close" class="co-x" type="button" aria-label="סגירה">✕</button>
+      <button id="co-close" class="co-x" type="button" aria-label="סגירה">×</button>
       <div id="co-summary">
-        <h2 id="co-title">תשלום מאובטח</h2>
+        <p class="co-eyebrow">תשלום מאובטח</p>
+        <h2 id="co-title">סיכום ההזמנה</h2>
         <ul id="co-lines"></ul>
         <div id="co-total"></div>
         <div id="paypal-buttons"></div>
       </div>
       <div id="co-done" hidden>
-        <h2>תודה! ההזמנה התקבלה 🎉</h2>
-        <p id="co-done-text"></p>
-        <p class="co-note">אישור נשלח אליכם במייל מ-PayPal.</p>
-        <button id="co-back-vr" class="co-btn" type="button" hidden>חזרה לחנות ב-VR 🥽</button>
-        <button id="co-close-done" class="co-btn co-btn-secondary" type="button">המשך קנייה</button>
+        <p class="co-eyebrow">ההזמנה התקבלה</p>
+        <h2>תודה שקניתם אצלנו</h2>
+        <dl class="co-receipt">
+          <div><dt>מספר אישור</dt><dd id="co-order"></dd></div>
+          <div><dt>סכום</dt><dd id="co-amount"></dd></div>
+        </dl>
+        <p class="co-note">אישור ופרטי משלוח נשלחו אליכם במייל מ-PayPal.</p>
+        <button id="co-back-vr" class="btn btn-primary" type="button" hidden>חזרה לחנות במשקף</button>
+        <button id="co-close-done" class="btn" type="button">המשך בקנייה</button>
       </div>
-      <div id="co-status" aria-live="polite"></div>
+      <p id="co-status" aria-live="polite"></p>
     </div>
   </div>
 
   <a-scene
     store
-    renderer="antialias: true; colorManagement: true"
+    studio-environment
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 0.95; foveationLevel: 1"
     cursor="rayOrigin: mouse; fuse: false"
-    raycaster="objects: .clickable; far: 20"
-    vr-mode-ui="enabled: true"
+    raycaster="objects: .clickable; far: 20; interval: 40"
     xr-mode-ui="enabled: true"
-    loading-screen="dotsColor: #3b82f6; backgroundColor: #0f172a">
+    loading-screen="enabled: false">
 
-    <a-assets></a-assets>
+    <a-entity light="type: hemisphere; color: #fffaf2; groundColor: #b7a48c; intensity: 0.6"></a-entity>
+    <a-entity light="type: directional; color: #fff4e5; intensity: 1.6" position="-3 6 4"></a-entity>
+    <a-sky color="#f4f1ea"></a-sky>
 
-    <!-- תאורה -->
-    <a-entity light="type: hemisphere; color: #fff7ed; groundColor: #b08968; intensity: 0.75"></a-entity>
-    <a-entity light="type: directional; intensity: 0.55; color: #ffffff" position="2 6 3"></a-entity>
-    <a-entity light="type: point; intensity: 0.55; distance: 9; color: #fff1d6" position="0 3.3 0"></a-entity>
-
-    <a-sky color="#e0e7ff"></a-sky>
-
-    <!-- השחקן: rig + מצלמה + בקרים -->
-    <a-entity id="rig" position="0 0 0" thumbstick-move="speed: 2">
-      <a-entity id="camera" camera position="0 1.6 0" look-controls wasd-controls="acceleration: 25">
-        <a-entity id="toast" position="0 -0.3 -1.2" visible="false"></a-entity>
+    <!-- המבקר: rig + מצלמה + בקרים -->
+    <a-entity id="rig" position="0 0 4.2" thumbstick-move>
+      <a-entity id="camera" camera position="0 1.6 0" look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 18">
+        <a-entity id="toast" position="0 -0.3 -1.1" visible="false"></a-entity>
       </a-entity>
-      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; far: 20; lineColor: #818cf8; lineOpacity: 0.8" haptics grabber>
-        <!-- סל קניות על פרק היד -->
-        <a-entity id="wrist-cart" position="0 0.05 0.11" rotation="-60 0 0"></a-entity>
+      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; far: 12; lineColor: #f5f2ed; lineOpacity: 0.5" haptics grabber>
+        <a-entity id="wrist-cart" position="0 0.045 0.1" rotation="-60 0 0"></a-entity>
       </a-entity>
-      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 20; lineColor: #818cf8; lineOpacity: 0.8" haptics grabber></a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 12; lineColor: #f5f2ed; lineOpacity: 0.5" haptics grabber></a-entity>
     </a-entity>
 
     <!-- החנות נבנית מתוך js/app.js לפי js/products.js -->
     <a-entity id="store-root"></a-entity>
-
-    <!-- חלון פרטי מוצר / תשלום -->
+    <a-entity id="hover" visible="false" face-camera></a-entity>
     <a-entity id="panel" visible="false"></a-entity>
   </a-scene>
 </body>

@@ -73,13 +73,21 @@ function shippingFor(itemsTotal) {
 
 function buildOrder(items) {
   if (!items || typeof items !== 'object' || Array.isArray(items)) throw httpError(400, 'סל לא תקין');
-  const lines = Object.entries(items).map(([id, qty]) => {
+  // מפתח בסל: "מזהה-מוצר" או "מזהה-מוצר|צבע"
+  const lines = Object.entries(items).map(([key, qty]) => {
+    const [id, variantId] = String(key).split('|');
     const product = PRODUCTS.find((p) => p.id === id);
     const q = Number(qty);
     if (!product) throw httpError(400, `מוצר לא קיים: ${id}`);
     if (!Number.isInteger(q) || q < 1 || q > 99) throw httpError(400, `כמות לא תקינה: ${id}`);
-    return { product, qty: q };
+    let variant = null;
+    if (variantId) {
+      variant = (product.variants || []).find((v) => v.id === variantId);
+      if (!variant) throw httpError(400, `צבע לא קיים: ${key}`);
+    }
+    return { product, variant, qty: q };
   });
+  if (lines.length > 50) throw httpError(400, 'יותר מדי פריטים בסל');
   if (!lines.length) throw httpError(400, 'הסל ריק');
   const itemsTotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
   const shipping = shippingFor(itemsTotal);
@@ -101,8 +109,8 @@ function buildOrder(items) {
           },
         },
         items: lines.map((l) => ({
-          name: l.product.name.slice(0, 127),
-          sku: l.product.id,
+          name: (l.variant ? `${l.product.name} – ${l.variant.label}` : l.product.name).slice(0, 127),
+          sku: (l.variant ? `${l.product.id}-${l.variant.id}` : l.product.id).slice(0, 127),
           quantity: String(l.qty),
           unit_amount: { currency_code: CURRENCY, value: money(l.product.price) },
           category: 'PHYSICAL_GOODS',
