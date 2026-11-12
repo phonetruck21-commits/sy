@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { getPlayer, race } from '../race/raceRuntime';
 
 const tmp = new THREE.Vector3();
+// dev filming mode: camera locked tight to the truck even at low frame rates
+const CINEMA = import.meta.env.DEV && new URLSearchParams(location.search).get('cinema') === '1';
 const look = new THREE.Vector3();
 
 /** Chase / cab / far cameras with speed-based FOV and collision shake. */
@@ -38,9 +40,9 @@ export function CameraRig() {
       lookCur.current.copy(look);
       init.current = true;
     }
-    const a = 1 - Math.exp(-stiffness * dt);
+    const a = CINEMA ? 1 : 1 - Math.exp(-stiffness * dt);
     cur.current.lerp(tmp, mode === 'cab' ? 1 : a);
-    lookCur.current.lerp(look, mode === 'cab' ? 1 : 1 - Math.exp(-10 * dt));
+    lookCur.current.lerp(look, mode === 'cab' || CINEMA ? 1 : 1 - Math.exp(-10 * dt));
     camera.position.copy(cur.current);
     if (p.shake > 0) {
       camera.position.x += (Math.random() - 0.5) * p.shake * 0.8;
