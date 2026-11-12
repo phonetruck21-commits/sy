@@ -7,6 +7,7 @@ import { audio } from '../../game/audio/audio';
 import { useGame } from '../../store/gameStore';
 import { useProfile } from '../../store/profileStore';
 import { HUD } from '../hud/HUD';
+import { RaceChat } from '../components/ChatPanel';
 import { TouchControls } from '../hud/TouchControls';
 import { PauseMenu } from '../hud/PauseMenu';
 import type { CameraMode } from '../../types';
@@ -197,6 +198,7 @@ export function RaceScreen() {
         pickups={pickups}
         respawnPickups={explore}
       />
+      {online && !loading && <RaceChat />}
       {waiting && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
           <div className="glass rounded-2xl px-6 py-4 text-center animate-in">

@@ -5,6 +5,7 @@ import { hostOf, MAX_ONLINE_PLAYERS, normalizeCode, PUBLIC_ROOM, randomCode, rea
 import { lookFromDesign } from '../../net/onlineRace';
 import { usePlayers } from '../../net/players';
 import { Avatar } from '../components/PlayerUI';
+import { ChatPanel } from '../components/ChatPanel';
 import { TRACK_LIST, TRACKS } from '../../data/tracks';
 import { TRUCKS } from '../../data/trucks';
 import { Button, Panel, ScreenFrame } from '../components/UI';
@@ -132,6 +133,11 @@ function Lobby({ code, mock }: { code: string; mock: boolean }) {
           <Button size="sm" onClick={() => { navigator.clipboard?.writeText(code.toUpperCase()).then(() => setCopied(true), () => undefined); }}>{copied ? '✓ הועתק' : '📋 העתק קוד'}</Button>
         )}
         {mock && <div className="w-full text-xs text-amber-300">מצב בדיקה מקומי: החדר משותף רק בין חלונות באותו מחשב.</div>}
+      </Panel>
+
+      <Panel className="p-4">
+        <h3 className="font-black mb-2">💬 צ׳אט החדר</h3>
+        <ChatPanel />
       </Panel>
 
       <div className="grid md:grid-cols-2 gap-4">

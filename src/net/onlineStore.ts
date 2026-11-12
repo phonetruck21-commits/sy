@@ -5,6 +5,7 @@ import { BRAND_THEMES } from '../data/themes';
 import { TRACKS } from '../data/tracks';
 import { TRUCKS } from '../data/trucks';
 import { AVATARS as AVATAR_SET } from './players';
+import { ingestPeers, resetChat } from './chat';
 
 /**
  * Online protocol — everything travels in each player's room *presence*
@@ -160,8 +161,12 @@ export const useOnline = create<OnlineState>()((set, get) => ({
     }
     try {
       const room = await api.join(`truckrace-${code}`);
+      resetChat();
       unsub = room.onPeers(
-        (c) => set({ peers: c.peers }),
+        (c) => {
+          set({ peers: c.peers });
+          ingestPeers(c.peers);
+        },
         (e) => set({ status: 'error', error: e.code }),
       );
       await room.presence({ v: PROTOCOL, name: me.name.slice(0, 24), look: me.look, truck: me.truck, race: null, go: null, loaded: null, car: null, cfg: null });
@@ -175,6 +180,7 @@ export const useOnline = create<OnlineState>()((set, get) => ({
     unsub?.();
     unsub = null;
     const r = get().room;
+    resetChat();
     set({ room: null, peers: [], status: 'idle', code: null });
     if (r) await r.leave().catch(() => undefined);
   },

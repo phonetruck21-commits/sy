@@ -93,7 +93,11 @@ export function HUD({ track, onPause, onCamera, explore = false, pickups = [], t
   const [mapOpen, setMapOpen] = useState(false);
   const collected = usePickupFx((x) => x.total);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.code === 'KeyM' && !e.repeat) setMapOpen((v) => !v); };
+    const k = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
+      if (e.code === 'KeyM' && !e.repeat) setMapOpen((v) => !v);
+    };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, []);

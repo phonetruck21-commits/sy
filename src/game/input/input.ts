@@ -42,7 +42,12 @@ const KEYMAP: Record<string, BoolKey> = {
 };
 
 export function attachKeyboard(handlers: { onCamera: () => void; onPause: () => void; onRespawn: () => void; onHorn?: (on: boolean) => void }) {
+  const typing = (e: KeyboardEvent) => {
+    const el = e.target as HTMLElement | null;
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  };
   const down = (e: KeyboardEvent) => {
+    if (typing(e)) return;
     if (e.code === 'KeyH') { handlers.onHorn?.(true); return; }
     const k = KEYMAP[e.code];
     if (k) {
