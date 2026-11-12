@@ -4,21 +4,42 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>חנות VR</title>
+  <meta name="theme-color" content="#1e1b4b">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-v1.6.0.min.js"></script>
   <script src="js/products.js"></script>
+  <script src="js/models.js"></script>
+  <script src="js/fx.js"></script>
   <script src="js/app.js"></script>
 </head>
 <body>
+  <!-- מסך כניסה -->
+  <div id="intro">
+    <div class="intro-card">
+      <div class="intro-logo">🛍️</div>
+      <h1 id="intro-title"></h1>
+      <p class="intro-sub">חוויית קנייה במציאות מדומה</p>
+      <ul class="intro-points">
+        <li>⭐ מוצר החודש במחיר מבצע</li>
+        <li>🚚 משלוח חינם בהזמנות גדולות</li>
+        <li>🔒 תשלום מאובטח ב-PayPal</li>
+      </ul>
+      <button id="intro-vr" class="intro-btn intro-btn-vr" type="button" hidden>כניסה ב-VR 🥽</button>
+      <button id="intro-enter" class="intro-btn" type="button">כניסה לחנות 🛍️</button>
+      <p class="intro-help">
+        <b>במשקף:</b> כוונו עם הבקר ולחצו על ההדק · Grip = להרים מוצר ביד · סטיק שמאלי = הליכה, ימני = סיבוב<br>
+        <b>במחשב:</b> גררו עם העכבר כדי להסתכל · W/A/S/D להליכה · לחיצה על מוצר לפרטים
+      </p>
+    </div>
+  </div>
+
   <!-- שכבת מידע למסך רגיל (מוסתרת בתוך משקף VR) -->
   <div id="hud">
     <div id="hud-title"></div>
     <div id="hud-cart">🛒 <span id="hud-count">0</span> פריטים · <span id="hud-total"></span>
       <button id="hud-pay" type="button" hidden>לתשלום</button></div>
-    <div id="hud-help">
-      במשקף: לחצו על כפתור <b>VR</b> למטה · כוונו עם הבקר ולחצו על ההדק · סטיק שמאלי = הליכה, סטיק ימני = סיבוב<br>
-      במחשב: גררו עם העכבר כדי להסתכל, W/A/S/D להליכה, לחיצה על מוצר לפרטים
-    </div>
+    <div id="hud-ship"></div>
+    <button id="hud-music" type="button" aria-label="מוזיקה">🔊</button>
   </div>
 
   <!-- חלון תשלום PayPal -->
@@ -54,19 +75,22 @@
     <a-assets></a-assets>
 
     <!-- תאורה -->
-    <a-entity light="type: ambient; intensity: 0.45; color: #ffffff"></a-entity>
-    <a-entity light="type: directional; intensity: 0.7" position="2 6 3"></a-entity>
-    <a-entity light="type: point; intensity: 0.6; distance: 12" position="0 3.6 0"></a-entity>
+    <a-entity light="type: hemisphere; color: #fff7ed; groundColor: #b08968; intensity: 0.75"></a-entity>
+    <a-entity light="type: directional; intensity: 0.55; color: #ffffff" position="2 6 3"></a-entity>
+    <a-entity light="type: point; intensity: 0.55; distance: 9; color: #fff1d6" position="0 3.3 0"></a-entity>
 
-    <a-sky color="#dbeafe"></a-sky>
+    <a-sky color="#e0e7ff"></a-sky>
 
     <!-- השחקן: rig + מצלמה + בקרים -->
     <a-entity id="rig" position="0 0 0" thumbstick-move="speed: 2">
       <a-entity id="camera" camera position="0 1.6 0" look-controls wasd-controls="acceleration: 25">
         <a-entity id="toast" position="0 -0.3 -1.2" visible="false"></a-entity>
       </a-entity>
-      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; far: 20; lineColor: #3b82f6; lineOpacity: 0.8"></a-entity>
-      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 20; lineColor: #3b82f6; lineOpacity: 0.8"></a-entity>
+      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; far: 20; lineColor: #818cf8; lineOpacity: 0.8" haptics grabber>
+        <!-- סל קניות על פרק היד -->
+        <a-entity id="wrist-cart" position="0 0.05 0.11" rotation="-60 0 0"></a-entity>
+      </a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 20; lineColor: #818cf8; lineOpacity: 0.8" haptics grabber></a-entity>
     </a-entity>
 
     <!-- החנות נבנית מתוך js/app.js לפי js/products.js -->

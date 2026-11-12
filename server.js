@@ -63,6 +63,14 @@ async function paypal(method, urlPath, body) {
 function httpError(status, message, extra) { return Object.assign(new Error(message), { status, extra }); }
 const money = (n) => Number(n).toFixed(2);
 
+// אותו חוק כמו בדפדפן (js/app.js): משלוח חינם מעל סכום מסוים
+function shippingFor(itemsTotal) {
+  const free = Number(STORE_CONFIG.freeShippingOver) || 0;
+  const cost = Number(STORE_CONFIG.shippingCost) || 0;
+  if (!cost || free === 0 || itemsTotal >= free) return 0;
+  return cost;
+}
+
 function buildOrder(items) {
   if (!items || typeof items !== 'object' || Array.isArray(items)) throw httpError(400, 'סל לא תקין');
   const lines = Object.entries(items).map(([id, qty]) => {
@@ -73,7 +81,9 @@ function buildOrder(items) {
     return { product, qty: q };
   });
   if (!lines.length) throw httpError(400, 'הסל ריק');
-  const total = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+  const itemsTotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+  const shipping = shippingFor(itemsTotal);
+  const total = itemsTotal + shipping;
 
   return {
     lines,
@@ -85,7 +95,10 @@ function buildOrder(items) {
         amount: {
           currency_code: CURRENCY,
           value: money(total),
-          breakdown: { item_total: { currency_code: CURRENCY, value: money(total) } },
+          breakdown: {
+            item_total: { currency_code: CURRENCY, value: money(itemsTotal) },
+            shipping: { currency_code: CURRENCY, value: money(shipping) },
+          },
         },
         items: lines.map((l) => ({
           name: l.product.name.slice(0, 127),
@@ -182,4 +195,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, buildOrder };
+module.exports = { app, buildOrder, shippingFor };

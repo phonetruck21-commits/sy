@@ -28,9 +28,27 @@ html, body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-#hud-title { font-weight: 700; font-size: 18px; }
+#hud-title { font-weight: 700; font-size: 18px; color: #312e81; }
 #hud-cart  { font-size: 15px; }
-#hud-help  { font-size: 13px; line-height: 1.5; flex-basis: 100%; max-width: 560px; }
+#hud-ship  { font-size: 13px; color: #4338ca; }
+#hud-ship:empty { display: none; }
+#hud-music {
+  pointer-events: auto;
+  margin-inline-start: auto;
+  border: 0;
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+#hud-cart.bump { animation: bump 0.45s ease; }
+@keyframes bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); background: #dcfce7; }
+  100% { transform: scale(1); }
+}
 
 /* בתוך VR אין צורך בשכבת ה-HTML */
 .a-fullscreen #hud.in-vr { display: none; }
@@ -115,3 +133,79 @@ html, body {
   cursor: pointer;
 }
 .co-btn-secondary { background: #e5e7eb; color: #0f172a; }
+
+#co-lines li.co-ship { color: #4338ca; }
+#co-lines li.co-save { color: #dc2626; font-weight: 600; }
+
+/* ---------- מסך כניסה ---------- */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(219, 39, 119, 0.35), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.3), transparent 45%),
+    linear-gradient(135deg, #1e1b4b, #312e81 60%, #4c1d95);
+  color: #fff;
+}
+.intro-card {
+  width: 100%;
+  max-width: 460px;
+  text-align: center;
+  padding: 28px 22px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+  animation: rise 0.6s ease both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+.intro-logo { font-size: 56px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-8px); } }
+.intro-card h1 { margin: 6px 0 4px; font-size: 34px; }
+.intro-sub { margin: 0 0 18px; color: #c7d2fe; font-size: 17px; }
+.intro-points { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 8px; font-size: 15px; }
+.intro-points li { background: rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 8px; }
+.intro-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e1b4b;
+  background: linear-gradient(135deg, #fde68a, #facc15);
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(250, 204, 21, 0.35);
+  transition: transform 0.15s ease;
+}
+.intro-btn:hover, .intro-btn:focus-visible { transform: translateY(-2px); }
+.intro-btn-vr { color: #fff; background: linear-gradient(135deg, #db2777, #7c3aed); box-shadow: 0 8px 24px rgba(219, 39, 119, 0.35); }
+.intro-help { margin: 18px 0 0; font-size: 13px; line-height: 1.6; color: #c7d2fe; }
+
+/* ---------- קונפטי ---------- */
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 200; overflow: hidden; }
+.confetti i {
+  position: absolute;
+  top: -20px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: fall linear forwards;
+}
+@keyframes fall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .intro-logo, .intro-card, #hud-cart.bump { animation: none; }
+}
