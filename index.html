@@ -8,14 +8,16 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">🧾 <span id="storeNameLbl">קופה רושמת</span></div>
+  <div class="brand"><span id="brandLogo"></span><div><div id="storeNameLbl">קופה רושמת</div><div id="sloganLbl" class="slogan"></div></div></div>
   <nav class="tabs">
     <button class="tab active" data-view="pos">קופה</button>
     <button class="tab" data-view="products">מוצרים</button>
+    <button class="tab" data-view="promos">מבצעים</button>
     <button class="tab" data-view="sales">היסטוריית מכירות</button>
     <button class="tab" data-view="reports">דוחות</button>
     <button class="tab" data-view="settings">הגדרות</button>
   </nav>
+  <button id="customerDisplayBtn" class="btn small display-btn" title="פתח מסך לקוח (F8)">🖥 מסך לקוח</button>
   <div class="status">
     <span id="cashierLbl"></span>
     <span id="clock"></span>
@@ -46,8 +48,10 @@
       <input id="customerPhone" placeholder="טלפון">
     </div>
     <div id="cartItems" class="cart-items"></div>
+    <div id="promoHints" class="promo-hints"></div>
     <div class="totals">
       <div class="row"><span>סה״כ לפני הנחה</span><span id="tSubtotal">₪0.00</span></div>
+      <div class="row promo-row" id="promoRow" hidden><span>🏷 מבצעים</span><span id="tPromo">₪0.00</span></div>
       <div class="row discount-row"><span>הנחה <button id="cartDiscountBtn" class="link">(שנה)</button></span><span id="tDiscount">₪0.00</span></div>
       <div class="row"><span>מחיר לפני מע״מ</span><span id="tNet">₪0.00</span></div>
       <div class="row"><span>מע״מ (<span id="vatLbl">18</span>%)</span><span id="tVat">₪0.00</span></div>
@@ -72,6 +76,18 @@
   <table class="table">
     <thead><tr><th>מק״ט</th><th>ברקוד</th><th>שם</th><th>קטגוריה</th><th>מחיר</th><th>עלות</th><th>מלאי</th><th></th></tr></thead>
     <tbody id="productsTable"></tbody>
+  </table>
+</main>
+
+<!-- ===== PROMOTIONS ===== -->
+<main id="view-promos" class="view">
+  <div class="toolbar">
+    <button id="addPromoBtn" class="btn primary">+ מבצע חדש</button>
+    <span class="muted">המבצעים מחושבים אוטומטית בקופה ומוצגים במסך הלקוח. מבצע גבוה ברשימה מקבל עדיפות.</span>
+  </div>
+  <table class="table">
+    <thead><tr><th></th><th>מבצע</th><th>תנאי</th><th>תוקף</th><th>מצב</th><th></th></tr></thead>
+    <tbody id="promosTable"></tbody>
   </table>
 </main>
 
@@ -104,8 +120,24 @@
 <main id="view-settings" class="view">
   <form id="settingsForm" class="settings">
     <fieldset>
-      <legend>פרטי העסק</legend>
+      <legend>מיתוג</legend>
       <label>שם העסק <input name="storeName"></label>
+      <label>סלוגן <input name="slogan"></label>
+      <label>צבע מותג <input name="brandColor" type="color"></label>
+      <label>צבע כהה (רקע) <input name="brandDark" type="color"></label>
+      <div class="logo-field">
+        <div id="logoPreview"></div>
+        <label class="btn secondary">העלאת לוגו<input id="logoFile" type="file" accept="image/*" hidden></label>
+        <button type="button" class="btn secondary" id="removeLogo">הסר לוגו</button>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>מסך לקוח</legend>
+      <label>זמן הצגת מסך "תודה" לפני חזרה לפרסומות (שניות) <input name="thanksSeconds" type="number" min="2"></label>
+      <label>זמן הצגה לכל שקף (שניות) <input name="slideSeconds" type="number" min="3"></label>
+    </fieldset>
+    <fieldset>
+      <legend>פרטי העסק</legend>
       <label>ח.פ / עוסק מורשה <input name="taxId"></label>
       <label>כתובת <input name="address"></label>
       <label>טלפון <input name="phone"></label>
@@ -141,6 +173,7 @@
 <div id="toast" class="toast hidden"></div>
 <div id="printArea"></div>
 
+<script src="shared.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

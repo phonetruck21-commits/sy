@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מסך לקוח</title>
+<link rel="stylesheet" href="customer.css">
+</head>
+<body>
+  <header class="cbar">
+    <div class="cbrand"><span id="cLogo"></span><div><div id="cName"></div><div id="cSlogan" class="cslogan"></div></div></div>
+    <div id="cClock" class="cclock"></div>
+  </header>
+
+  <!-- idle: promotions slideshow -->
+  <section id="idle" class="screen">
+    <div id="slides" class="slides"></div>
+    <div id="dots" class="dots"></div>
+  </section>
+
+  <!-- active purchase -->
+  <section id="cart" class="screen hidden">
+    <div class="c-main">
+      <div class="c-welcome" id="cWelcome"></div>
+      <div id="cItems" class="c-items"></div>
+    </div>
+    <aside class="c-side">
+      <div id="cHints" class="c-hints"></div>
+      <div class="c-totals">
+        <div class="r"><span>סה״כ</span><span id="cSub"></span></div>
+        <div class="r save" id="cPromoRow"><span>🏷 הנחות ומבצעים</span><span id="cSave"></span></div>
+        <div class="r grand"><span id="cTotalLbl">לתשלום</span><span id="cTotal"></span></div>
+        <div class="saved-banner" id="cSavedBanner"></div>
+      </div>
+      <div id="cPromoCard" class="c-promo-card"></div>
+    </aside>
+  </section>
+
+  <!-- payment / thank you overlay -->
+  <section id="overlay" class="overlay hidden"><div id="overlayBox" class="overlay-box"></div></section>
+
+  <div id="fsHint" class="fs-hint">לחיצה כפולה – מסך מלא</div>
+
+  <script src="shared.js"></script>
+  <script src="customer.js"></script>
+</body>
+</html>

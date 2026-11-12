@@ -4,13 +4,12 @@
    כל הנתונים נשמרים ב-localStorage של הדפדפן.
    ============================================================ */
 
-const LS_KEY = 'pos.v1';
 const PAY_METHODS = {
   cash: 'מזומן', credit: 'אשראי', check: 'צ׳ק', bit: 'ביט / העברה', voucher: 'שובר / זיכוי'
 };
 
 const DEFAULT_SETTINGS = {
-  storeName: 'החנות המקצועית',
+  ...BRAND_DEFAULTS,
   taxId: '',
   address: '',
   phone: '',
@@ -23,6 +22,8 @@ const DEFAULT_SETTINGS = {
   lowStock: 3,
   managerPin: '',
   maxDiscount: 15,
+  thanksSeconds: 8,
+  slideSeconds: 7,
 };
 
 const SAMPLE_PRODUCTS = [
@@ -60,29 +61,39 @@ function load() {
       const d = JSON.parse(raw);
       d.settings = { ...DEFAULT_SETTINGS, ...d.settings };
       d.products ||= []; d.sales ||= []; d.held ||= []; d.zReports ||= [];
+      d.promotions ||= samplePromotions(d.products);
       return d;
     }
   } catch (e) { console.error(e); }
+  const products = SAMPLE_PRODUCTS.map(([sku, barcode, name, category, price, cost, stock]) =>
+    ({ id: uid(), sku, barcode, name, category, price, cost, stock }));
   return {
     settings: { ...DEFAULT_SETTINGS },
-    products: SAMPLE_PRODUCTS.map(([sku, barcode, name, category, price, cost, stock]) =>
-      ({ id: uid(), sku, barcode, name, category, price, cost, stock })),
+    products, promotions: samplePromotions(products),
     sales: [], held: [], zReports: [],
   };
 }
+
+function samplePromotions(products) {
+  const id = sku => products.find(p => p.sku === sku)?.id;
+  const base = { active: true, showOnScreen: true, from: '', to: '', image: '', badge: '', description: '' };
+  const list = [
+    { ...base, name: '1+1 על כפפות עבודה', description: 'קנה זוג – קבל זוג נוסף מתנה', type: 'xfory', scope: 'products', productIds: [id('4001')], buyQty: 2, payQty: 1 },
+    { ...base, name: '3 מקדחים לבטון ב־₪55', description: 'מקדח 8 מ״מ – מחיר מיוחד בקנייה של 3', type: 'bundle', scope: 'products', productIds: [id('5001')], buyQty: 3, price: 55 },
+    { ...base, name: '10% הנחה על ציוד מגן', description: 'בטיחות קודם כל – על כל מחלקת ציוד המגן', type: 'pct', scope: 'category', category: 'ציוד מגן', pct: 10 },
+    { ...base, name: 'קנייה מעל ₪500 – 5% הנחה', description: 'על כל הקנייה, אוטומטית בקופה', type: 'threshold', scope: 'all', minAmount: 500, pct: 5 },
+    { ...base, name: 'חדש בחנות: מברגה נטענת 18V', description: 'עוצמה, דיוק וסוללה שמחזיקה יום עבודה שלם', type: 'ad', scope: 'all', badge: 'חדש!' },
+  ];
+  return list.filter(p => p.scope !== 'products' || p.productIds.every(Boolean)).map(p => ({ id: uid(), ...p }));
+}
 function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); }
-  catch (e) { toast('שגיאה בשמירת נתונים: ' + e.message, true); }
+  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); return true; }
+  catch (e) { toast('שגיאה בשמירת נתונים (ייתכן שהתמונות גדולות מדי): ' + e.message, true); return false; }
 }
 
 /* ---------------- utils ---------------- */
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
-const money = n => (n < 0 ? '-' : '') + '₪' + Math.abs(n).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDate = ts => new Date(ts).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
-const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 let toastTimer;
 function toast(msg, err = false) {
@@ -112,7 +123,7 @@ function closeModal() {
   $('#modal').classList.add('hidden');
   $('#modalBody').innerHTML = '';
   if (modalResolve) { modalResolve(null); modalResolve = null; }
-  if ($('#view-pos').classList.contains('active')) $('#scan').focus();
+  if ($('#view-pos').classList.contains('active')) { $('#scan').focus(); publishDisplay(cart.items.length ? 'cart' : 'idle'); }
 }
 let modalResolve = null;
 
@@ -153,19 +164,16 @@ async function requireManager(reason) {
 }
 
 /* ---------------- calculations ---------------- */
-function lineTotal(it) {
-  const gross = it.price * it.qty;
-  const d = it.discount || 0; // percent
-  return r2(gross - gross * d / 100);
-}
-
 function calcTotals(c = cart) {
   const vat = Number(db.settings.vat) / 100;
   const sign = c.refund ? -1 : 1;
   const subtotal = r2(c.items.reduce((s, it) => s + lineTotal(it), 0));
-  let disc = c.discount.type === 'pct' ? subtotal * c.discount.value / 100 : Number(c.discount.value);
-  disc = r2(Math.min(Math.max(disc, 0), subtotal));
-  const afterDisc = r2(subtotal - disc);
+  const promo = applyPromotions(c.items, db.promotions, db.products);
+  const promoAmt = r2(Math.min(promo.total, subtotal));
+  const afterPromo = r2(subtotal - promoAmt);
+  let disc = c.discount.type === 'pct' ? afterPromo * c.discount.value / 100 : Number(c.discount.value);
+  disc = r2(Math.min(Math.max(disc, 0), afterPromo));
+  const afterDisc = r2(afterPromo - disc);
   let net, vatAmt, total;
   if (db.settings.pricesIncludeVat) {
     total = afterDisc; net = r2(total / (1 + vat)); vatAmt = r2(total - net);
@@ -175,7 +183,8 @@ function calcTotals(c = cart) {
   const itemsDiscount = r2(c.items.reduce((s, it) => s + (it.price * it.qty - lineTotal(it)), 0));
   return {
     subtotal: sign * subtotal, discount: sign * disc, itemsDiscount: sign * itemsDiscount,
-    net: sign * net, vat: sign * vatAmt, total: sign * total,
+    promo: sign * promoAmt, net: sign * net, vat: sign * vatAmt, total: sign * total,
+    promoDetail: promo,
   };
 }
 
@@ -236,12 +245,15 @@ function handleScan() {
 /* ---------------- cart ---------------- */
 function renderCart() {
   const box = $('#cartItems');
+  const t = calcTotals();
+  const pl = t.promoDetail.perLine;
   if (!cart.items.length) box.innerHTML = '<div class="empty">העגלה ריקה – סרוק או בחר מוצר</div>';
   else box.innerHTML = cart.items.map(it => `
     <div class="line" data-key="${it.key}">
       <div>
         <div class="title">${esc(it.name)}</div>
         <div class="sub">${money(it.price)} ליח׳${it.discount ? ` · <span class="disc">הנחה ${it.discount}%</span>` : ''}</div>
+        ${pl[it.key] ? `<div class="promo-tag">🏷 ${esc(pl[it.key].names.join(', '))} (−${money(pl[it.key].amount)})</div>` : ''}
       </div>
       <div class="qty">
         <button data-act="inc">+</button>
@@ -257,8 +269,10 @@ function renderCart() {
     </div>`).join('');
   box.scrollTop = box.scrollHeight;
 
-  const t = calcTotals();
   $('#tSubtotal').textContent = money(t.subtotal);
+  $('#tPromo').textContent = money(-t.promo);
+  $('#promoRow').hidden = !t.promo;
+  $('#promoHints').innerHTML = t.promoDetail.hints.map(h => `<div>💡 ${esc(h)}</div>`).join('');
   $('#tDiscount').textContent = money(-t.discount);
   $('#tNet').textContent = money(t.net);
   $('#tVat').textContent = money(t.vat);
@@ -268,6 +282,44 @@ function renderCart() {
   $('#refundToggle').classList.toggle('active', cart.refund);
   $('#payBtn').textContent = cart.refund ? 'בצע החזרה' : 'תשלום';
   $('#heldCount').textContent = db.held.length;
+  publishDisplay(cart.items.length ? 'cart' : 'idle');
+}
+
+/* ---------------- customer display ---------------- */
+function publishDisplay(phase, extra = {}) {
+  const t = calcTotals();
+  const pd = t.promoDetail;
+  const sign = cart.refund ? -1 : 1;
+  const msg = {
+    phase, ts: Date.now(), refund: cart.refund,
+    customer: $('#customerName').value.trim(),
+    items: cart.items.map(it => ({
+      name: it.name, qty: it.qty, price: it.price, total: sign * lineTotal(it),
+      promo: pd.perLine[it.key]?.amount || 0, promoNames: pd.perLine[it.key]?.names || [],
+    })),
+    totals: { subtotal: t.subtotal, promo: t.promo, discount: t.discount, vat: t.vat, total: t.total },
+    applied: pd.applied, hints: pd.hints, ...extra,
+  };
+  try { localStorage.setItem(DISPLAY_KEY, JSON.stringify(msg)); } catch { /* ignore */ }
+  try { displayChannel?.postMessage(msg); } catch { /* ignore */ }
+}
+
+let customerWin = null;
+async function openCustomerDisplay() {
+  if (customerWin && !customerWin.closed) { customerWin.focus(); return; }
+  let features = 'width=1024,height=768';
+  // Chrome/Edge: place the window on the second monitor automatically when allowed
+  try {
+    if ('getScreenDetails' in window) {
+      const sd = await window.getScreenDetails();
+      const other = sd.screens.find(sc => sc !== sd.currentScreen);
+      if (other) features = `left=${other.availLeft},top=${other.availTop},width=${other.availWidth},height=${other.availHeight}`;
+    }
+  } catch { /* permission denied – user drags the window manually */ }
+  customerWin = window.open('customer.html', 'pos-customer', features);
+  if (!customerWin) return toast('הדפדפן חסם את פתיחת החלון – אפשר חלונות קופצים לאתר זה', true);
+  setTimeout(() => publishDisplay(cart.items.length ? 'cart' : 'idle'), 800);
+  toast('מסך הלקוח נפתח – גרור אותו למסך השני ולחץ עליו פעמיים למסך מלא');
 }
 
 async function cartLineAction(key, act, el) {
@@ -376,6 +428,7 @@ function openPayment() {
 
   function draw() {
     const rem = remaining();
+    publishDisplay('pay', { due, paid: paid(), remaining: rem });
     const quick = [...new Set([rem, Math.ceil(rem / 10) * 10, Math.ceil(rem / 50) * 50, Math.ceil(rem / 100) * 100, 200])].filter(v => v >= rem && v > 0).slice(0, 5);
     $('#modalBody').innerHTML = `
       <h3>${cart.refund ? 'החזרה ללקוח' : 'תשלום'}</h3>
@@ -414,8 +467,10 @@ function openPayment() {
 
   function finish(print) {
     const change = r2(Math.max(-remaining(), 0));
+    const saved = r2(Math.abs((t.promo || 0) + (t.discount || 0) + (t.itemsDiscount || 0)));
     const sale = completeSale(payments, change);
     closeModal();
+    publishDisplay('done', { change, paidTotal: Math.abs(sale.totals.total), saved, refund: sale.type === 'refund' });
     if (print) printReceipt(sale);
     toast(`עסקה ${sale.number} הושלמה` + (change ? ` · עודף ${money(change)}` : ''));
   }
@@ -442,7 +497,8 @@ function completeSale(payments, change) {
     type: cart.refund ? 'refund' : 'sale',
     items: cart.items.map(it => ({ ...it, total: r2(lineTotal(it) * (cart.refund ? -1 : 1)) })),
     discount: { ...cart.discount },
-    totals: t,
+    totals: { subtotal: t.subtotal, discount: t.discount, itemsDiscount: t.itemsDiscount, promo: t.promo, net: t.net, vat: t.vat, total: t.total },
+    promotions: t.promoDetail.applied.map(a => ({ ...a, amount: cart.refund ? -a.amount : a.amount })),
     vatRate: s.vat,
     payments: payments.map(p => ({ ...p, amount: cart.refund ? -p.amount : p.amount })),
     change,
@@ -464,7 +520,7 @@ function receiptHTML(sale, copy = false) {
   const s = db.settings;
   const t = sale.totals;
   return `<div class="receipt">
-    <div class="c"><b style="font-size:16px">${esc(s.storeName)}</b><br>
+    <div class="c">${logoHTML(s, 48)}<br><b style="font-size:16px">${esc(s.storeName)}</b><br>${s.slogan ? `<i>${esc(s.slogan)}</i><br>` : ''}
       ${s.taxId ? `ע.מ / ח.פ ${esc(s.taxId)}<br>` : ''}${s.address ? esc(s.address) + '<br>' : ''}${s.phone ? 'טל׳ ' + esc(s.phone) : ''}</div>
     <hr>
     <div class="c"><b>${sale.type === 'refund' ? 'קבלה / תעודת זיכוי' : 'קבלה'} מס׳ ${sale.number}</b>${copy ? '<br>** העתק **' : ''}</div>
@@ -478,6 +534,7 @@ function receiptHTML(sale, copy = false) {
     <hr>
     <table>
       <tr><td>סה״כ</td><td class="n">${money(t.subtotal)}</td></tr>
+      ${(sale.promotions || []).map(p => `<tr><td>מבצע: ${esc(p.name)}</td><td class="n">${money(-p.amount)}</td></tr>`).join('')}
       ${t.discount ? `<tr><td>הנחה</td><td class="n">${money(-t.discount)}</td></tr>` : ''}
       <tr><td>לפני מע״מ</td><td class="n">${money(t.net)}</td></tr>
       <tr><td>מע״מ ${sale.vatRate}%</td><td class="n">${money(t.vat)}</td></tr>
@@ -488,6 +545,7 @@ function receiptHTML(sale, copy = false) {
       ${sale.change ? `<tr><td>עודף</td><td class="n">${money(sale.change)}</td></tr>` : ''}
     </table>
     <hr>
+    ${(() => { const sv = Math.abs((t.promo || 0) + (t.discount || 0) + (t.itemsDiscount || 0)); return sv && sale.type === 'sale' ? `<div class="c"><b>חסכת היום ${money(r2(sv))}!</b></div><hr>` : ''; })()}
     <div class="c">${esc(s.footer)}</div>
   </div>`;
 }
@@ -643,11 +701,12 @@ function exportSales() {
 
 /* ---------------- reports ---------------- */
 function summarize(sales) {
-  const out = { count: 0, refunds: 0, gross: 0, net: 0, vat: 0, discount: 0, cost: 0, byMethod: {}, byCat: {}, byItem: {}, byCashier: {}, change: 0, first: null, last: null };
+  const out = { byPromo: {}, count: 0, refunds: 0, gross: 0, net: 0, vat: 0, discount: 0, cost: 0, byMethod: {}, byCat: {}, byItem: {}, byCashier: {}, change: 0, first: null, last: null };
   for (const s of sales) {
     s.type === 'refund' ? out.refunds++ : out.count++;
     out.gross += s.totals.total; out.net += s.totals.net; out.vat += s.totals.vat;
-    out.discount += (s.totals.discount || 0) + (s.totals.itemsDiscount || 0);
+    out.discount += (s.totals.discount || 0) + (s.totals.itemsDiscount || 0) + (s.totals.promo || 0);
+    for (const p of s.promotions || []) out.byPromo[p.name] = (out.byPromo[p.name] || 0) + p.amount;
     for (const p of s.payments) out.byMethod[p.method] = (out.byMethod[p.method] || 0) + p.amount;
     out.change += s.change || 0;
     out.byCashier[s.cashier] = (out.byCashier[s.cashier] || 0) + s.totals.total;
@@ -689,6 +748,7 @@ function reportHTML(title, sales, extra = '') {
     </div>
     ${r.first !== null ? `<div>קבלות ${r.first} – ${r.last}</div>` : ''}
     <h3>לפי אמצעי תשלום</h3><table class="table">${rows(r.byMethod, k => PAY_METHODS[k] || k)}</table>
+    <h3>מבצעים שמומשו</h3><table class="table">${rows(r.byPromo)}</table>
     <h3>לפי קטגוריה</h3><table class="table">${rows(r.byCat)}</table>
     <h3>לפי קופאי</h3><table class="table">${rows(r.byCashier)}</table>
     <h3>מוצרים מובילים</h3><table class="table"><thead><tr><th>מוצר</th><th>כמות</th><th>סכום</th></tr></thead>
@@ -750,8 +810,137 @@ function saveSettings(e) {
   save(); applyHeader(); renderCart(); toast('ההגדרות נשמרו');
 }
 function applyHeader() {
-  $('#storeNameLbl').textContent = db.settings.storeName;
-  $('#cashierLbl').textContent = '👤 ' + db.settings.cashier;
+  const s = db.settings;
+  applyBrand(s);
+  $('#storeNameLbl').textContent = s.storeName;
+  $('#sloganLbl').textContent = s.slogan || '';
+  $('#brandLogo').innerHTML = logoHTML(s, 38);
+  $('#logoPreview').innerHTML = logoHTML(s, 64);
+  $('#cashierLbl').textContent = '👤 ' + s.cashier;
+  document.title = s.storeName + ' – קופה';
+}
+
+/** reads an image file, scales it down and returns a data URL (keeps localStorage small) */
+function readImage(file, maxSize, type = 'image/jpeg') {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = reject;
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('קובץ תמונה לא תקין'));
+      img.onload = () => {
+        const k = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL(type, 0.82));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ---------------- promotions view ---------------- */
+function promoSummary(p) {
+  const scope = promoScopeName(p, db.products);
+  switch (p.type) {
+    case 'xfory': return `קנה ${p.buyQty} שלם ${p.payQty} · ${scope}`;
+    case 'bundle': return `${p.buyQty} יח׳ ב־${money(Number(p.price))} · ${scope}`;
+    case 'pct': return `${p.pct}% הנחה · ${scope}`;
+    case 'threshold': return `${p.pct}% הנחה בקנייה מעל ${money(Number(p.minAmount))}`;
+    default: return 'מודעה במסך הלקוח';
+  }
+}
+
+function renderPromotions() {
+  $('#promosTable').innerHTML = db.promotions.length ? db.promotions.map((p, i) => {
+    const live = promoActive(p);
+    return `<tr class="${live ? '' : 'inactive'}">
+      <td><span class="promo-badge">${esc(promoBadge(p))}</span></td>
+      <td><b>${esc(p.name)}</b><div class="muted">${esc(p.description || '')}</div></td>
+      <td>${esc(promoSummary(p))}</td>
+      <td>${p.from || p.to ? `${esc(p.from || '…')} – ${esc(p.to || '…')}` : 'ללא הגבלה'}</td>
+      <td>${live ? '<span class="pill ok">פעיל</span>' : '<span class="pill">לא פעיל</span>'}${p.showOnScreen ? ' <span class="pill">🖥</span>' : ''}</td>
+      <td class="nowrap">
+        <button class="btn small secondary" data-up="${i}" title="עדיפות גבוהה יותר">▲</button>
+        <button class="btn small secondary" data-edit="${p.id}">עריכה</button>
+        <button class="btn small secondary" data-toggle="${p.id}">${p.active ? 'השבת' : 'הפעל'}</button>
+        <button class="btn small danger" data-del="${p.id}">מחק</button></td></tr>`;
+  }).join('') : '<tr><td colspan="6" class="empty">אין מבצעים – לחץ "מבצע חדש"</td></tr>';
+}
+
+function editPromotion(id) {
+  const p = id ? db.promotions.find(x => x.id === id) : {
+    name: '', description: '', type: 'xfory', scope: 'products', productIds: [], category: '',
+    buyQty: 2, payQty: 1, price: '', pct: 10, minAmount: 300, from: '', to: '', active: true, showOnScreen: true, image: '', badge: '',
+  };
+  let image = p.image || '';
+  const cats = categories().slice(1);
+  openModal(`<h3>${id ? 'עריכת מבצע' : 'מבצע חדש'}</h3>
+    <form class="form promo-form" id="promoForm">
+      <label>שם המבצע (יוצג ללקוח)<input name="name" value="${esc(p.name)}" required></label>
+      <label>תיאור קצר<input name="description" value="${esc(p.description || '')}"></label>
+      <label>סוג<select name="type">${Object.entries(PROMO_TYPES).map(([k, l]) => `<option value="${k}" ${k === p.type ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <div class="grid2" data-for="xfory bundle">
+        <label>כמות לקנייה (X)<input name="buyQty" type="number" min="1" value="${esc(p.buyQty ?? 2)}"></label>
+        <label data-for="xfory">משלמים על (Y)<input name="payQty" type="number" min="0" value="${esc(p.payQty ?? 1)}"></label>
+        <label data-for="bundle">מחיר לכל החבילה (₪)<input name="price" type="number" step="0.01" min="0" value="${esc(p.price ?? '')}"></label>
+      </div>
+      <div class="grid2">
+        <label data-for="pct threshold">אחוז הנחה<input name="pct" type="number" step="0.1" min="0" max="100" value="${esc(p.pct ?? 10)}"></label>
+        <label data-for="threshold">מינימום קנייה (₪)<input name="minAmount" type="number" step="0.01" min="0" value="${esc(p.minAmount ?? 300)}"></label>
+      </div>
+      <label data-for="xfory bundle pct">חל על<select name="scope">
+        <option value="products" ${p.scope === 'products' ? 'selected' : ''}>מוצרים נבחרים</option>
+        <option value="category" ${p.scope === 'category' ? 'selected' : ''}>קטגוריה</option>
+        <option value="all" ${p.scope === 'all' ? 'selected' : ''}>כל המוצרים</option></select></label>
+      <label data-scope="category">קטגוריה<select name="category">${cats.map(c => `<option ${c === p.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+      <label data-scope="products">מוצרים (Ctrl/Shift לבחירה מרובה)<select name="productIds" multiple size="6">
+        ${db.products.map(x => `<option value="${x.id}" ${(p.productIds || []).includes(x.id) ? 'selected' : ''}>${esc(x.name)} (${esc(x.sku)})</option>`).join('')}</select></label>
+      <div class="grid2">
+        <label>מתאריך<input name="from" type="date" value="${esc(p.from || '')}"></label>
+        <label>עד תאריך<input name="to" type="date" value="${esc(p.to || '')}"></label>
+      </div>
+      <label>תווית (ריק = אוטומטי, למשל "1+1")<input name="badge" value="${esc(p.badge || '')}"></label>
+      <label>תמונה למסך הלקוח<input type="file" id="promoImg" accept="image/*"></label>
+      <div id="promoImgPrev" class="img-prev"></div>
+      <label class="check"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}> מבצע פעיל</label>
+      <label class="check"><input type="checkbox" name="showOnScreen" ${p.showOnScreen ? 'checked' : ''}> הצג במסך הלקוח</label>
+      <div class="actions"><button class="btn primary" type="submit">שמור</button><button class="btn secondary" type="button" data-cancel>ביטול</button></div>
+    </form>`);
+  const f = $('#promoForm');
+  const sync = () => {
+    const type = f.elements.type.value, scope = f.elements.scope.value;
+    f.querySelectorAll('[data-for]').forEach(el => { el.hidden = !el.dataset.for.split(' ').includes(type); });
+    const scoped = ['xfory', 'bundle', 'pct'].includes(type);
+    f.querySelectorAll('[data-scope]').forEach(el => { el.hidden = !scoped || el.dataset.scope !== scope; });
+    $('#promoImgPrev').innerHTML = image ? `<img src="${image}"><button type="button" class="link" id="rmImg">הסר תמונה</button>` : '';
+    $('#rmImg') && ($('#rmImg').onclick = () => { image = ''; sync(); });
+  };
+  f.elements.type.onchange = sync; f.elements.scope.onchange = sync; sync();
+  $('#promoImg').onchange = async e => {
+    try { image = await readImage(e.target.files[0], 900); sync(); } catch (err) { toast(err.message, true); }
+  };
+  f.querySelector('[data-cancel]').onclick = closeModal;
+  f.onsubmit = e => {
+    e.preventDefault();
+    const el = f.elements;
+    const data = {
+      name: el.name.value.trim(), description: el.description.value.trim(), type: el.type.value,
+      scope: el.type.value === 'threshold' || el.type.value === 'ad' ? 'all' : el.scope.value,
+      category: el.category.value, productIds: [...el.productIds.selectedOptions].map(o => o.value),
+      buyQty: Number(el.buyQty.value) || 1, payQty: Number(el.payQty.value) || 0, price: Number(el.price.value) || 0,
+      pct: Number(el.pct.value) || 0, minAmount: Number(el.minAmount.value) || 0,
+      from: el.from.value, to: el.to.value, badge: el.badge.value.trim(),
+      active: el.active.checked, showOnScreen: el.showOnScreen.checked, image,
+    };
+    if (data.type === 'xfory' && data.payQty >= data.buyQty) return toast('Y חייב להיות קטן מ־X (למשל קנה 2 שלם 1)', true);
+    if (['xfory', 'bundle', 'pct'].includes(data.type) && data.scope === 'products' && !data.productIds.length) return toast('בחר לפחות מוצר אחד', true);
+    if (id) Object.assign(p, data); else db.promotions.push({ id: uid(), ...data });
+    if (!save()) return;
+    closeModal(); renderPromotions(); renderCart(); toast('המבצע נשמר');
+  };
 }
 
 /* ---------------- navigation ---------------- */
@@ -759,6 +948,7 @@ function switchView(v) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
   document.querySelectorAll('.view').forEach(x => x.classList.toggle('active', x.id === 'view-' + v));
   if (v === 'products') renderProducts();
+  if (v === 'promos') renderPromotions();
   if (v === 'sales') renderSales();
   if (v === 'settings') fillSettings();
   if (v === 'reports' && !$('#reportOut').innerHTML) xReport();
@@ -767,6 +957,7 @@ function switchView(v) {
 
 /* ---------------- wiring ---------------- */
 function init() {
+  save(); // make sure the customer display can read products, promotions and branding
   applyHeader();
   renderCategories(); renderGrid(); renderCart();
   const today = dayKey(Date.now());
@@ -833,8 +1024,32 @@ function init() {
   $('#xReportBtn').onclick = xReport;
   $('#zReportBtn').onclick = zReport;
 
+  // promotions
+  $('#addPromoBtn').onclick = () => editPromotion(null);
+  $('#promosTable').onclick = e => {
+    const d = e.target.dataset;
+    if (d.edit) editPromotion(d.edit);
+    else if (d.toggle) { const p = db.promotions.find(x => x.id === d.toggle); p.active = !p.active; save(); renderPromotions(); renderCart(); }
+    else if (d.up !== undefined) {
+      const i = Number(d.up); if (!i) return;
+      [db.promotions[i - 1], db.promotions[i]] = [db.promotions[i], db.promotions[i - 1]];
+      save(); renderPromotions(); renderCart();
+    } else if (d.del) {
+      const p = db.promotions.find(x => x.id === d.del);
+      if (confirm(`למחוק את המבצע "${p.name}"?`)) { db.promotions = db.promotions.filter(x => x !== p); save(); renderPromotions(); renderCart(); }
+    }
+  };
+  $('#customerDisplayBtn').onclick = openCustomerDisplay;
+
   // settings
   $('#settingsForm').onsubmit = saveSettings;
+  $('#logoFile').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { db.settings.logo = await readImage(f, 320, 'image/png'); save(); applyHeader(); publishDisplay(cart.items.length ? 'cart' : 'idle'); toast('הלוגו עודכן'); }
+    catch (err) { toast(err.message, true); }
+    e.target.value = '';
+  };
+  $('#removeLogo').onclick = () => { db.settings.logo = ''; save(); applyHeader(); toast('הלוגו הוסר'); };
   $('#backupBtn').onclick = () => download(`pos-backup-${dayKey(Date.now())}.json`, JSON.stringify(db, null, 1), 'application/json');
   $('#restoreFile').onchange = e => {
     const f = e.target.files[0]; if (!f) return;
@@ -865,6 +1080,7 @@ function init() {
     if (e.key === 'F2') { e.preventDefault(); $('#scan').focus(); }
     if (e.key === 'F4') { e.preventDefault(); cartDiscount(); }
     if (e.key === 'F6') { e.preventDefault(); holdCart(); }
+    if (e.key === 'F8') { e.preventDefault(); openCustomerDisplay(); }
   });
 }
 
