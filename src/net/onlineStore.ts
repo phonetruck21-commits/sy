@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getRoomApi, roomIsMock, type NamedRoom, type Peer } from './roomApi';
+import { getRoomApi, lobbyAsRoom, roomIsMock, type NamedRoom, type Peer } from './roomApi';
 import type { ThemeId, TrackId, TruckId } from '../types';
 import { BRAND_THEMES } from '../data/themes';
 import { TRACKS } from '../data/tracks';
@@ -160,7 +160,10 @@ export const useOnline = create<OnlineState>()((set, get) => ({
       return;
     }
     try {
-      const room = await api.join(`truckrace-${code}`);
+      // the public room is the page's base room: everyone who can open the game is in it,
+      // no named-room permission needed. Private codes get their own named room.
+      const withTimeout = <T,>(p: Promise<T>) => Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej({ code: 'timeout' }), 12000))]);
+      const room = code === PUBLIC_ROOM ? lobbyAsRoom(api) : await withTimeout(api.join(`truckrace-${code}`));
       resetChat();
       unsub = room.onPeers(
         (c) => {
@@ -169,11 +172,13 @@ export const useOnline = create<OnlineState>()((set, get) => ({
         },
         (e) => set({ status: 'error', error: e.code }),
       );
-      await room.presence({ v: PROTOCOL, name: me.name.slice(0, 24), look: me.look, truck: me.truck, race: null, go: null, loaded: null, car: null, cfg: null });
+      await withTimeout(room.presence({ v: PROTOCOL, name: me.name.slice(0, 24), look: me.look, truck: me.truck, race: null, go: null, loaded: null, car: null, cfg: null }));
       set({ room, status: 'connected', mock: roomIsMock, peers: room.peers() });
     } catch (e) {
-      const code = (e as { code?: string })?.code ?? 'error';
-      set({ status: code === 'not_permitted' || code === 'not_granted' ? 'unavailable' : 'error', error: code });
+      const errCode = (e as { code?: string })?.code ?? 'error';
+      unsub?.();
+      unsub = null;
+      set({ status: ['not_permitted', 'not_granted', 'revoked'].includes(errCode) ? 'unavailable' : 'error', error: errCode });
     }
   },
   leave: async () => {

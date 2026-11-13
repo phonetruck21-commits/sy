@@ -31,6 +31,29 @@ export interface NamedRoom {
 
 interface RoomNamespace {
   join(name: string): Promise<NamedRoom>;
+  // the base room (everyone admitted to the page) — same calls as a named room
+  presence(patch: Record<string, Json | null>): Promise<void>;
+  peers(): readonly Peer[];
+  onPeers(handler: (c: PeersChange) => void, onError?: (e: { code: string; message: string }) => void): () => void;
+  connected(): boolean;
+}
+
+const OUR_FIELDS = ['v', 'name', 'look', 'truck', 'race', 'go', 'loaded', 'car', 'cfg', 'chat'];
+
+/** The page-wide base room used as a NamedRoom (no extra permission needed beyond the page). */
+export function lobbyAsRoom(ns: RoomNamespace): NamedRoom {
+  return {
+    name: 'lobby',
+    presence: (p) => ns.presence(p),
+    peers: () => ns.peers(),
+    onPeers: (h, e) => ns.onPeers(h, e),
+    connected: () => ns.connected(),
+    leave: async () => {
+      const clear: Record<string, null> = {};
+      OUR_FIELDS.forEach((k) => (clear[k] = null));
+      await ns.presence(clear).catch(() => undefined);
+    },
+  };
 }
 
 type ClaudeGlobal = { use?: (name: string) => Promise<unknown> };
@@ -59,7 +82,11 @@ export function getRoomApi(): Promise<RoomNamespace | null> {
 // Local mock: same-computer multiplayer between browser tabs.
 function createMockRoomApi(): RoomNamespace {
   const me = Math.random().toString(36).slice(2, 10);
-  return {
+  const api: RoomNamespace = {
+    presence: (p) => getLobby().then((l) => l.presence(p)),
+    peers: () => lobbySync?.peers() ?? [],
+    onPeers: (h, e) => { let u: (() => void) | null = null; let off = false; void getLobby().then((l) => { if (!off) u = l.onPeers(h, e); }); return () => { off = true; u?.(); }; },
+    connected: () => true,
     async join(name: string): Promise<NamedRoom> {
       const ch = new BroadcastChannel(`truck-room-${name}`);
       let mine: Record<string, Json> = {};
@@ -129,4 +156,9 @@ function createMockRoomApi(): RoomNamespace {
       };
     },
   };
+  let lobbySync: NamedRoom | null = null;
+  let lobbyP: Promise<NamedRoom> | null = null;
+  const getLobby = () => (lobbyP ??= api.join('__lobby__').then((l) => (lobbySync = l)));
+  void getLobby();
+  return api;
 }

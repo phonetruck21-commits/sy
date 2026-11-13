@@ -9,6 +9,7 @@ import { ChatPanel } from '../components/ChatPanel';
 import { TRACK_LIST, TRACKS } from '../../data/tracks';
 import { TRUCKS } from '../../data/trucks';
 import { Button, Panel, ScreenFrame } from '../components/UI';
+import { useCloud } from '../../net/cloud';
 import { TRACK_GRADIENT } from './RaceSetupScreen';
 import type { TrackId } from '../../types';
 
@@ -24,15 +25,7 @@ export function OnlineScreen() {
       <div className="max-w-4xl mx-auto flex flex-col gap-4">
         {status === 'connected' && code ? <Lobby code={code} mock={mock} /> : <Join />}
         {status === 'connecting' && <Panel className="p-4 text-center animate-pulse">מתחבר לחדר…</Panel>}
-        {status === 'unavailable' && (
-          <Panel className="p-4 border-amber-400/50">
-            <div className="font-black text-amber-300">אונליין לא זמין כאן</div>
-            <p className="text-sm text-slate-300 mt-1">
-              משחק אונליין עובד כשהמשחק פתוח מתוך הקישור שלו ב־claude.ai ואתה מחובר לחשבון. בקישור ציבורי או ללא התחברות אפשר לשחק רק נגד המחשב.
-            </p>
-          </Panel>
-        )}
-        {status === 'error' && <Panel className="p-4 text-red-300">החיבור לחדר נכשל ({error}). נסה שוב בעוד רגע.</Panel>}
+        {(status === 'unavailable' || status === 'error') && <ConnectProblem status={status} error={error} />}
       </div>
     </ScreenFrame>
   );
@@ -189,5 +182,42 @@ function Lobby({ code, mock }: { code: string; mock: boolean }) {
         </Panel>
       </div>
     </>
+  );
+}
+
+/** Explains why joining failed and what to do — readable by a kid and by the parent. */
+function ConnectProblem({ status, error }: { status: string; error: string | null }) {
+  const cloudStatus = useCloud((s) => s.status);
+  const code = useOnline((s) => s.code);
+  const connect = useOnline((s) => s.connect);
+  const signedIn = cloudStatus === 'on';
+  const retry = () => {
+    if (!code) return;
+    const p = useProfile.getState();
+    const me = usePlayers.getState().me;
+    void connect(code, { name: p.playerName, look: { ...lookFromDesign(p.activeDesign()), av: me?.avatar, pc: me?.color }, truck: p.selectedTruck });
+  };
+  const access = status === 'unavailable';
+  return (
+    <Panel className="p-4 border-amber-400/50" >
+      <div data-testid="connect-problem">
+        <div className="font-black text-amber-300 text-lg">{access ? '🔒 אין גישה לחדרי האונליין' : '📶 החיבור לחדר נכשל'}</div>
+        {access ? (
+          <>
+            <p className="text-sm text-slate-300 mt-1">אונליין עובד רק למי שמחובר ל־Claude <b>וגם הוזמן לעמוד המשחק</b>. מי שנכנס רק מהקישור הפתוח יכול לשחק נגד המחשב, אבל לא להיכנס לחדרים.</p>
+            <ul className="text-sm mt-2 space-y-1">
+              <li>{signedIn ? '✅' : '❌'} מחובר לחשבון Claude {signedIn ? '' : '— התחבר (באפליקציית Claude או בדפדפן) ופתח שוב את הקישור'}</li>
+              <li>❔ הוזמנת לעמוד — בעל המשחק צריך ללחוץ <b>Share</b> בעמוד המשחק, להוסיף את המייל שלך ולבחור הרשאה <b>Contributor</b> (או Can edit)</li>
+            </ul>
+          </>
+        ) : (
+          <p className="text-sm text-slate-300 mt-1">ייתכן שהחיבור לאינטרנט חלש או שהשרת לא ענה. נסה שוב בעוד רגע.</p>
+        )}
+        <div className="flex items-center gap-3 mt-3">
+          <Button variant="neon" size="sm" onClick={retry}>🔄 נסה שוב</Button>
+          <span className="text-xs text-slate-500" dir="ltr">code: {error ?? 'no-room'} · {signedIn ? 'signed-in' : 'guest'}</span>
+        </div>
+      </div>
+    </Panel>
   );
 }
