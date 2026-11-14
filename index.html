@@ -3,15 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>לוּמָה · סטודיו לעיצוב הבית</title>
+  <title>נובה · חנות סלולר ניידת</title>
   <meta name="theme-color" content="#1d1c1a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-v1.6.0.min.js"></script>
   <script src="js/products.js"></script>
   <script src="js/env.js"></script>
+  <script src="js/devices.js"></script>
+  <script src="js/truck.js"></script>
   <script src="js/fx.js"></script>
   <script src="js/app.js"></script>
 </head>
@@ -20,9 +22,9 @@
   <section id="intro" aria-labelledby="intro-title">
     <div class="intro-inner">
       <p class="intro-eyebrow">חנות במציאות מדומה</p>
-      <h1 id="intro-title" class="brand-name">לוּמָה</h1>
-      <p class="intro-tagline brand-tagline">סטודיו לעיצוב הבית</p>
-      <p class="intro-lede">היכנסו לחנות, הסתובבו בין הרהיטים בגודלם האמיתי, הרימו מוצרים כדי לבחון אותם מקרוב, ובחרו צבע לפני שאתם מזמינים.</p>
+      <h1 id="intro-title" class="brand-name">נובה</h1>
+      <p class="intro-tagline brand-tagline">חנות סלולר ניידת</p>
+      <p class="intro-lede">משאית החנות שלנו חונה ומחכה לכם. עלו במדרגות, הרימו את הטלפונים מהשולחן כדי לבחון אותם מכל צד, החליפו צבעים, ומצאו את האביזרים שמתאימים להם.</p>
       <div class="intro-actions">
         <button id="intro-vr" class="btn btn-primary" type="button" hidden>כניסה עם משקף VR</button>
         <button id="intro-enter" class="btn" type="button">כניסה לחנות</button>
@@ -33,14 +35,14 @@
       </div>
       <dl class="intro-controls">
         <div><dt>במשקף</dt><dd>כוונו עם הבקר ולחצו על ההדק לבחירה. כפתור Grip מרים מוצר ביד. סטיק שמאלי להליכה, ימני לסיבוב.</dd></div>
-        <div><dt>במחשב</dt><dd>גררו כדי להסתכל, W A S D להליכה, לחיצה על מוצר לפרטים.</dd></div>
+        <div><dt>במחשב</dt><dd>גררו כדי להסתכל, W A S D להליכה (קדימה, אל המשאית), לחיצה על מוצר לפרטים.</dd></div>
       </dl>
     </div>
   </section>
 
   <!-- סרגל עליון (מוסתר במשקף) -->
   <header id="hud">
-    <div class="hud-brand"><span class="brand-name">לוּמָה</span><span class="brand-tagline">סטודיו לעיצוב הבית</span></div>
+    <div class="hud-brand"><span class="brand-name">נובה</span><span class="brand-tagline">חנות סלולר ניידת</span></div>
     <button id="hud-cart" type="button" aria-label="סל הקניות">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
       <span>סל</span>
@@ -86,12 +88,11 @@
     xr-mode-ui="enabled: true"
     loading-screen="enabled: false">
 
-    <a-entity light="type: hemisphere; color: #fffaf2; groundColor: #b7a48c; intensity: 0.6"></a-entity>
-    <a-entity light="type: directional; color: #fff4e5; intensity: 1.6" position="-3 6 4"></a-entity>
-    <a-sky color="#f4f1ea"></a-sky>
+    <a-entity light="type: hemisphere; color: #dbe8ff; groundColor: #8f877b; intensity: 0.9"></a-entity>
+    <a-entity light="type: directional; color: #fff1dc; intensity: 2.2" position="4 9 6"></a-entity>
 
     <!-- המבקר: rig + מצלמה + בקרים -->
-    <a-entity id="rig" position="0 0 4.2" thumbstick-move>
+    <a-entity id="rig" position="0 0 8.2" thumbstick-move walker>
       <a-entity id="camera" camera position="0 1.6 0" look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 18">
         <a-entity id="toast" position="0 -0.3 -1.1" visible="false"></a-entity>
       </a-entity>

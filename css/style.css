@@ -9,7 +9,7 @@
   --night-ink: #f5f2ed;
   --night-muted: #a8a197;
   --sale: #9b2f26;
-  --serif: "Frank Ruhl Libre", "Heebo", Georgia, serif;
+  --serif: "Heebo", "Segoe UI", Arial, sans-serif;
   --sans: "Heebo", "Segoe UI", Arial, sans-serif;
   color-scheme: light;
 }
@@ -74,7 +74,7 @@ button { font: inherit; }
 #intro h1 {
   margin: 0;
   font-family: var(--serif);
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(64px, 14vw, 112px);
   line-height: 0.95;
 }
@@ -116,7 +116,7 @@ button { font: inherit; }
   pointer-events: none;
 }
 .hud-brand { display: flex; align-items: baseline; gap: 12px; color: var(--ink); }
-.hud-brand .brand-name { font-family: var(--serif); font-size: 28px; font-weight: 500; }
+.hud-brand .brand-name { font-family: var(--serif); font-size: 26px; font-weight: 700; }
 .hud-brand .brand-tagline { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; }
 #hud-cart {
   pointer-events: auto;

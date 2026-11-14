@@ -1,116 +1,143 @@
 // קטלוג המוצרים של החנות – כאן משנים מוצרים, מחירים וצבעים.
 //
 // שדות של מוצר:
-//   model:    קובץ דגם תלת-ממדי (GLB) בתיקייה assets/models
-//   scale:    הגדלה/הקטנה של הדגם (1 = הגודל המקורי של הקובץ)
-//   display:  איפה המוצר מוצג בחנות – floor (ריהוט על הרצפה) | plinth (על במה) | table (על שולחן תצוגה)
+//   device:   דגם שנבנה בקוד – phone | tablet | watch | buds | charger | powerbank | case
+//   model:    או קובץ דגם תלת-ממדי (GLB) בתיקייה assets/models
+//   scale:    הגדלה/הקטנה של קובץ GLB (1 = הגודל המקורי)
+//   dims:     מידות במטרים לטלפון/טאבלט { w: רוחב, h: גובה, d: עובי }
+//   cameras:  מספר עדשות מצלמה (טלפון/טאבלט)
+//   screen:   שני צבעים לרקע המסך
+//   display:  איפה המוצר מוצג במשאית – table (שולחן התצוגה) | shelf (קיר האביזרים)
 //   price:    המחיר שגובים (השרת מחשב לפיו)
 //   oldPrice: מחיר קודם להצגה מחוקה (מבצע) – לא חובה
-//   variants: צבעים לבחירה. id = שם הווריאנט בתוך קובץ הדגם, label = שם לתצוגה, color = צבע העיגול
-//   details:  שורות מידע נוספות (חומרים, אחריות וכו')
-// המידות (רוחב × גובה × עומק) מחושבות אוטומטית מהדגם.
+//   variants: צבעים לבחירה – id, label (שם לתצוגה), color (צבע הגוף)
+//   details:  שורות מידע נוספות
+// המידות שמוצגות ללקוח (רוחב × גובה × עומק) מחושבות אוטומטית מהדגם.
 
 (function (root) {
 const STORE_CONFIG = {
-  name: 'לוּמָה',
-  tagline: 'סטודיו לעיצוב הבית',
+  name: 'נובה',
+  tagline: 'חנות סלולר ניידת',
   currency: '₪',
   currencyCode: 'ILS',    // קוד מטבע לסליקה ב-PayPal
-  shippingCost: 49,       // דמי משלוח
-  freeShippingOver: 500,  // משלוח חינם מעל סכום זה (0 = תמיד חינם)
+  shippingCost: 29,       // דמי משלוח
+  freeShippingOver: 300,  // משלוח חינם מעל סכום זה (0 = תמיד חינם)
 };
 
 const CATEGORIES = [
-  { id: 'living', name: 'ריהוט' },
-  { id: 'light', name: 'תאורה' },
-  { id: 'objects', name: 'אובייקטים' },
+  { id: 'phones', name: 'סמארטפונים' },
+  { id: 'tablets', name: 'טאבלטים' },
+  { id: 'wearables', name: 'לבישים' },
+  { id: 'audio', name: 'אודיו' },
+  { id: 'power', name: 'טעינה' },
+  { id: 'cases', name: 'כיסויים' },
 ];
 
 const PRODUCTS = [
   {
-    id: 'sofa-velvet', category: 'living', display: 'floor',
-    name: 'ספת קטיפה מילאנו', price: 6900,
-    model: 'assets/models/sofa-velvet.glb', scale: 1,
-    description: 'ספה תלת-מושבית בריפוד קטיפה רכה, עם רגלי מתכת בגימור זהב מוברש.',
-    details: ['ריפוד קטיפה עמידה לשפשוף', 'מילוי קצף בצפיפות גבוהה', 'אחריות 5 שנים לשלד'],
+    id: 'nova-x-pro', category: 'phones', display: 'table', device: 'phone',
+    name: 'נובה X Pro', price: 4290,
+    dims: { w: 0.0772, h: 0.1631, d: 0.0083 }, cameras: 3, screen: ['#0f1b3d', '#6b4bb8'],
+    description: 'מסגרת טיטניום, מסך 6.7 אינץ׳ 120Hz ומערכת שלוש מצלמות עם זום אופטי פי 5.',
+    details: ['256GB', 'מצלמה ראשית 50MP', 'סוללה 5,000mAh', 'אחריות שנתיים'],
     variants: [
-      { id: 'Champagne', label: 'שמפניה', color: '#d9c7a7' },
-      { id: 'Navy', label: 'כחול לילה', color: '#28324a' },
-      { id: 'Gray', label: 'אפור', color: '#8d8f92' },
-      { id: 'Black', label: 'שחור', color: '#1d1d1f' },
-      { id: 'Pale Pink', label: 'ורוד עתיק', color: '#d9b2ad' },
+      { id: 'natural', label: 'טיטניום טבעי', color: '#b8b1a6' },
+      { id: 'black', label: 'טיטניום שחור', color: '#3a3a3c' },
+      { id: 'desert', label: 'חול מדברי', color: '#c4a98a' },
+      { id: 'blue', label: 'כחול עמוק', color: '#2f3d52' },
     ],
   },
   {
-    id: 'sofa-leather', category: 'living', display: 'floor',
-    name: 'ספת עור ועץ אוסלו', price: 9400, oldPrice: 11200,
-    model: 'assets/models/sofa-leather.glb', scale: 1,
-    description: 'ספה מעוצבת במסגרת עץ מלא, עם כריות עור רך שמתיישן יפה עם הזמן.',
-    details: ['מסגרת עץ אגוז מלא', 'עור בקר בצביעה טבעית', 'אחריות 7 שנים לשלד'],
-  },
-  {
-    id: 'armchair-velvet', category: 'living', display: 'floor',
-    name: 'כורסת קטיפה לונה', price: 2450,
-    model: 'assets/models/armchair-velvet.glb', scale: 1,
-    description: 'כורסה נמוכה ועוטפת בקטיפה עשירה, מתאימה לפינת קריאה או לסלון.',
-    details: ['ריפוד קטיפה', 'רגלי עץ אלון', 'אחריות 3 שנים'],
+    id: 'nova-x', category: 'phones', display: 'table', device: 'phone',
+    name: 'נובה X', price: 3290,
+    dims: { w: 0.0716, h: 0.1475, d: 0.0078 }, cameras: 2, screen: ['#103a3a', '#c97b4a'],
+    description: 'מסך 6.1 אינץ׳ בהיר במיוחד, גוף אלומיניום וזכוכית מט, ומצלמה כפולה לצילום לילה.',
+    details: ['128GB', 'מצלמה ראשית 48MP', 'טעינה מהירה 45W', 'אחריות שנתיים'],
     variants: [
-      { id: 'Mango Velvet', label: 'מנגו', color: '#d98a2b' },
-      { id: 'Peacock Velvet', label: 'טווס', color: '#1f5c63' },
+      { id: 'midnight', label: 'שחור', color: '#232428' },
+      { id: 'white', label: 'לבן', color: '#e7e4df' },
+      { id: 'sage', label: 'ירוק מרווה', color: '#9db29e' },
+      { id: 'rose', label: 'ורוד', color: '#e2c1bf' },
     ],
   },
   {
-    id: 'armchair-damask', category: 'living', display: 'floor',
-    name: 'כורסת דמשק ורסאי', price: 2650,
-    model: 'assets/models/armchair-damask.glb', scale: 1,
-    description: 'כורסה בבד ג׳קארד בדוגמת דמשק סגול-זהב, נגיעה קלאסית לחלל מודרני.',
-    details: ['בד ג׳קארד ארוג', 'רגלי עץ אלון', 'אחריות 3 שנים'],
-  },
-  {
-    id: 'lamp-opal', category: 'light', display: 'plinth',
-    name: 'מנורת שולחן אופל', price: 890,
-    model: 'assets/models/lamp-opal.glb', scale: 1,
-    description: 'אהיל זכוכית בגימור אופל משתנה – הגוון זז עם זווית המבט.',
-    details: ['זכוכית מנופחת', 'נורת LED חמה כלולה', 'כבל בד באורך 2 מ׳'],
-  },
-  {
-    id: 'lamp-metal', category: 'light', display: 'plinth',
-    name: 'מנורת מתכת פורג׳', price: 540,
-    model: 'assets/models/lamp-metal.glb', scale: 1.6,
-    description: 'מנורה בהשראה תעשייתית, מתכת מוברשת ואהיל זכוכית שקוף.',
-    details: ['פלדה מוברשת', 'מתאים לנורת E27', 'אחריות שנתיים'],
-  },
-  {
-    id: 'vase-flowers', category: 'objects', display: 'table',
-    name: 'אגרטל זכוכית וזר', price: 320,
-    model: 'assets/models/vase-flowers.glb', scale: 1.4,
-    description: 'אגרטל זכוכית שקופה עם זר פרחים מיובשים בהרכבה ידנית.',
-    details: ['זכוכית עבה', 'פרחים מיובשים – ללא צורך בהשקיה'],
-  },
-  {
-    id: 'speaker-retro', category: 'objects', display: 'table',
-    name: 'רמקול רטרו', price: 1290, oldPrice: 1490,
-    model: 'assets/models/speaker-retro.glb', scale: 22,
-    description: 'רמקול בעיצוב רטרו עם סאונד מודרני, חיבור Bluetooth וסוללה ל-20 שעות.',
-    details: ['Bluetooth 5.3', 'סוללה ל-20 שעות', 'אחריות שנתיים'],
-  },
-  {
-    id: 'bottle', category: 'objects', display: 'table',
-    name: 'בקבוק תרמי', price: 149,
-    model: 'assets/models/bottle.glb', scale: 1,
-    description: 'בקבוק נירוסטה כפול דופן ששומר על קור 24 שעות ועל חום 12 שעות.',
-    details: ['נפח 750 מ״ל', 'נירוסטה 18/8', 'ללא BPA'],
-  },
-  {
-    id: 'sneaker', category: 'objects', display: 'table',
-    name: 'סניקרס אורבן', price: 590,
-    model: 'assets/models/sneaker.glb', scale: 1,
-    description: 'נעל יום-יום קלה עם סוליית קצף גמישה ובד נושם.',
-    details: ['מידות 36–46', 'סוליית קצף', 'החלפה חינם תוך 30 יום'],
+    id: 'nova-a5', category: 'phones', display: 'table', device: 'phone',
+    name: 'נובה A5', price: 1490, oldPrice: 1690,
+    dims: { w: 0.0764, h: 0.1642, d: 0.0082 }, cameras: 2, screen: ['#2b1d4f', '#4fa3a5'],
+    description: 'כל מה שצריך במחיר נגיש: מסך 6.5 אינץ׳, סוללה ליומיים ומצלמה של 50MP.',
+    details: ['128GB', 'סוללה 5,000mAh', 'עמיד במים IP67', 'אחריות שנתיים'],
     variants: [
-      { id: 'midnight', label: 'חצות', color: '#22252e' },
-      { id: 'beach', label: 'חוף', color: '#e3d3b8' },
-      { id: 'street', label: 'רחוב', color: '#b23a32' },
+      { id: 'lilac', label: 'לילך', color: '#b7a7d4' },
+      { id: 'mint', label: 'מנטה', color: '#a6d3c1' },
+      { id: 'graphite', label: 'גרפיט', color: '#2b2c30' },
+    ],
+  },
+  {
+    id: 'nova-tab', category: 'tablets', display: 'table', device: 'tablet',
+    name: 'נובה Tab 11', price: 2190,
+    dims: { w: 0.1785, h: 0.2565, d: 0.0062 }, cameras: 1, screen: ['#1c2c4c', '#d17d6e'],
+    description: 'טאבלט 11 אינץ׳ קל ודק לעבודה, לימודים וצפייה, עם תמיכה בעט ובמקלדת.',
+    details: ['128GB', 'מסך 11 אינץ׳ 90Hz', 'ארבעה רמקולים', 'אחריות שנתיים'],
+    variants: [
+      { id: 'silver', label: 'כסוף', color: '#c9cacc' },
+      { id: 'graphite', label: 'גרפיט', color: '#3b3c40' },
+    ],
+  },
+  {
+    id: 'nova-watch', category: 'wearables', display: 'table', device: 'watch',
+    name: 'נובה Watch 3', price: 1190,
+    description: 'שעון חכם עם מדידת דופק וחמצן, GPS מובנה ועד שלושה ימי סוללה.',
+    details: ['מסך AMOLED', 'עמיד במים 5ATM', 'מתאים לאנדרואיד', 'רצועה ניתנת להחלפה'],
+    variants: [
+      { id: 'black', label: 'ספורט שחור', color: '#25262a' },
+      { id: 'sand', label: 'חול', color: '#d6c5ab' },
+      { id: 'ocean', label: 'כחול אוקיינוס', color: '#35577a' },
+    ],
+  },
+  {
+    id: 'nova-buds', category: 'audio', display: 'shelf', device: 'buds',
+    name: 'אוזניות נובה Buds', price: 590,
+    description: 'אוזניות אלחוטיות עם סינון רעשים אקטיבי ועד 30 שעות האזנה עם הקופסה.',
+    details: ['סינון רעשים אקטיבי', 'טעינה אלחוטית', 'עמידות IPX4'],
+    variants: [
+      { id: 'white', label: 'לבן', color: '#f2f1ee' },
+      { id: 'black', label: 'שחור', color: '#222326' },
+    ],
+  },
+  {
+    id: 'speaker-retro', category: 'audio', display: 'shelf',
+    name: 'רמקול בלוטות׳ רטרו', price: 449, oldPrice: 549,
+    model: 'assets/models/speaker-retro.glb', scale: 13,
+    description: 'רמקול נייד בעיצוב רטרו עם סאונד מודרני וסוללה ל-20 שעות.',
+    details: ['Bluetooth 5.3', 'סוללה ל-20 שעות', 'אחריות שנה'],
+  },
+  {
+    id: 'charger-45', category: 'power', display: 'shelf', device: 'charger',
+    name: 'מטען מהיר 45W', price: 149,
+    description: 'מטען קיר קומפקטי עם יציאת USB-C, טוען טלפון ל-50% בתוך 20 דקות.',
+    details: ['USB-C', 'כבל 1 מ׳ כלול', 'הגנה מחימום'],
+  },
+  {
+    id: 'powerbank', category: 'power', display: 'shelf', device: 'powerbank',
+    name: 'סוללה ניידת 10,000mAh', price: 199,
+    description: 'סוללה דקה שנכנסת לכיס, מטעינה טלפון פעמיים, עם טעינה מהירה דו-כיוונית.',
+    details: ['10,000mAh', 'USB-C 20W', 'מחוון טעינה'],
+    variants: [
+      { id: 'white', label: 'לבן', color: '#eceae6' },
+      { id: 'black', label: 'שחור', color: '#26272a' },
+      { id: 'blue', label: 'כחול', color: '#4f6f9c' },
+    ],
+  },
+  {
+    id: 'case-x-pro', category: 'cases', display: 'shelf', device: 'case',
+    name: 'כיסוי סיליקון ל-X Pro', price: 99,
+    description: 'כיסוי סיליקון רך עם בטנת מיקרופייבר ושוליים מוגבהים שמגינים על המסך והמצלמה.',
+    details: ['מתאים לנובה X Pro', 'תומך בטעינה אלחוטית'],
+    variants: [
+      { id: 'clay', label: 'חימר', color: '#c07a5c' },
+      { id: 'olive', label: 'זית', color: '#7c8160' },
+      { id: 'navy', label: 'כחול כהה', color: '#2c3550' },
+      { id: 'chalk', label: 'גיר', color: '#e3ddd2' },
     ],
   },
 ];
