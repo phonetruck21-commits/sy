@@ -1,0 +1,19 @@
+# הגדרות פריסה ל-Render (https://render.com)
+# Render קורא את הקובץ הזה אוטומטית כשיוצרים "Blueprint" מהריפו.
+services:
+  - type: web
+    name: vr-store
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYPAL_ENV
+        value: sandbox        # לשנות ל-live כשמוכנים לכסף אמיתי
+      - key: PAYPAL_CLIENT_ID
+        sync: false           # Render יבקש להדביק את הערך בזמן ההקמה
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false

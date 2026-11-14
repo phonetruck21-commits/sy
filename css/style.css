@@ -1,0 +1,270 @@
+/* לוּמָה – ממשק HTML מעל החנות התלת-ממדית.
+   פלטה: נייר חם, דיו כהה, אפור-חום עדין. ללא מעברי צבע וללא אימוג׳י. */
+:root {
+  --paper: #fbfaf8;
+  --ink: #1d1c1a;
+  --muted: #6e6961;
+  --line: #e3ded6;
+  --night: #1d1c1a;
+  --night-ink: #f5f2ed;
+  --night-muted: #a8a197;
+  --sale: #9b2f26;
+  --serif: "Heebo", "Segoe UI", Arial, sans-serif;
+  --sans: "Heebo", "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 26px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn:hover { background: rgba(127, 120, 110, 0.12); }
+.btn-primary { background: var(--night-ink); color: var(--night); border-color: var(--night-ink); }
+.btn-primary:hover { background: #fff; }
+
+/* ---------- מסך פתיחה ---------- */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding-block: 32px;
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+  background: var(--night);
+  color: var(--night-ink);
+}
+.intro-inner { width: 100%; max-width: 560px; }
+.intro-eyebrow {
+  margin: 0 0 18px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--night-muted);
+}
+#intro h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(64px, 14vw, 112px);
+  line-height: 0.95;
+}
+.intro-tagline { margin: 10px 0 0; font-size: 18px; color: var(--night-muted); letter-spacing: 0.06em; }
+.intro-lede { margin: 28px 0 32px; font-size: 17px; line-height: 1.7; max-width: 46ch; color: #d9d3c9; }
+.intro-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.intro-actions .btn { color: var(--night-ink); }
+.intro-actions .btn-primary { color: var(--night); }
+.intro-load { margin-top: 26px; }
+.intro-track { height: 1px; background: #3c3a36; overflow: hidden; }
+#intro-bar { height: 100%; background: var(--night-ink); transform: scaleX(0); transform-origin: right; transition: transform 0.3s ease; }
+#intro-progress { margin: 10px 0 0; font-size: 13px; color: var(--night-muted); font-variant-numeric: tabular-nums; }
+.intro-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px 28px;
+  margin: 40px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid #3c3a36;
+}
+.intro-controls dt { font-size: 12px; font-weight: 500; letter-spacing: 0.14em; color: var(--night-muted); margin-bottom: 6px; }
+.intro-controls dd { margin: 0; font-size: 14px; line-height: 1.6; color: #cfc9bf; }
+
+/* ---------- סרגל עליון ---------- */
+#hud {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  padding-bottom: 14px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.hud-brand { display: flex; align-items: baseline; gap: 12px; color: var(--ink); }
+.hud-brand .brand-name { font-family: var(--serif); font-size: 26px; font-weight: 700; }
+.hud-brand .brand-tagline { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; }
+#hud-cart {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: rgba(251, 250, 248, 0.92);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+#hud-cart:hover { border-color: var(--ink); }
+.hud-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.hud-total { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hud-total:empty { display: none; }
+
+#hint {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  margin: 0;
+  padding: 10px 16px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  background: rgba(29, 28, 26, 0.82);
+  color: var(--night-ink);
+  font-size: 13px;
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.in-store #hint { opacity: 1; }
+body.in-store.hint-done #hint { opacity: 0; }
+
+#dom-toast {
+  position: fixed;
+  top: calc(76px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 20;
+  transform: translate(-50%, -8px);
+  padding: 12px 18px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  background: var(--night);
+  color: var(--night-ink);
+  font-size: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#dom-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- חלון תשלום ---------- */
+#checkout {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(29, 28, 26, 0.55);
+  overflow-y: auto;
+}
+.co-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  box-sizing: border-box;
+  padding: 32px 28px 24px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 2px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+}
+.co-eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.16em; color: var(--muted); }
+.co-card h2 { margin: 0 0 20px; font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.15; }
+.co-x {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.co-x:hover { color: var(--ink); }
+#co-lines { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+#co-lines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+#co-lines li > div { min-width: 0; }
+.co-name { display: block; font-weight: 500; }
+.co-sub { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.co-sub:empty { display: none; }
+.co-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+#co-lines li.co-ship { color: var(--muted); }
+#co-total { display: flex; justify-content: space-between; margin: 16px 0 22px; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+#paypal-buttons { min-height: 50px; }
+#co-status { margin: 12px 0 0; font-size: 14px; color: var(--muted); line-height: 1.5; }
+#co-status:empty { display: none; }
+#co-status.error { color: var(--sale); }
+.co-receipt { margin: 0 0 16px; border-top: 1px solid var(--line); }
+.co-receipt div { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.co-receipt dt { color: var(--muted); }
+.co-receipt dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+.co-note { margin: 0 0 20px; font-size: 14px; color: var(--muted); }
+#co-done .btn { width: 100%; margin-top: 10px; color: var(--ink); }
+#co-done .btn-primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+@media (max-width: 520px) {
+  .hud-brand .brand-tagline { display: none; }
+  .hud-brand .brand-name { font-size: 24px; }
+  .intro-actions .btn { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #intro-bar, #hint, #dom-toast, .btn { transition: none; }
+}
