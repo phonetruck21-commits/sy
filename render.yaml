@@ -17,3 +17,5 @@ services:
         sync: false           # Render יבקש להדביק את הערך בזמן ההקמה
       - key: PAYPAL_CLIENT_SECRET
         sync: false
+      - key: POS_KEY
+        sync: false           # סיסמה לקופה (‎/pos‎). בוחרים סיסמה חזקה

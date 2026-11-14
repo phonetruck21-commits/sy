@@ -7,13 +7,16 @@
 const PAY_METHODS = {
   cash: 'מזומן', credit: 'אשראי', check: 'צ׳ק', bit: 'ביט / העברה', voucher: 'שובר / זיכוי'
 };
+// recorded automatically for orders paid in the VR store; not offered at the register
+const ONLINE_METHODS = { paypal: 'PayPal (חנות VR)' };
+const payName = m => PAY_METHODS[m] || ONLINE_METHODS[m] || m;
 
 const DEFAULT_SETTINGS = {
   ...BRAND_DEFAULTS,
   taxId: '',
   address: '',
   phone: '',
-  footer: 'תודה ורכישה מהנה!',
+  footer: 'תודה! שמרו את הקבלה לצורך אחריות',
   vat: 18,
   pricesIncludeVat: true,
   cashier: 'קופאי 1',
@@ -26,29 +29,45 @@ const DEFAULT_SETTINGS = {
   slideSeconds: 7,
 };
 
+// sku, barcode, name, category, price, cost, stock, extra: serial = requires IMEI / serial number,
+// warranty = months, vrId = the matching product in the 3D VR store (prices and stock flow there)
 const SAMPLE_PRODUCTS = [
-  ['1001', '7290000000011', 'מקדחה רוטטת 750W', 'כלי עבודה חשמליים', 349.9, 210, 8],
-  ['1002', '7290000000028', 'מברגה נטענת 18V', 'כלי עבודה חשמליים', 599, 380, 5],
-  ['1003', '7290000000035', 'משחזת זווית 115 מ״מ', 'כלי עבודה חשמליים', 279, 160, 6],
-  ['2001', '7290000000042', 'סט מברגים 12 יח׳', 'כלי עבודה ידניים', 89.9, 40, 20],
-  ['2002', '7290000000059', 'פטיש 500 גרם', 'כלי עבודה ידניים', 59.9, 25, 15],
-  ['2003', '7290000000066', 'מפתח שבדי 10״', 'כלי עבודה ידניים', 64.9, 30, 12],
-  ['2004', '7290000000073', 'מטר מתגלגל 5 מ׳', 'כלי עבודה ידניים', 34.9, 14, 30],
-  ['3001', '7290000000080', 'ברגים לעץ 4x40 (100 יח׳)', 'חומרי חיבור', 19.9, 7, 50],
-  ['3002', '7290000000097', 'דיבלים 8 מ״מ (50 יח׳)', 'חומרי חיבור', 14.9, 5, 40],
-  ['3003', '7290000000103', 'סיליקון שקוף', 'חומרי חיבור', 24.9, 11, 25],
-  ['4001', '7290000000110', 'כפפות עבודה', 'ציוד מגן', 17.9, 6, 2],
-  ['4002', '7290000000127', 'משקפי מגן', 'ציוד מגן', 29.9, 12, 18],
-  ['4003', '7290000000134', 'אטמי אוזניים', 'ציוד מגן', 9.9, 3, 60],
-  ['5001', '7290000000141', 'מקדח לבטון 8 מ״מ', 'אביזרים', 22.9, 9, 35],
-  ['5002', '7290000000158', 'דיסק חיתוך מתכת', 'אביזרים', 12.9, 4, 1],
-  ['5003', '7290000000165', 'סוללה 18V 4Ah', 'אביזרים', 249, 150, 4],
+  ['P100', '7290011000017', 'נובה X Pro 256GB', 'סמארטפונים', 4290, 3350, 6, { serial: true, warranty: 24, vrId: 'nova-x-pro' }],
+  ['P101', '7290011000024', 'נובה X 128GB', 'סמארטפונים', 3290, 2550, 8, { serial: true, warranty: 24, vrId: 'nova-x' }],
+  ['P102', '7290011000031', 'נובה A5 128GB', 'סמארטפונים', 1490, 1090, 12, { serial: true, warranty: 24, vrId: 'nova-a5' }],
+  ['T200', '7290011000048', 'נובה Tab 11', 'טאבלטים ושעונים', 2190, 1650, 4, { serial: true, warranty: 24, vrId: 'nova-tab' }],
+  ['W201', '7290011000055', 'נובה Watch 3', 'טאבלטים ושעונים', 1190, 820, 5, { serial: true, warranty: 12, vrId: 'nova-watch' }],
+  ['A300', '7290011000062', 'אוזניות נובה Buds', 'אודיו', 590, 360, 15, { warranty: 12, vrId: 'nova-buds' }],
+  ['A301', '7290011000079', 'רמקול בלוטות׳ רטרו', 'אודיו', 449, 260, 7, { warranty: 12, vrId: 'speaker-retro' }],
+  ['C400', '7290011000086', 'מטען מהיר 45W', 'טעינה וכיסויים', 149, 62, 30, { warranty: 12, vrId: 'charger-45' }],
+  ['C401', '7290011000093', 'סוללה ניידת 10,000mAh', 'טעינה וכיסויים', 199, 95, 20, { warranty: 12, vrId: 'powerbank' }],
+  ['C402', '7290011000109', 'כיסוי סיליקון ל-X Pro', 'טעינה וכיסויים', 99, 28, 40, { vrId: 'case-x-pro' }],
+  ['C403', '7290011000116', 'מגן מסך זכוכית', 'טעינה וכיסויים', 59, 9, 60, {}],
+  ['L500', '7290011000123', 'מחשב נייד גיימינג 15.6" RTX 4060', 'מחשבים', 6990, 5600, 3, { serial: true, warranty: 24 }],
+  ['L501', '7290011000130', 'מחשב נייד 14" לעבודה ולימודים', 'מחשבים', 3290, 2600, 5, { serial: true, warranty: 24 }],
+  ['L502', '7290011000147', 'מחשב גיימינג Ryzen 7 / RTX 4070', 'מחשבים', 8490, 6900, 2, { serial: true, warranty: 36 }],
+  ['L503', '7290011000154', 'כרטיס מסך RTX 4070 Super', 'מחשבים', 2890, 2350, 3, { serial: true, warranty: 36 }],
+  ['L504', '7290011000161', 'כונן SSD NVMe 1TB', 'מחשבים', 349, 240, 14, { serial: true, warranty: 60 }],
+  ['G600', '7290011000178', 'PlayStation 5 Slim', 'קונסולות', 2290, 1950, 4, { serial: true, warranty: 12 }],
+  ['G601', '7290011000185', 'Xbox Series X', 'קונסולות', 2390, 2020, 3, { serial: true, warranty: 12 }],
+  ['G602', '7290011000192', 'Nintendo Switch OLED', 'קונסולות', 1490, 1220, 5, { serial: true, warranty: 12 }],
+  ['G603', '7290011000208', 'Meta Quest 3 512GB', 'קונסולות', 2690, 2250, 3, { serial: true, warranty: 12 }],
+  ['G700', '7290011000215', 'בקר אלחוטי DualSense', 'אביזרי גיימינג', 299, 210, 12, { warranty: 12 }],
+  ['G701', '7290011000222', 'אוזניות גיימינג 7.1', 'אביזרי גיימינג', 399, 220, 10, { warranty: 12 }],
+  ['G702', '7290011000239', 'מקלדת מכנית RGB', 'אביזרי גיימינג', 449, 250, 8, { warranty: 24 }],
+  ['G703', '7290011000246', 'עכבר גיימינג 26K DPI', 'אביזרי גיימינג', 199, 105, 2, { warranty: 24 }],
+  ['G704', '7290011000253', 'מסך גיימינג 27" 165Hz', 'אביזרי גיימינג', 1290, 980, 4, { serial: true, warranty: 36 }],
+  ['G705', '7290011000260', 'כרטיס מתנה לחנות משחקים ₪100', 'אביזרי גיימינג', 100, 95, 50, {}],
 ];
+const sampleProducts = () => SAMPLE_PRODUCTS.map(([sku, barcode, name, category, price, cost, stock, extra]) =>
+  ({ id: uid(), sku, barcode, name, category, price, cost, stock, serial: false, warranty: 0, vrId: '', ...extra }));
+
 
 /* claude.ai page: printing, camera, pop-up windows and file downloads are blocked there */
 const EMBED = !!window.POS_EMBED;
 
 /* ---------------- state ---------------- */
+const freshInstall = (() => { try { return !localStorage.getItem(LS_KEY); } catch { return true; } })();
 let db = load();
 let cart = newCart();
 let activeCategory = 'הכל';
@@ -57,19 +76,19 @@ function newCart() {
   return { items: [], discount: { type: 'pct', value: 0 }, refund: false };
 }
 
+function normalize(d) {
+  d.settings = { ...DEFAULT_SETTINGS, ...d.settings };
+  d.products ||= []; d.sales ||= []; d.held ||= []; d.zReports ||= [];
+  d.promotions ||= samplePromotions(d.products);
+  return d;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      const d = JSON.parse(raw);
-      d.settings = { ...DEFAULT_SETTINGS, ...d.settings };
-      d.products ||= []; d.sales ||= []; d.held ||= []; d.zReports ||= [];
-      d.promotions ||= samplePromotions(d.products);
-      return d;
-    }
+    if (raw) return normalize(JSON.parse(raw));
   } catch (e) { console.error(e); }
-  const products = SAMPLE_PRODUCTS.map(([sku, barcode, name, category, price, cost, stock]) =>
-    ({ id: uid(), sku, barcode, name, category, price, cost, stock }));
+  const products = sampleProducts();
   return {
     settings: { ...DEFAULT_SETTINGS },
     products, promotions: samplePromotions(products),
@@ -81,17 +100,236 @@ function samplePromotions(products) {
   const id = sku => products.find(p => p.sku === sku)?.id;
   const base = { active: true, showOnScreen: true, from: '', to: '', image: '', badge: '', description: '' };
   const list = [
-    { ...base, name: '1+1 על כפפות עבודה', description: 'קנה זוג – קבל זוג נוסף מתנה', type: 'xfory', scope: 'products', productIds: [id('4001')], buyQty: 2, payQty: 1 },
-    { ...base, name: '3 מקדחים לבטון ב־₪55', description: 'מקדח 8 מ״מ – מחיר מיוחד בקנייה של 3', type: 'bundle', scope: 'products', productIds: [id('5001')], buyQty: 3, price: 55 },
-    { ...base, name: '10% הנחה על ציוד מגן', description: 'בטיחות קודם כל – על כל מחלקת ציוד המגן', type: 'pct', scope: 'category', category: 'ציוד מגן', pct: 10 },
-    { ...base, name: 'קנייה מעל ₪500 – 5% הנחה', description: 'על כל הקנייה, אוטומטית בקופה', type: 'threshold', scope: 'all', minAmount: 500, pct: 5 },
-    { ...base, name: 'חדש בחנות: מברגה נטענת 18V', description: 'עוצמה, דיוק וסוללה שמחזיקה יום עבודה שלם', type: 'ad', scope: 'all', badge: 'חדש!' },
+    { ...base, name: 'נובה A5 ב־12% הנחה', description: 'הסמארטפון המשתלם שלנו – גם בחנות ה-VR', type: 'pct', scope: 'products', productIds: [id('P102')], pct: 12 },
+    { ...base, name: 'מטען + סוללה ניידת ב־₪299', description: 'ערכת טעינה מלאה במחיר מיוחד', type: 'bundle', scope: 'products', productIds: [id('C400'), id('C401')], buyQty: 2, price: 299 },
+    { ...base, name: '1+1 על כיסויים ומגני מסך', description: 'השני (הזול מביניהם) עלינו', type: 'xfory', scope: 'products', productIds: [id('C402'), id('C403')], buyQty: 2, payQty: 1 },
+    { ...base, name: '10% על אביזרי גיימינג', description: 'בקרים, אוזניות, מקלדות, עכברים ומסכים', type: 'pct', scope: 'category', category: 'אביזרי גיימינג', pct: 10 },
+    { ...base, name: 'קנייה מעל ₪3,000 – 5% הנחה', description: 'על כל הקנייה, אוטומטית בקופה', type: 'threshold', scope: 'all', minAmount: 3000, pct: 5 },
+    { ...base, name: 'בואו לחנות שלנו ב-VR', description: 'שימו משקף, היכנסו למשאית של נובה ובחרו טלפון בתלת-ממד', type: 'ad', scope: 'all', badge: 'VR' },
   ];
   return list.filter(p => p.scope !== 'products' || p.productIds.every(Boolean)).map(p => ({ id: uid(), ...p }));
 }
-function save() {
+function saveLocal() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(db)); return true; }
   catch (e) { toast('שגיאה בשמירת נתונים (ייתכן שהתמונות גדולות מדי): ' + e.message, true); return false; }
+}
+function save() {
+  const ok = saveLocal();
+  Sync.changed();
+  return ok;
+}
+
+/* ============================================================
+   חיבור לשרת החנות (כשהקופה נפתחת מכתובת השרת, ‎/pos‎):
+   הנתונים משותפים לכל הקופות והטלפונים, וחנות ה-VR מחוברת אליהם
+   ============================================================ */
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
+
+const Sync = {
+  mode: 'local',          // local | server | offline | locked
+  base: new URL('../api/', location.href).href,
+  key: lsGet('pos.key') || '',
+  rev: Number(lsGet('pos.rev')) || 0,
+  dirty: lsGet('pos.dirty') === '1',
+  gen: 0, timer: null, pushing: false, pendingDb: null, started: false,
+  vrProducts: [],
+
+  headers() { return { 'Content-Type': 'application/json', 'x-pos-key': this.key }; },
+  async call(path, opts = {}) {
+    const r = await fetch(this.base + path, { cache: 'no-store', ...opts, headers: this.headers() });
+    if (r.status === 401) { this.setMode('locked'); throw new Error('auth'); }
+    return r;
+  },
+  setMode(m) {
+    this.mode = m;
+    const pill = $('#syncPill');
+    if (!pill) return;
+    const txt = { local: '💾 שמירה במכשיר', server: '☁ מחובר לשרת', offline: '⚠ אין חיבור – נשמר במכשיר', locked: '🔒 התחבר לשרת' }[m];
+    pill.textContent = txt; pill.className = 'sync-pill ' + m;
+    pill.hidden = m === 'local';
+    $('#tabVr').hidden = m === 'local';
+  },
+  setDirty(v) { this.dirty = v; lsSet('pos.dirty', v ? '1' : '0'); },
+
+  async start() {
+    if (this.started || EMBED || !location.protocol.startsWith('http')) return;
+    let ping;
+    try {
+      const r = await fetch(this.base + 'pos/ping', { cache: 'no-store', headers: this.headers() });
+      if (!r.ok) return;
+      ping = await r.json();
+      if (!ping.server) return;
+    } catch { return; } // no store server: the register works on this device only
+    this.started = true;
+    this.vrProducts = ping.vrProducts || [];
+    if (!ping.authorized) { this.setMode('locked'); this.login(); return; }
+    this.setMode('server');
+    await this.pull(true);
+    VR.poll();
+    setInterval(() => this.tick(), 8000);
+  },
+
+  async login() {
+    const r = await ask('חיבור לשרת החנות', [{ name: 'key', label: 'סיסמת קופה (POS_KEY שהוגדרה בשרת)', type: 'password', required: true }], 'התחבר');
+    if (!r) { toast('הקופה עובדת במכשיר הזה בלבד. לחץ על "🔒 התחבר לשרת" כדי להתחבר.'); return; }
+    this.key = r.key; lsSet('pos.key', r.key);
+    try {
+      const p = await (await fetch(this.base + 'pos/ping', { cache: 'no-store', headers: this.headers() })).json();
+      if (!p.authorized) { toast('סיסמה שגויה', true); return this.login(); }
+    } catch { toast('השרת לא זמין כרגע', true); return; }
+    this.setMode('server');
+    await this.pull(true);
+    VR.poll();
+    if (!this.interval) this.interval = setInterval(() => this.tick(), 8000);
+    toast('הקופה מחוברת לשרת החנות');
+  },
+
+  changed() {
+    if (this.mode === 'local') return;
+    this.gen++;
+    this.setDirty(true);
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.push(), 1200);
+  },
+
+  async pull(first = false) {
+    try {
+      const r = await this.call('pos/db' + (first ? '' : `?rev=${this.rev}`));
+      if (r.status === 204) return;
+      const st = await r.json();
+      if (this.mode !== 'server') this.setMode('server');
+      if (!st.db) return this.push();                         // empty server: upload this register's data
+      if (first && freshInstall) return this.adopt(st);       // new device: take the store's data
+      if (this.dirty) return this.push();                     // local changes: merge them in
+      if (st.rev !== this.rev) this.adopt(st);
+    } catch (e) { if (e.message !== 'auth') this.setMode('offline'); }
+  },
+
+  async push() {
+    if (this.mode === 'local' || this.mode === 'locked' || this.pushing) return;
+    this.pushing = true;
+    const g = this.gen;
+    try {
+      const r = await this.call('pos/db', { method: 'PUT', body: JSON.stringify({ db }) });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const st = await r.json();
+      this.setMode('server');
+      if (g === this.gen) { this.setDirty(false); this.adopt(st); }
+      else { this.rev = st.rev; lsSet('pos.rev', st.rev); this.timer = setTimeout(() => this.push(), 500); }
+    } catch (e) { if (e.message !== 'auth') this.setMode('offline'); }
+    finally { this.pushing = false; }
+  },
+
+  /** replace local data with the server copy (waits while a dialog is open) */
+  adopt(st) {
+    this.rev = st.rev; lsSet('pos.rev', st.rev);
+    if (!$('#modal').classList.contains('hidden')) { this.pendingDb = st.db; return; }
+    this.pendingDb = null;
+    db = normalize(st.db);
+    saveLocal();
+    refreshViews();
+  },
+
+  tick() {
+    if (this.mode === 'locked') return;
+    if (this.pendingDb && $('#modal').classList.contains('hidden')) { this.adopt({ rev: this.rev, db: this.pendingDb }); }
+    if (this.dirty) this.push(); else this.pull();
+    VR.poll();
+  },
+};
+
+/* ---------------- הזמנות מחנות ה-VR ---------------- */
+const VR = {
+  orders: [],
+  async poll() {
+    if (Sync.mode !== 'server') return;
+    try {
+      const r = await Sync.call('pos/vr-orders');
+      if (!r.ok) return;
+      this.orders = await r.json();
+    } catch { return; }
+    for (const o of this.orders.filter(o => o.type === 'paid')) await this.recordPaid(o);
+    this.orders = this.orders.filter(o => o.type !== 'paid');
+    $('#vrCount').textContent = this.orders.length;
+    $('#vrCount').hidden = !this.orders.length;
+    if ($('#view-vr').classList.contains('active')) this.render();
+  },
+  async ack(id, status, receipt) {
+    try { await Sync.call(`pos/vr-orders/${encodeURIComponent(id)}/ack`, { method: 'POST', body: JSON.stringify({ status, receipt }) }); } catch { /* retried on next poll */ }
+  },
+  lines(o) {
+    return o.items.map(l => {
+      const p = db.products.find(x => x.vrId === l.vrId);
+      return { key: uid(), productId: p?.id || null, sku: p?.sku || l.vrId, name: (p?.name || l.name) + (l.variant ? ` (${l.variant})` : ''),
+        price: l.price, cost: p?.cost || 0, qty: l.qty, discount: 0, warranty: p?.warranty || 0, noPromo: true };
+    });
+  },
+  /** an order paid with PayPal in the VR store becomes a sale in the register */
+  async recordPaid(o) {
+    if (db.sales.some(s => s.vrOrderId === o.id)) { await this.ack(o.id, 'done'); return; }
+    const s = db.settings, vat = Number(s.vat) / 100;
+    const items = this.lines(o).map(it => ({ ...it, total: r2(it.price * it.qty) }));
+    if (o.shipping) items.push({ key: uid(), productId: null, sku: 'SHIP', name: 'משלוח', price: o.shipping, cost: 0, qty: 1, discount: 0, total: o.shipping, noPromo: true });
+    const total = r2(o.total);
+    const net = s.pricesIncludeVat ? r2(total / (1 + vat)) : r2(total / (1 + vat));
+    const payer = o.payer?.name ? [o.payer.name.given_name, o.payer.name.surname].filter(Boolean).join(' ') : '';
+    const sale = {
+      id: uid(), number: s.nextReceipt++, ts: Date.parse(o.time) || Date.now(), cashier: 'חנות VR',
+      customer: { name: payer, phone: '' }, type: 'sale', channel: 'vr', vrOrderId: o.id,
+      items, discount: { type: 'pct', value: 0 },
+      totals: { subtotal: total, discount: 0, itemsDiscount: 0, promo: 0, net, vat: r2(total - net), total },
+      promotions: [], vatRate: s.vat,
+      payments: [{ method: 'paypal', amount: total, ref: o.captureId || o.paypalOrderId || '', installments: 1 }],
+      change: 0, zClosed: false,
+    };
+    for (const it of items) { const p = db.products.find(x => x.id === it.productId); if (p) p.stock = r2(p.stock - it.qty); }
+    db.sales.push(sale);
+    save();
+    await this.ack(o.id, 'done', sale.number);
+    beep(true);
+    toast(`🥽 הזמנה חדשה שולמה בחנות ה-VR: ${money(total)} (קבלה ${sale.number})`);
+    renderGrid();
+  },
+  /** "reserve and pay at the register": load the order into the cart */
+  load(id) {
+    const o = this.orders.find(x => x.id === id);
+    if (!o) return;
+    if (cart.items.length) return toast('יש לסיים או להשהות את העסקה הנוכחית קודם', true);
+    cart = newCart();
+    cart.items = this.lines(o);
+    cart.vrOrderId = o.id;
+    $('#customerName').value = `הזמנת VR ${o.code}`;
+    switchView('pos'); renderCart(); openCartSheet(true);
+    toast(`הזמנה ${o.code} נטענה לקופה. מוצרים עם מספר סידורי: עדכן IMEI בקבלה לפי האריזה.`);
+  },
+  async cancel(id) {
+    const o = this.orders.find(x => x.id === id);
+    if (!o || !(await confirmBox(`לבטל את ההזמנה ${o.code}?`, 'בטל הזמנה'))) return;
+    await this.ack(id, 'cancelled');
+    this.orders = this.orders.filter(x => x !== o);
+    this.render(); $('#vrCount').textContent = this.orders.length; $('#vrCount').hidden = !this.orders.length;
+  },
+  render() {
+    const q = ($('#vrCode').value || '').trim().toUpperCase();
+    const list = this.orders.filter(o => !q || (o.code || '').includes(q));
+    $('#vrTable').innerHTML = list.length ? list.map(o => `<tr>
+      <td><b class="vr-code">${esc(o.code || '')}</b></td><td>${fmtDate(Date.parse(o.time))}</td>
+      <td>${o.items.map(l => `${esc(l.name)}${l.variant ? ` (${esc(l.variant)})` : ''} × ${l.qty}`).join('<br>')}</td>
+      <td><b>${money(o.total)}</b></td>
+      <td class="nowrap"><button class="btn small primary" data-load="${o.id}">טען לקופה</button>
+        <button class="btn small danger" data-cancel="${o.id}">בטל</button></td></tr>`).join('')
+      : `<tr><td colspan="5" class="empty">${q ? 'לא נמצאה הזמנה עם הקוד הזה' : 'אין הזמנות שממתינות לתשלום בקופה'}</td></tr>`;
+  },
+};
+
+function refreshViews() {
+  applyHeader(); renderCategories(); renderGrid(); renderCart();
+  const v = document.querySelector('.view.active')?.id;
+  if (v === 'view-products') renderProducts();
+  if (v === 'view-promos') renderPromotions();
+  if (v === 'view-sales') renderSales();
+  if (v === 'view-settings') fillSettings();
 }
 
 /* ---------------- utils ---------------- */
@@ -232,10 +470,26 @@ function findByCode(code) {
   return db.products.find(p => String(p.barcode) === code || String(p.sku) === code);
 }
 
-function addToCart(p, qty = 1) {
-  const existing = cart.items.find(it => it.productId === p.id && !it.discount && it.price === p.price);
+async function addToCart(p, qty = 1) {
+  // phones, computers, consoles: one cart line per unit with its IMEI / serial number
+  if (p.serial && !cart.refund) {
+    for (let i = 0; i < qty; i++) {
+      const r = await ask(`${p.name} – מספר IMEI / סידורי${qty > 1 ? ` (יחידה ${i + 1} מתוך ${qty})` : ''}`, [{ name: 'sn', label: 'סרוק או הקלד את המספר מהאריזה', required: true }], 'הוסף לעסקה');
+      if (!r || !r.sn.trim()) return;
+      const sn = r.sn.trim();
+      if (cart.items.some(it => it.serial === sn)) { beep(false); toast('המספר הזה כבר בעסקה', true); return; }
+      const sold = db.sales.find(s => s.type === 'sale' && s.items.some(it => it.serial === sn));
+      if (sold && !(await confirmBox(`המספר ${sn} כבר נמכר בקבלה ${sold.number}. להמשיך בכל זאת?`, 'המשך', false))) return;
+      cart.items.push({ key: uid(), productId: p.id, sku: p.sku, name: p.name, price: p.price, cost: p.cost || 0, qty: 1, discount: 0, serial: sn, warranty: p.warranty || 0 });
+    }
+    if (p.stock !== undefined && p.stock - qty < 0) toast(`שים לב: אין מספיק מלאי עבור "${p.name}"`, true);
+    beep(true);
+    renderCart();
+    return;
+  }
+  const existing = cart.items.find(it => it.productId === p.id && !it.discount && !it.serial && it.price === p.price);
   if (existing) existing.qty = r2(existing.qty + qty);
-  else cart.items.push({ key: uid(), productId: p.id, sku: p.sku, name: p.name, price: p.price, cost: p.cost || 0, qty, discount: 0 });
+  else cart.items.push({ key: uid(), productId: p.id, sku: p.sku, name: p.name, price: p.price, cost: p.cost || 0, qty, discount: 0, warranty: p.warranty || 0 });
   if (!cart.refund && p.stock !== undefined && p.stock - qty < 0) toast(`שים לב: אין מספיק מלאי עבור "${p.name}"`, true);
   beep(true);
   renderCart();
@@ -269,6 +523,7 @@ function renderCart() {
       <div>
         <div class="title">${esc(it.name)}</div>
         <div class="sub">${money(it.price)} ליח׳${it.discount ? ` · <span class="disc">הנחה ${it.discount}%</span>` : ''}</div>
+        ${it.serial ? `<div class="sn">${it.tradeIn ? 'IMEI' : 'IMEI / S.N'}: <bdi>${esc(it.serial)}</bdi>${it.warranty ? ` · אחריות ${it.warranty} ח׳` : ''}</div>` : ''}
         ${pl[it.key] ? `<div class="promo-tag">🏷 ${esc(pl[it.key].names.join(', '))} (−${money(pl[it.key].amount)})</div>` : ''}
       </div>
       <div class="qty">
@@ -411,6 +666,13 @@ async function openCustomerDisplay() {
 async function cartLineAction(key, act, el) {
   const it = cart.items.find(i => i.key === key);
   if (!it) return;
+  if ((act === 'inc' || act === 'qty') && (it.serial || it.tradeIn)) {
+    if (act === 'qty') el.value = it.qty;
+    if (it.tradeIn) return;
+    const p = db.products.find(x => x.id === it.productId);
+    if (p) addToCart(p); // asks for the next unit's serial number
+    return;
+  }
   if (act === 'inc') it.qty = r2(it.qty + 1);
   else if (act === 'dec') it.qty = r2(it.qty - 1);
   else if (act === 'qty') it.qty = Number(el.value) || 0;
@@ -457,6 +719,24 @@ async function manualItem() {
   beep(); renderCart();
 }
 
+/* trade-in: the customer hands in an old device; its value is credited on this sale */
+async function tradeIn() {
+  if (cart.refund) return toast('אי אפשר טרייד-אין במצב החזרה', true);
+  const r = await ask('טרייד-אין – קבלת מכשיר ישן', [
+    { name: 'device', label: 'דגם המכשיר', required: true },
+    { name: 'sn', label: 'IMEI / מספר סידורי' },
+    { name: 'cond', label: 'מצב', type: 'select', value: 'good', options: [['new', 'כמו חדש'], ['good', 'תקין, סימני שימוש'], ['worn', 'שחוק / סדוק'], ['parts', 'לחלקים']] },
+    { name: 'value', label: 'שווי זיכוי (₪)', type: 'number', step: '1', required: true },
+  ], 'הוסף זיכוי');
+  if (!r) return;
+  const value = r2(Math.abs(Number(r.value) || 0));
+  if (!value) return;
+  if (!(await requireManager('טרייד-אין'))) return;
+  const cond = { new: 'כמו חדש', good: 'תקין', worn: 'שחוק', parts: 'לחלקים' }[r.cond];
+  cart.items.push({ key: uid(), productId: null, sku: 'TRADE-IN', name: `טרייד-אין: ${r.device} (${cond})`, price: -value, cost: 0, qty: 1, discount: 0, serial: r.sn.trim(), tradeIn: true, noPromo: true });
+  beep(); renderCart();
+}
+
 function holdCart() {
   if (!cart.items.length) return toast('אין עסקה להשהייה', true);
   db.held.push({ ...cart, customer: getCustomer(), heldAt: Date.now() });
@@ -475,7 +755,7 @@ function showHeld() {
     if (res !== undefined) {
       if (cart.items.length) return toast('יש להשלים או להשהות את העסקה הנוכחית קודם', true);
       const h = db.held.splice(Number(res), 1)[0];
-      cart = { items: h.items, discount: h.discount, refund: h.refund };
+      cart = { items: h.items, discount: h.discount, refund: h.refund, vrOrderId: h.vrOrderId };
       $('#customerName').value = h.customer?.name || ''; $('#customerPhone').value = h.customer?.phone || '';
       save(); closeModal(); renderCart();
     } else if (drop !== undefined) {
@@ -505,6 +785,7 @@ async function toggleRefund() {
 function openPayment() {
   if (!cart.items.length) return toast('העגלה ריקה', true);
   const t = calcTotals();
+  if (!cart.refund && t.total < 0) return toast('שווי הטרייד-אין גבוה מסכום הקנייה. הוסף מוצרים או הקטן את הזיכוי.', true);
   const due = Math.abs(t.total);
   const payments = [];
   let method = 'cash';
@@ -523,7 +804,7 @@ function openPayment() {
         <div>שולם: ${money(paid())} · נותר: <b>${money(Math.max(rem, 0))}</b></div>
         ${rem < 0 ? `<div class="change">עודף ללקוח: ${money(-rem)}</div>` : ''}
       </div>
-      ${payments.length ? `<div class="payments-list">${payments.map((p, i) => `${PAY_METHODS[p.method]}: ${money(p.amount)}${p.ref ? ` (${esc(p.ref)})` : ''} <button class="link" data-rm="${i}">✕</button>`).join('<br>')}</div>` : ''}
+      ${payments.length ? `<div class="payments-list">${payments.map((p, i) => `${payName(p.method)}: ${money(p.amount)}${p.ref ? ` (${esc(p.ref)})` : ''} <button class="link" data-rm="${i}">✕</button>`).join('<br>')}</div>` : ''}
       ${rem > 0 ? `
       <div class="pay-methods">${Object.entries(PAY_METHODS).map(([k, l]) => `<button class="btn ${k === method ? 'primary' : 'secondary'}" data-m="${k}">${l}</button>`).join('')}</div>
       <form class="form" id="payForm">
@@ -589,7 +870,9 @@ function completeSale(payments, change) {
     payments: payments.map(p => ({ ...p, amount: cart.refund ? -p.amount : p.amount })),
     change,
     zClosed: false,
+    ...(cart.vrOrderId ? { channel: 'vr-reserve', vrOrderId: cart.vrOrderId } : {}),
   };
+  if (cart.vrOrderId) VR.ack(cart.vrOrderId, 'done', sale.number).then(() => VR.poll());
   // stock
   for (const it of cart.items) {
     const p = db.products.find(x => x.id === it.productId);
@@ -615,7 +898,9 @@ function receiptHTML(sale, copy = false) {
     <hr>
     <table>${sale.items.map(it => `
       <tr><td colspan="2">${esc(it.name)}</td></tr>
-      <tr><td>${it.qty} × ${money(it.price)}${it.discount ? ` (-${it.discount}%)` : ''}</td><td class="n">${money(it.total)}</td></tr>`).join('')}
+      <tr><td>${it.qty} × ${money(it.price)}${it.discount ? ` (-${it.discount}%)` : ''}</td><td class="n">${money(it.total)}</td></tr>
+      ${it.serial ? `<tr><td colspan="2">IMEI/S.N: ${esc(it.serial)}</td></tr>` : ''}
+      ${it.warranty && sale.type === 'sale' ? `<tr><td colspan="2">אחריות ${it.warranty} חודשים, עד ${warrantyEnd(sale.ts, it.warranty)}</td></tr>` : ''}`).join('')}
     </table>
     <hr>
     <table>
@@ -627,13 +912,18 @@ function receiptHTML(sale, copy = false) {
       <tr class="tot"><td>סה״כ לתשלום</td><td class="n">${money(t.total)}</td></tr>
     </table>
     <hr>
-    <table>${sale.payments.map(p => `<tr><td>${PAY_METHODS[p.method]}${p.installments > 1 ? ` (${p.installments} תש׳)` : ''}${p.ref ? ' ' + esc(p.ref) : ''}</td><td class="n">${money(p.amount)}</td></tr>`).join('')}
+    <table>${sale.payments.map(p => `<tr><td>${payName(p.method)}${p.installments > 1 ? ` (${p.installments} תש׳)` : ''}${p.ref ? ' ' + esc(p.ref) : ''}</td><td class="n">${money(p.amount)}</td></tr>`).join('')}
       ${sale.change ? `<tr><td>עודף</td><td class="n">${money(sale.change)}</td></tr>` : ''}
     </table>
     <hr>
     ${(() => { const sv = Math.abs((t.promo || 0) + (t.discount || 0) + (t.itemsDiscount || 0)); return sv && sale.type === 'sale' ? `<div class="c"><b>חסכת היום ${money(r2(sv))}!</b></div><hr>` : ''; })()}
     <div class="c">${esc(s.footer)}</div>
   </div>`;
+}
+
+function warrantyEnd(ts, months) {
+  const d = new Date(ts); d.setMonth(d.getMonth() + Number(months));
+  return d.toLocaleDateString('he-IL');
 }
 
 function printHTML(html) {
@@ -649,15 +939,23 @@ function renderProducts() {
   $('#productsTable').innerHTML = db.products
     .filter(p => !q || [p.name, p.sku, p.barcode, p.category].join(' ').toLowerCase().includes(q))
     .map(p => `<tr class="${p.stock <= low ? 'low' : ''}">
-      <td>${esc(p.sku)}</td><td>${esc(p.barcode)}</td><td>${esc(p.name)}</td><td>${esc(p.category)}</td>
+      <td>${esc(p.sku)}</td><td>${esc(p.barcode)}</td><td>${esc(p.name)}${p.vrId ? ' <span class="pill vr" title="מוצג בחנות ה-VR">🥽 VR</span>' : ''}${p.serial ? ' <span class="pill" title="דורש IMEI / מספר סידורי">IMEI</span>' : ''}</td><td>${esc(p.category)}</td>
       <td>${money(p.price)}</td><td>${money(p.cost || 0)}</td><td class="stock">${p.stock}</td>
       <td><button class="btn small secondary" data-edit="${p.id}">עריכה</button>
         <button class="btn small secondary" data-stock="${p.id}">קליטת מלאי</button>
         <button class="btn small danger" data-del="${p.id}">מחק</button></td></tr>`).join('');
 }
 
+// products of the 3D VR store (the server sends the live list; this is the built-in catalog)
+const VR_FALLBACK = [
+  ['nova-x-pro', 'נובה X Pro'], ['nova-x', 'נובה X'], ['nova-a5', 'נובה A5'], ['nova-tab', 'נובה Tab 11'], ['nova-watch', 'נובה Watch 3'],
+  ['nova-buds', 'אוזניות נובה Buds'], ['speaker-retro', 'רמקול בלוטות׳ רטרו'], ['charger-45', 'מטען מהיר 45W'],
+  ['powerbank', 'סוללה ניידת 10,000mAh'], ['case-x-pro', 'כיסוי סיליקון ל-X Pro'],
+];
+const vrProductList = () => (Sync.vrProducts.length ? Sync.vrProducts.map(p => [p.id, p.name]) : VR_FALLBACK);
+
 async function editProduct(id) {
-  const p = id ? db.products.find(x => x.id === id) : { sku: '', barcode: '', name: '', category: '', price: '', cost: '', stock: 0 };
+  const p = id ? db.products.find(x => x.id === id) : { sku: '', barcode: '', name: '', category: '', price: '', cost: '', stock: 0, serial: false, warranty: 0, vrId: '' };
   const dl = `<datalist id="catList">${categories().slice(1).map(c => `<option value="${esc(c)}">`).join('')}</datalist>`;
   const prom = ask(id ? 'עריכת מוצר' : 'מוצר חדש', [
     { name: 'name', label: 'שם המוצר', value: p.name, required: true },
@@ -667,13 +965,19 @@ async function editProduct(id) {
     { name: 'price', label: 'מחיר מכירה', type: 'number', step: '0.01', value: p.price, required: true },
     { name: 'cost', label: 'מחיר עלות', type: 'number', step: '0.01', value: p.cost },
     { name: 'stock', label: 'מלאי', type: 'number', step: 'any', value: p.stock },
+    { name: 'serial', label: 'דורש IMEI / מספר סידורי במכירה', type: 'select', value: p.serial ? '1' : '0', options: [['0', 'לא'], ['1', 'כן (טלפונים, מחשבים, קונסולות)']] },
+    { name: 'warranty', label: 'אחריות (חודשים, 0 = ללא)', type: 'number', step: '1', value: p.warranty || 0 },
+    { name: 'vrId', label: '🥽 מוצר בחנות ה-VR (המחיר והמלאי יוצגו שם)', type: 'select', value: p.vrId || '', options: [['', '— לא מוצג בחנות ה-VR —'], ...vrProductList()] },
   ], 'שמור');
   $('#askForm').insertAdjacentHTML('beforeend', dl);
   const r = await prom;
   if (!r) return;
   const dup = db.products.find(x => x.id !== id && r.barcode && String(x.barcode) === r.barcode);
   if (dup) return toast(`הברקוד כבר קיים במוצר "${dup.name}"`, true);
-  const data = { name: r.name, sku: r.sku, barcode: r.barcode, category: r.category, price: r2(Number(r.price) || 0), cost: r2(Number(r.cost) || 0), stock: Number(r.stock) || 0 };
+  const linked = r.vrId && db.products.find(x => x.id !== id && x.vrId === r.vrId);
+  if (linked) return toast(`מוצר ה-VR הזה כבר מקושר ל"${linked.name}"`, true);
+  const data = { name: r.name, sku: r.sku, barcode: r.barcode, category: r.category, price: r2(Number(r.price) || 0), cost: r2(Number(r.cost) || 0), stock: Number(r.stock) || 0,
+    serial: r.serial === '1', warranty: Math.max(0, Number(r.warranty) || 0), vrId: r.vrId || '' };
   if (id) Object.assign(p, data); else db.products.push({ id: uid(), ...data });
   save(); renderProducts(); renderCategories(); renderGrid();
   toast('המוצר נשמר');
@@ -747,13 +1051,14 @@ function importProducts(file) {
 
 /* ---------------- sales view ---------------- */
 function payLabel(sale) {
-  return [...new Set(sale.payments.map(p => PAY_METHODS[p.method]))].join(' + ');
+  return [...new Set(sale.payments.map(p => payName(p.method)))].join(' + ') + (sale.channel === 'vr' ? ' 🥽' : '');
 }
 function renderSales() {
   const day = $('#salesDate').value;
   const q = $('#salesFilter').value.trim().toLowerCase();
   const list = db.sales.filter(s => (!day || dayKey(s.ts) === day) &&
-    (!q || String(s.number).includes(q) || (s.customer?.name || '').toLowerCase().includes(q) || (s.customer?.phone || '').includes(q)))
+    (!q || String(s.number).includes(q) || (s.customer?.name || '').toLowerCase().includes(q) || (s.customer?.phone || '').includes(q)
+      || s.items.some(it => (it.serial || '').toLowerCase().includes(q))))
     .slice().reverse();
   $('#salesTable').innerHTML = list.length ? list.map(s => `<tr class="${s.type === 'refund' ? 'refund' : ''}">
     <td>${s.number}${s.type === 'refund' ? ' (החזרה)' : ''}</td><td>${fmtDate(s.ts)}</td><td>${esc(s.cashier)}</td>
@@ -833,7 +1138,7 @@ function reportHTML(title, sales, extra = '') {
       <div class="kpi"><div class="v">${money(r2(r.cashDrawer))}</div><div class="l">מזומן צפוי במגירה</div></div>
     </div>
     ${r.first !== null ? `<div>קבלות ${r.first} – ${r.last}</div>` : ''}
-    <h3>לפי אמצעי תשלום</h3><table class="table">${rows(r.byMethod, k => PAY_METHODS[k] || k)}</table>
+    <h3>לפי אמצעי תשלום</h3><table class="table">${rows(r.byMethod, payName)}</table>
     <h3>מבצעים שמומשו</h3><table class="table">${rows(r.byPromo)}</table>
     <h3>לפי קטגוריה</h3><table class="table">${rows(r.byCat)}</table>
     <h3>לפי קופאי</h3><table class="table">${rows(r.byCashier)}</table>
@@ -1035,6 +1340,7 @@ function switchView(v) {
   document.querySelectorAll('.view').forEach(x => x.classList.toggle('active', x.id === 'view-' + v));
   if (v === 'products') renderProducts();
   if (v === 'promos') renderPromotions();
+  if (v === 'vr') { VR.render(); VR.poll(); }
   if (v === 'sales') renderSales();
   if (v === 'settings') fillSettings();
   if (v === 'reports' && !$('#reportOut').innerHTML) xReport();
@@ -1043,7 +1349,7 @@ function switchView(v) {
 
 /* ---------------- wiring ---------------- */
 function init() {
-  save(); // make sure the customer display can read products, promotions and branding
+  saveLocal(); // make sure the customer display can read products, promotions and branding
   applyHeader();
   renderCategories(); renderGrid(); renderCart();
   const today = dayKey(Date.now());
@@ -1126,6 +1432,19 @@ function init() {
     }
   };
   $('#customerDisplayBtn').onclick = openCustomerDisplay;
+  $('#tradeInBtn').onclick = tradeIn;
+  $('#syncPill').onclick = () => { if (Sync.mode === 'locked') Sync.login(); else if (Sync.mode === 'offline') Sync.tick(); };
+  $('#vrCode').oninput = () => VR.render();
+  $('#vrTable').onclick = e => { const d = e.target.dataset; if (d.load) VR.load(d.load); else if (d.cancel) VR.cancel(d.cancel); };
+  $('#loadSampleBtn').onclick = async () => {
+    if (!(await confirmBox('להחליף את כל המוצרים והמבצעים בקטלוג לדוגמה של חנות סלולר, מחשבים וגיימינג? המכירות נשמרות.', 'החלף קטלוג', false))) return;
+    if (!(await requireManager('החלפת קטלוג'))) return;
+    db.products = sampleProducts(); db.promotions = samplePromotions(db.products);
+    Object.assign(db.settings, { storeName: BRAND_DEFAULTS.storeName, slogan: BRAND_DEFAULTS.slogan, brandColor: BRAND_DEFAULTS.brandColor, brandDark: BRAND_DEFAULTS.brandDark });
+    activeCategory = 'הכל';
+    save(); refreshViews(); toast('הקטלוג הוחלף');
+  };
+  Sync.start();
   $('#camBtn').onclick = openCameraScanner;
   $('#mobileCartBar').onclick = () => openCartSheet(true);
   $('#cartClose').onclick = () => openCartSheet(false);

@@ -21,11 +21,13 @@
     <button class="tab active" data-view="pos">קופה</button>
     <button class="tab" data-view="products">מוצרים</button>
     <button class="tab" data-view="promos">מבצעים</button>
+    <button class="tab" data-view="vr" id="tabVr" hidden>🥽 הזמנות VR <span id="vrCount" class="badge" hidden>0</span></button>
     <button class="tab" data-view="sales">היסטוריית מכירות</button>
     <button class="tab" data-view="reports">דוחות</button>
     <button class="tab" data-view="settings">הגדרות</button>
   </nav>
   <button id="customerDisplayBtn" class="btn small display-btn no-embed" title="פתח מסך לקוח (F8)">🖥 מסך לקוח</button>
+  <button id="syncPill" class="sync-pill" hidden></button>
   <div class="status">
     <span id="cashierLbl"></span>
     <span id="clock"></span>
@@ -49,6 +51,7 @@
       <button id="cartClose" class="btn small secondary mobile-only" title="חזרה למוצרים">→ מוצרים</button>
       <h2>עסקה נוכחית</h2>
       <div class="cart-actions">
+        <button id="tradeInBtn" class="btn small secondary" title="קבלת מכשיר ישן כזיכוי">♻ טרייד-אין</button>
         <button id="holdBtn" class="btn small secondary" title="השהה עסקה">⏸ השהה</button>
         <button id="heldBtn" class="btn small secondary">עסקאות מושהות <span id="heldCount" class="badge">0</span></button>
       </div>
@@ -111,11 +114,25 @@
   </div>
 </main>
 
+<!-- ===== VR ORDERS ===== -->
+<main id="view-vr" class="view">
+  <div class="toolbar">
+    <input id="vrCode" placeholder="קוד הזמנה מהלקוח (4 תווים)" maxlength="4" autocomplete="off" style="text-transform:uppercase">
+    <span class="muted">הזמנות ששולמו ב-PayPal בחנות ה-VR נרשמות כאן אוטומטית כמכירה. כאן מופיעות הזמנות שהלקוח שמר כדי לשלם בקופה.</span>
+  </div>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>קוד</th><th>זמן</th><th>מוצרים</th><th>סכום</th><th></th></tr></thead>
+    <tbody id="vrTable"></tbody>
+  </table>
+  </div>
+</main>
+
 <!-- ===== SALES ===== -->
 <main id="view-sales" class="view">
   <div class="toolbar">
     <input id="salesDate" type="date">
-    <input id="salesFilter" placeholder="חיפוש לפי מס׳ קבלה / לקוח...">
+    <input id="salesFilter" placeholder="חיפוש לפי מס׳ קבלה / לקוח / IMEI...">
     <button id="exportSalesBtn" class="btn secondary no-embed">ייצוא CSV</button>
   </div>
   <div class="table-wrap">
@@ -179,6 +196,7 @@
       <button class="btn primary" type="submit">שמור הגדרות</button>
       <button class="btn secondary no-embed" type="button" id="backupBtn">גיבוי מלא (JSON)</button>
       <label class="btn secondary">שחזור מגיבוי<input id="restoreFile" type="file" accept=".json" hidden></label>
+      <button class="btn secondary" type="button" id="loadSampleBtn">טען קטלוג לדוגמה: סלולר · מחשבים · גיימינג</button>
       <button class="btn danger" type="button" id="resetBtn">איפוס כל הנתונים</button>
     </div>
   </form>

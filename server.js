@@ -15,6 +15,7 @@ const express = require('express');
 try { process.loadEnvFile(path.join(__dirname, '.env')); } catch (e) { /* אין .env – משתמשים במשתני סביבה */ }
 
 const { STORE_CONFIG, PRODUCTS } = require('./js/products.js');
+const { createPosLink } = require('./pos-link.js');
 
 const {
   PAYPAL_CLIENT_ID = '',
@@ -26,7 +27,10 @@ const {
 const PAYPAL_API = process.env.PAYPAL_API_BASE
   || (PAYPAL_ENV === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com');
 const CURRENCY = STORE_CONFIG.currencyCode || 'ILS';
-const ORDERS_FILE = path.join(__dirname, 'data', 'orders.jsonl');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const ORDERS_FILE = path.join(DATA_DIR, 'orders.jsonl');
+// הקופה: מחירים ומלאי חיים לחנות, והזמנות מהחנות לקופה
+const posLink = createPosLink({ dataDir: DATA_DIR, products: PRODUCTS });
 
 /* ---------------- PayPal REST API ---------------- */
 
@@ -85,16 +89,27 @@ function buildOrder(items) {
       variant = (product.variants || []).find((v) => v.id === variantId);
       if (!variant) throw httpError(400, `צבע לא קיים: ${key}`);
     }
-    return { product, variant, qty: q };
+    const live = posLink.live(product.id); // מחיר ומלאי מהקופה, אם המוצר מקושר אליה
+    return { product, variant, qty: q, unit: live ? live.price : product.price, live };
   });
   if (lines.length > 50) throw httpError(400, 'יותר מדי פריטים בסל');
   if (!lines.length) throw httpError(400, 'הסל ריק');
-  const itemsTotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+  // מלאי: סוכמים את כל הצבעים של אותו מוצר
+  const wanted = {};
+  for (const l of lines) wanted[l.product.id] = (wanted[l.product.id] || 0) + l.qty;
+  for (const l of lines) {
+    if (l.live && wanted[l.product.id] > l.live.stock) {
+      throw httpError(409, l.live.stock > 0 ? `נותרו במלאי רק ${l.live.stock} יח׳ של ${l.product.name}` : `${l.product.name} אזל מהמלאי`);
+    }
+  }
+  const itemsTotal = lines.reduce((sum, l) => sum + l.unit * l.qty, 0);
   const shipping = shippingFor(itemsTotal);
   const total = itemsTotal + shipping;
 
   return {
     lines,
+    itemsTotal,
+    shipping,
     total,
     body: {
       intent: 'CAPTURE',
@@ -112,7 +127,7 @@ function buildOrder(items) {
           name: (l.variant ? `${l.product.name} – ${l.variant.label}` : l.product.name).slice(0, 127),
           sku: (l.variant ? `${l.product.id}-${l.variant.id}` : l.product.id).slice(0, 127),
           quantity: String(l.qty),
-          unit_amount: { currency_code: CURRENCY, value: money(l.product.price) },
+          unit_amount: { currency_code: CURRENCY, value: money(l.unit) },
           category: 'PHYSICAL_GOODS',
         })),
       }],
@@ -130,12 +145,15 @@ function saveOrder(record) {
 /* ---------------- שרת ---------------- */
 
 const app = express();
-app.use(express.json({ limit: '20kb' }));
+const smallJson = express.json({ limit: '20kb' });
+app.use((req, res, next) => (req.path.startsWith('/api/pos/') ? next() : smallJson(req, res, next)));
+app.use(posLink.router);
 
 // מגישים רק את קבצי האתר – לא את .env, server.js או data/
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/pos', express.static(path.join(__dirname, 'pos'))); // הקופה
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/healthz', (req, res) => res.send('ok')); // בדיקת תקינות לשירות האירוח
 
@@ -153,6 +171,7 @@ app.post('/api/orders', async (req, res, next) => {
       console.error('PayPal create order failed', r.status, JSON.stringify(r.json));
       throw httpError(502, 'יצירת ההזמנה ב-PayPal נכשלה');
     }
+    posLink.rememberPayPal(r.json.id, order);
     res.json({ id: r.json.id });
   } catch (e) { next(e); }
 });
@@ -184,9 +203,18 @@ app.post('/api/orders/:id/capture', async (req, res, next) => {
         shipping: unit.shipping,
         items: unit.items,
       });
+      posLink.paid(id, { ...result, payer: r.json.payer && { name: r.json.payer.name, email: r.json.payer.email_address }, shipping: unit.shipping });
       console.log(`✓ Order paid: ${result.orderId} ${capture.amount && capture.amount.value} ${CURRENCY}`);
     }
     res.json(result);
+  } catch (e) { next(e); }
+});
+
+// "שמירה ותשלום בקופה": ההזמנה נשמרת עם קוד, והלקוח משלם בחנות
+app.post('/api/reserve', (req, res, next) => {
+  try {
+    const order = buildOrder(req.body && req.body.items);
+    res.json(posLink.reserve(order));
   } catch (e) { next(e); }
 });
 
@@ -203,4 +231,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, buildOrder, shippingFor };
+module.exports = { app, buildOrder, shippingFor, posLink };

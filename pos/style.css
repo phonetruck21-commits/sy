@@ -284,3 +284,15 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
 .cam-last { text-align: center; margin-top: 8px; min-height: 1.4em; font-weight: 600; }
 
 body.embed .no-embed { display: none !important; }
+
+/* store server connection + VR store */
+.sync-pill { border: 0; border-radius: 14px; padding: 4px 10px; font-size: .8rem; cursor: pointer; background: rgba(255,255,255,.12); color: #fff; white-space: nowrap; }
+.sync-pill.server { background: rgba(46, 204, 113, .22); }
+.sync-pill.offline { background: rgba(241, 196, 15, .3); }
+.sync-pill.locked { background: var(--primary); }
+.pill.vr { background: #ede4ff; color: #5b21b6; }
+.line .sn { font-size: .78rem; color: var(--muted); direction: rtl; }
+.line .sn bdi { font-family: ui-monospace, "Courier New", monospace; color: var(--text); }
+.vr-code { font-family: ui-monospace, "Courier New", monospace; font-size: 1.15rem; letter-spacing: .15em; color: var(--primary-d); }
+#vrCode { font-family: ui-monospace, "Courier New", monospace; letter-spacing: .2em; width: 200px; }
+#vrCode::placeholder { letter-spacing: normal; font-family: inherit; }

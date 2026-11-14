@@ -20,10 +20,10 @@ function lineTotal(it) {
 
 /* ---------------- branding ---------------- */
 const BRAND_DEFAULTS = {
-  storeName: 'פרו־טול',
-  slogan: 'כלים של מקצוענים',
-  brandColor: '#f26b1d',
-  brandDark: '#1b2a41',
+  storeName: 'נובה',
+  slogan: 'סלולר · מחשבים · גיימינג',
+  brandColor: '#8b5cf6',
+  brandDark: '#14112a',
   logo: '',
 };
 
@@ -116,7 +116,8 @@ function applyPromotions(items, promos, products, now = Date.now()) {
   const order = { xfory: 0, bundle: 1, pct: 2, threshold: 3 };
 
   for (const p of active.filter(p => p.type !== 'threshold').sort((a, b) => order[a.type] - order[b.type])) {
-    const lines = items.filter(it => !used.has(it.key) && it.qty > 0 && promoMatches(p, it, products));
+    // trade-in lines (negative price) and prices fixed by a VR order are not promoted again
+    const lines = items.filter(it => !used.has(it.key) && it.qty > 0 && it.price > 0 && !it.noPromo && promoMatches(p, it, products));
     if (!lines.length) continue;
     let sum = 0;
     const touched = new Set();
@@ -131,16 +132,17 @@ function applyPromotions(items, promos, products, now = Date.now()) {
       // group units: per product, or pooled for a category / "all" scope
       const groups = {};
       for (const it of lines) {
-        const g = p.scope === 'products' ? it.productId : 'pool';
+        const g = 'pool'; // all matching units together: "any 3 for 2", "charger + power bank for ₪299"
         const unit = it.qty ? lineTotal(it) / it.qty : 0;
         for (let i = 0; i < Math.floor(it.qty); i++) (groups[g] ||= []).push({ key: it.key, unit, name: it.name });
       }
       for (const units of Object.values(groups)) {
         const sets = Math.floor(units.length / N);
         if (units.length % N === N - 1 && N > 1) {
+          const one = new Set(units.map(u => u.name)).size === 1 ? `יחידה של ${units[0].name}` : 'פריט אחד מהמבצע';
           res.hints.push(p.type === 'xfory'
-            ? `הוסף עוד יחידה של ${units[0].name} ונצל את המבצע "${p.name}"`
-            : `עוד יחידה אחת של ${units[0].name} ותקבל ${N} ב־₪${p.price}`);
+            ? `הוסף עוד ${one} ונצל את המבצע "${p.name}"`
+            : `עוד ${one} ותקבל ${N} ב־₪${p.price}`);
         }
         if (!sets) continue;
         if (p.type === 'xfory') {

@@ -268,3 +268,10 @@ body.in-store.hint-done #hint { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   #intro-bar, #hint, #dom-toast, .btn { transition: none; }
 }
+
+/* "או" בין PayPal לשמירה בקופה */
+.co-or { display: flex; align-items: center; gap: 10px; margin: 12px 0 8px; color: #8a847b; font-size: .85rem; }
+.co-or::before, .co-or::after { content: ""; flex: 1; border-top: 1px solid #e3ded6; }
+#co-reserve { width: 100%; }
+#co-reserve:disabled { opacity: .6; }
+.co-code { font-size: 2rem; font-weight: 700; letter-spacing: .2em; direction: ltr; }

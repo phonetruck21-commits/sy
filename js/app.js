@@ -155,12 +155,37 @@
       Cart.clear();
       $('#co-summary').hidden = true;
       $('#co-done').hidden = false;
+      $('#co-order-lbl').textContent = 'מספר אישור';
+      $('#co-order').classList.remove('co-code');
+      $('#co-note').textContent = 'אישור ופרטי משלוח נשלחו אליכם במייל מ-PayPal.';
       $('#co-order').textContent = r.captureId || r.orderId;
       $('#co-amount').textContent = fmt(r.amount ? r.amount.value : total);
       $('#co-back-vr').hidden = !this.returnToVR;
       this.status('');
       this.lastReceipt = { id: r.captureId || r.orderId, total: r.amount ? r.amount.value : total };
       Sound.success();
+    },
+    // שמירת ההזמנה בקופה של החנות: הלקוח מקבל קוד ומשלם בקופה
+    reserve() {
+      const total = Cart.total();
+      const btn = $('#co-reserve');
+      btn.disabled = true;
+      this.status('שומר את ההזמנה…');
+      api('api/reserve', { items: Cart.items }).then((r) => {
+        Cart.clear();
+        $('#co-summary').hidden = true;
+        $('#co-done').hidden = false;
+        $('#co-order-lbl').textContent = 'קוד הזמנה לקופה';
+        $('#co-order').textContent = r.code;
+        $('#co-order').classList.add('co-code');
+        $('#co-amount').textContent = fmt(r.total || total);
+        $('#co-note').textContent = 'הזמנתם שמורה. הציגו את הקוד בקופה בחנות, ותשלמו שם במזומן או באשראי.';
+        $('#co-back-vr').hidden = !this.returnToVR;
+        this.status('');
+        Sound.success();
+      }).catch((err) => {
+        this.status(err.message && !/^HTTP/.test(err.message) ? err.message : 'שמירת ההזמנה זמינה רק כשהחנות מחוברת לקופה.', 'error');
+      }).finally(() => { btn.disabled = false; });
     },
     close() { $('#checkout').hidden = true; $('#paypal-buttons').innerHTML = ''; },
     backToVR() { this.close(); $('a-scene').enterVR(); },
@@ -807,7 +832,15 @@
       }
 
       L.divider(0.024);
-      L.stepper(pick.qty, (q) => { pick.qty = Math.max(1, Math.min(9, q)); openProduct(id, true); }, { label: 'כמות' });
+      if (p.stock !== undefined) {
+        const st = p.stock <= 0 ? 'אזל מהמלאי' : p.stock <= 3 ? `נותרו ${p.stock} יחידות במלאי` : 'במלאי';
+        L.text(st, { size: 0.021, weight: 500, color: p.stock <= 3 ? UI.sale : UI.muted, gap: 0.012 });
+      }
+      if (p.stock !== undefined && p.stock <= 0) {
+        if (Cart.count()) L.button(`לסל הקניות (${Cart.count()})`, () => openCart(), { primary: false });
+        return;
+      }
+      L.stepper(pick.qty, (q) => { pick.qty = Math.max(1, Math.min(p.stock !== undefined ? Math.max(1, Math.min(9, p.stock)) : 9, q)); openProduct(id, true); }, { label: 'כמות' });
       L.button(`הוספה לסל  ·  ${fmt(p.price * pick.qty)}`, () => addToCart(entry));
       if (Cart.count()) L.button(`לסל הקניות (${Cart.count()})`, () => openCart(), { primary: false });
     }, {
@@ -827,6 +860,13 @@
 
   function addToCart(entry) {
     const p = entry.product;
+    if (p.stock !== undefined) {
+      const inCart = Cart.lines().filter((l) => l.product.id === p.id).reduce((n, l) => n + l.qty, 0);
+      if (inCart + pick.qty > p.stock) {
+        toast(p.stock - inCart > 0 ? `נותרו במלאי רק ${p.stock - inCart} יחידות נוספות` : 'אין עוד יחידות במלאי');
+        return;
+      }
+    }
     Cart.add(p, entry.variant, pick.qty);
     Sound.add();
     pulse($('#rightHand'), 0.45, 45);
@@ -1078,6 +1118,7 @@
     $('#co-close').addEventListener('click', () => Checkout.close());
     $('#co-close-done').addEventListener('click', () => Checkout.close());
     $('#co-back-vr').addEventListener('click', () => Checkout.backToVR());
+    $('#co-reserve').addEventListener('click', () => Checkout.reserve());
 
     const enter = (vr) => {
       Sound.unlock();

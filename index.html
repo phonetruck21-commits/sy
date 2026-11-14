@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-v1.6.0.min.js"></script>
   <script src="js/products.js"></script>
+  <script src="api/catalog.js"></script><!-- מחירים ומלאי חיים מהקופה (כשרץ עם השרת) -->
   <script src="js/env.js"></script>
   <script src="js/devices.js"></script>
   <script src="js/truck.js"></script>
@@ -63,15 +64,17 @@
         <ul id="co-lines"></ul>
         <div id="co-total"></div>
         <div id="paypal-buttons"></div>
+        <div class="co-or"><span>או</span></div>
+        <button id="co-reserve" class="btn" type="button">שמירת ההזמנה ותשלום בקופה בחנות</button>
       </div>
       <div id="co-done" hidden>
         <p class="co-eyebrow">ההזמנה התקבלה</p>
         <h2>תודה שקניתם אצלנו</h2>
         <dl class="co-receipt">
-          <div><dt>מספר אישור</dt><dd id="co-order"></dd></div>
+          <div><dt id="co-order-lbl">מספר אישור</dt><dd id="co-order"></dd></div>
           <div><dt>סכום</dt><dd id="co-amount"></dd></div>
         </dl>
-        <p class="co-note">אישור ופרטי משלוח נשלחו אליכם במייל מ-PayPal.</p>
+        <p class="co-note" id="co-note">אישור ופרטי משלוח נשלחו אליכם במייל מ-PayPal.</p>
         <button id="co-back-vr" class="btn btn-primary" type="button" hidden>חזרה לחנות במשקף</button>
         <button id="co-close-done" class="btn" type="button">המשך בקנייה</button>
       </div>
