@@ -1,0 +1,16 @@
+{
+  "name": "vr-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebXR virtual reality store with PayPal checkout",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
