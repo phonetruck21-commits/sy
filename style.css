@@ -282,3 +282,5 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
 .cam-box video { width: 100%; border-radius: 12px; background: #000; display: block; aspect-ratio: 3 / 4; object-fit: cover; }
 .cam-box .aim { position: absolute; left: 10%; right: 10%; top: 40%; height: 20%; border: 3px solid var(--primary); border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,.25); pointer-events: none; }
 .cam-last { text-align: center; margin-top: 8px; min-height: 1.4em; font-weight: 600; }
+
+body.embed .no-embed { display: none !important; }

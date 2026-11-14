@@ -25,7 +25,7 @@
     <button class="tab" data-view="reports">דוחות</button>
     <button class="tab" data-view="settings">הגדרות</button>
   </nav>
-  <button id="customerDisplayBtn" class="btn small display-btn" title="פתח מסך לקוח (F8)">🖥 מסך לקוח</button>
+  <button id="customerDisplayBtn" class="btn small display-btn no-embed" title="פתח מסך לקוח (F8)">🖥 מסך לקוח</button>
   <div class="status">
     <span id="cashierLbl"></span>
     <span id="clock"></span>
@@ -37,7 +37,7 @@
   <section class="catalog">
     <div class="searchbar">
       <input id="scan" type="text" placeholder="סרוק ברקוד / חפש מוצר לפי שם או מק״ט..." autocomplete="off" enterkeyhint="go">
-      <button id="camBtn" class="btn secondary" title="סריקת ברקוד במצלמה">📷</button>
+      <button id="camBtn" class="btn secondary no-embed" title="סריקת ברקוד במצלמה">📷</button>
       <button id="manualItemBtn" class="btn secondary" title="פריט כללי במחיר חופשי">+ פריט כללי</button>
     </div>
     <div id="categories" class="categories"></div>
@@ -86,7 +86,7 @@
   <div class="toolbar">
     <input id="prodFilter" placeholder="חיפוש מוצר...">
     <button id="addProductBtn" class="btn primary">+ מוצר חדש</button>
-    <button id="exportProductsBtn" class="btn secondary">ייצוא CSV</button>
+    <button id="exportProductsBtn" class="btn secondary no-embed">ייצוא CSV</button>
     <label class="btn secondary">ייבוא CSV<input id="importProducts" type="file" accept=".csv" hidden></label>
   </div>
   <div class="table-wrap">
@@ -116,7 +116,7 @@
   <div class="toolbar">
     <input id="salesDate" type="date">
     <input id="salesFilter" placeholder="חיפוש לפי מס׳ קבלה / לקוח...">
-    <button id="exportSalesBtn" class="btn secondary">ייצוא CSV</button>
+    <button id="exportSalesBtn" class="btn secondary no-embed">ייצוא CSV</button>
   </div>
   <div class="table-wrap">
   <table class="table">
@@ -177,7 +177,7 @@
     </fieldset>
     <div class="toolbar">
       <button class="btn primary" type="submit">שמור הגדרות</button>
-      <button class="btn secondary" type="button" id="backupBtn">גיבוי מלא (JSON)</button>
+      <button class="btn secondary no-embed" type="button" id="backupBtn">גיבוי מלא (JSON)</button>
       <label class="btn secondary">שחזור מגיבוי<input id="restoreFile" type="file" accept=".json" hidden></label>
       <button class="btn danger" type="button" id="resetBtn">איפוס כל הנתונים</button>
     </div>

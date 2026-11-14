@@ -45,6 +45,9 @@ const SAMPLE_PRODUCTS = [
   ['5003', '7290000000165', 'סוללה 18V 4Ah', 'אביזרים', 249, 150, 4],
 ];
 
+/* claude.ai page: printing, camera, pop-up windows and file downloads are blocked there */
+const EMBED = !!window.POS_EMBED;
+
 /* ---------------- state ---------------- */
 let db = load();
 let cart = newCart();
@@ -152,6 +155,18 @@ function ask(title, fields, okText = 'אישור') {
       const out = Object.fromEntries(new FormData(form).entries());
       modalResolve = null; closeModal(); resolve(out);
     };
+  });
+}
+
+/** in-page yes/no dialog → Promise<boolean> */
+function confirmBox(msg, okText = 'אישור', danger = true) {
+  return new Promise(resolve => {
+    openModal(`<h3>${esc(msg)}</h3><div class="actions" style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn ${danger ? 'danger' : 'primary'}" id="cfOk">${esc(okText)}</button>
+      <button class="btn secondary" id="cfNo">ביטול</button></div>`);
+    modalResolve = v => resolve(!!v);
+    $('#cfOk').onclick = () => { modalResolve = null; closeModal(); resolve(true); };
+    $('#cfNo').onclick = closeModal;
   });
 }
 
@@ -518,8 +533,8 @@ function openPayment() {
         ${method === 'credit' && !cart.refund ? `<label>תשלומים<input id="payInst" type="number" min="1" value="1"></label>` : ''}
         <div class="actions"><button class="btn primary" type="submit">הוסף תשלום</button></div>
       </form>` : `<div class="actions" style="margin-top:12px;display:flex;gap:8px">
-        <button class="btn ok big" id="finishBtn">סיים והדפס קבלה</button>
-        <button class="btn secondary big" id="finishNoPrint">סיים ללא הדפסה</button></div>`}
+        <button class="btn ok big no-embed" id="finishBtn">סיים והדפס קבלה</button>
+        <button class="btn secondary big" id="finishNoPrint">${EMBED ? 'סיים עסקה' : 'סיים ללא הדפסה'}</button></div>`}
     `;
     const amt = $('#payAmt'); if (amt) { amt.focus(); amt.select(); }
     const pf = $('#payForm');
@@ -745,7 +760,7 @@ function renderSales() {
     <td>${esc(s.customer?.name || '-')}</td><td>${s.items.reduce((a, i) => a + i.qty, 0)}</td>
     <td>${payLabel(s)}</td><td><b>${money(s.totals.total)}</b></td>
     <td><button class="btn small secondary" data-view-sale="${s.id}">הצג</button>
-      <button class="btn small secondary" data-print="${s.id}">הדפס העתק</button>
+      <button class="btn small secondary no-embed" data-print="${s.id}">הדפס העתק</button>
       ${s.type === 'sale' ? `<button class="btn small secondary" data-return="${s.id}">החזרה</button>` : ''}</td></tr>`).join('')
     : '<tr><td colspan="8" class="empty">אין מכירות</td></tr>';
 }
@@ -825,7 +840,7 @@ function reportHTML(title, sales, extra = '') {
     <h3>מוצרים מובילים</h3><table class="table"><thead><tr><th>מוצר</th><th>כמות</th><th>סכום</th></tr></thead>
       ${top.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${r2(v.qty)}</td><td>${money(r2(v.total))}</td></tr>`).join('') || '<tr><td colspan="3">-</td></tr>'}</table>
     ${lowStockHTML()}
-    <div class="toolbar" style="margin-top:14px"><button class="btn secondary" onclick="printHTML(document.getElementById('reportOut').innerHTML)">הדפס דוח</button></div>`;
+    <div class="toolbar no-embed" style="margin-top:14px"><button class="btn secondary" onclick="printHTML(document.getElementById('reportOut').innerHTML)">הדפס דוח</button></div>`;
 }
 
 function lowStockHTML() {
@@ -1060,7 +1075,7 @@ function init() {
   $('#manualItemBtn').onclick = manualItem;
   $('#holdBtn').onclick = holdCart;
   $('#heldBtn').onclick = showHeld;
-  $('#clearBtn').onclick = () => { if (cart.items.length && confirm('לבטל את העסקה הנוכחית?')) resetCart(); };
+  $('#clearBtn').onclick = async () => { if (cart.items.length && await confirmBox('לבטל את העסקה הנוכחית?', 'בטל עסקה')) resetCart(); };
   $('#refundToggle').onclick = toggleRefund;
   $('#payBtn').onclick = openPayment;
 
@@ -1069,13 +1084,13 @@ function init() {
   $('#addProductBtn').onclick = () => editProduct(null);
   $('#exportProductsBtn').onclick = exportProducts;
   $('#importProducts').onchange = e => { if (e.target.files[0]) importProducts(e.target.files[0]); e.target.value = ''; };
-  $('#productsTable').onclick = e => {
+  $('#productsTable').onclick = async e => {
     const d = e.target.dataset;
     if (d.edit) editProduct(d.edit);
     else if (d.stock) receiveStock(d.stock);
     else if (d.del) {
       const p = db.products.find(x => x.id === d.del);
-      if (confirm(`למחוק את "${p.name}"?`)) { db.products = db.products.filter(x => x !== p); save(); renderProducts(); renderCategories(); renderGrid(); }
+      if (await confirmBox(`למחוק את "${p.name}"?`, 'מחק')) { db.products = db.products.filter(x => x !== p); save(); renderProducts(); renderCategories(); renderGrid(); }
     }
   };
 
@@ -1097,7 +1112,7 @@ function init() {
 
   // promotions
   $('#addPromoBtn').onclick = () => editPromotion(null);
-  $('#promosTable').onclick = e => {
+  $('#promosTable').onclick = async e => {
     const d = e.target.dataset;
     if (d.edit) editPromotion(d.edit);
     else if (d.toggle) { const p = db.promotions.find(x => x.id === d.toggle); p.active = !p.active; save(); renderPromotions(); renderCart(); }
@@ -1107,7 +1122,7 @@ function init() {
       save(); renderPromotions(); renderCart();
     } else if (d.del) {
       const p = db.promotions.find(x => x.id === d.del);
-      if (confirm(`למחוק את המבצע "${p.name}"?`)) { db.promotions = db.promotions.filter(x => x !== p); save(); renderPromotions(); renderCart(); }
+      if (await confirmBox(`למחוק את המבצע "${p.name}"?`, 'מחק')) { db.promotions = db.promotions.filter(x => x !== p); save(); renderPromotions(); renderCart(); }
     }
   };
   $('#customerDisplayBtn').onclick = openCustomerDisplay;
@@ -1115,7 +1130,8 @@ function init() {
   $('#mobileCartBar').onclick = () => openCartSheet(true);
   $('#cartClose').onclick = () => openCartSheet(false);
   focusScan();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (EMBED) document.body.classList.add('embed');
+  if (!EMBED && 'serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   // settings
   $('#settingsForm').onsubmit = saveSettings;
@@ -1130,11 +1146,11 @@ function init() {
   $('#restoreFile').onchange = e => {
     const f = e.target.files[0]; if (!f) return;
     const fr = new FileReader();
-    fr.onload = () => {
+    fr.onload = async () => {
       try {
         const d = JSON.parse(fr.result);
         if (!d.products || !d.sales) throw new Error('קובץ לא תקין');
-        if (!confirm('השחזור יחליף את כל הנתונים הנוכחיים. להמשיך?')) return;
+        if (!(await confirmBox('השחזור יחליף את כל הנתונים הנוכחיים. להמשיך?', 'שחזר'))) return;
         localStorage.setItem(LS_KEY, JSON.stringify(d)); db = load();
         applyHeader(); fillSettings(); resetCart(); renderCategories(); toast('הנתונים שוחזרו');
       } catch (err) { toast('שגיאה: ' + err.message, true); }
@@ -1142,7 +1158,7 @@ function init() {
     fr.readAsText(f); e.target.value = '';
   };
   $('#resetBtn').onclick = async () => {
-    if (!confirm('למחוק את כל הנתונים (מוצרים, מכירות, הגדרות)? פעולה זו אינה הפיכה.')) return;
+    if (!(await confirmBox('למחוק את כל הנתונים (מוצרים, מכירות, הגדרות)? פעולה זו אינה הפיכה.', 'מחק הכל'))) return;
     if (!(await requireManager('איפוס נתונים'))) return;
     localStorage.removeItem(LS_KEY); db = load();
     applyHeader(); fillSettings(); resetCart(); renderCategories(); toast('הנתונים אופסו');
