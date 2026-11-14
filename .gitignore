@@ -11,3 +11,4 @@ desktop/src-tauri/gen/
 bin/
 .DS_Store
 dist-desktop/
+*.tsbuildinfo
