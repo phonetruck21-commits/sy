@@ -120,10 +120,11 @@ function openModal(html) {
   if (f) setTimeout(() => f.focus(), 30);
 }
 function closeModal() {
+  if (camStream) stopCamera();
   $('#modal').classList.add('hidden');
   $('#modalBody').innerHTML = '';
   if (modalResolve) { modalResolve(null); modalResolve = null; }
-  if ($('#view-pos').classList.contains('active')) { $('#scan').focus(); publishDisplay(cart.items.length ? 'cart' : 'idle'); }
+  if ($('#view-pos').classList.contains('active')) { focusScan(); publishDisplay(cart.items.length ? 'cart' : 'idle'); }
 }
 let modalResolve = null;
 
@@ -283,6 +284,76 @@ function renderCart() {
   $('#payBtn').textContent = cart.refund ? 'בצע החזרה' : 'תשלום';
   $('#heldCount').textContent = db.held.length;
   publishDisplay(cart.items.length ? 'cart' : 'idle');
+  // phone: sticky bottom bar with the cart summary
+  const count = r2(cart.items.reduce((a, i) => a + i.qty, 0));
+  if ($('#mbCount').textContent !== String(count)) {
+    const bar = $('#mobileCartBar');
+    bar.classList.remove('bump'); void bar.offsetWidth; bar.classList.add('bump');
+  }
+  $('#mbCount').textContent = count;
+  $('#mbTotal').textContent = money(t.total);
+  if (!cart.items.length) document.body.classList.remove('cart-open');
+}
+
+/* ---------------- phone support ---------------- */
+const isTouch = window.matchMedia('(pointer: coarse)').matches;
+const isPhone = () => window.matchMedia('(max-width: 700px)').matches;
+/** desktop: keep the barcode field focused for USB scanners; phone: don't pop the keyboard */
+function focusScan() { if (!isTouch) $('#scan').focus(); }
+function openCartSheet(open) { document.body.classList.toggle('cart-open', open); }
+
+let camStream = null, camLoop = null;
+async function openCameraScanner() {
+  if (!navigator.mediaDevices?.getUserMedia) return toast('המצלמה זמינה רק בכתובת מאובטחת (https)', true);
+  openModal(`<h3>סריקה במצלמה</h3>
+    <div class="cam-box"><video id="camVideo" playsinline muted></video><div class="aim"></div></div>
+    <div id="camLast" class="cam-last">כוון את הברקוד למסגרת</div>
+    <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button class="btn primary" id="camDone">סיום</button></div>`);
+  $('#camDone').onclick = closeModal;
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch (e) { closeModal(); return toast('אין גישה למצלמה – אשר הרשאת מצלמה בדפדפן', true); }
+  const video = $('#camVideo');
+  if (!video) { stopCamera(); return; }
+  video.srcObject = camStream; await video.play().catch(() => {});
+
+  let last = '', lastAt = 0;
+  const onCode = code => {
+    const now = Date.now();
+    if (code === last && now - lastAt < 2000) return; // same code held in front of the camera
+    last = code; lastAt = now;
+    const p = findByCode(code);
+    if (p) { addToCart(p); $('#camLast').textContent = `✔ נוסף: ${p.name}`; navigator.vibrate?.(60); }
+    else { beep(false); $('#camLast').textContent = `✖ ברקוד לא מוכר: ${code}`; }
+  };
+
+  if ('BarcodeDetector' in window) {
+    const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'] });
+    const step = async () => {
+      if (!camStream) return;
+      try { const r = await det.detect(video); if (r[0]) onCode(r[0].rawValue); } catch { /* frame not ready */ }
+      camLoop = setTimeout(step, 250);
+    };
+    step();
+  } else {
+    // Safari / iPhone: ZXing decoder loaded on demand
+    try {
+      if (!window.ZXing) await new Promise((ok, fail) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+        sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc);
+      });
+      const reader = new ZXing.BrowserMultiFormatReader();
+      camLoop = { reader };
+      reader.decodeFromStream(camStream, video, res => { if (res) onCode(res.getText()); });
+    } catch { $('#camLast').textContent = 'סורק הברקודים לא נטען – בדוק חיבור לאינטרנט'; }
+  }
+}
+function stopCamera() {
+  if (camLoop?.reader) camLoop.reader.reset(); else clearTimeout(camLoop);
+  camLoop = null;
+  camStream?.getTracks().forEach(t => t.stop());
+  camStream = null;
 }
 
 /* ---------------- customer display ---------------- */
@@ -952,7 +1023,7 @@ function switchView(v) {
   if (v === 'sales') renderSales();
   if (v === 'settings') fillSettings();
   if (v === 'reports' && !$('#reportOut').innerHTML) xReport();
-  if (v === 'pos') { renderGrid(); renderCategories(); setTimeout(() => $('#scan').focus(), 0); }
+  if (v === 'pos') { renderGrid(); renderCategories(); setTimeout(focusScan, 0); }
 }
 
 /* ---------------- wiring ---------------- */
@@ -1040,6 +1111,11 @@ function init() {
     }
   };
   $('#customerDisplayBtn').onclick = openCustomerDisplay;
+  $('#camBtn').onclick = openCameraScanner;
+  $('#mobileCartBar').onclick = () => openCartSheet(true);
+  $('#cartClose').onclick = () => openCartSheet(false);
+  focusScan();
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   // settings
   $('#settingsForm').onsubmit = saveSettings;

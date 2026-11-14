@@ -2,8 +2,16 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>קופה רושמת</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1b2a41">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="קופה">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,7 +36,8 @@
 <main id="view-pos" class="view active">
   <section class="catalog">
     <div class="searchbar">
-      <input id="scan" type="text" placeholder="סרוק ברקוד / חפש מוצר לפי שם או מק״ט..." autocomplete="off" autofocus>
+      <input id="scan" type="text" placeholder="סרוק ברקוד / חפש מוצר לפי שם או מק״ט..." autocomplete="off" enterkeyhint="go">
+      <button id="camBtn" class="btn secondary" title="סריקת ברקוד במצלמה">📷</button>
       <button id="manualItemBtn" class="btn secondary" title="פריט כללי במחיר חופשי">+ פריט כללי</button>
     </div>
     <div id="categories" class="categories"></div>
@@ -37,6 +46,7 @@
 
   <aside class="cart">
     <div class="cart-head">
+      <button id="cartClose" class="btn small secondary mobile-only" title="חזרה למוצרים">→ מוצרים</button>
       <h2>עסקה נוכחית</h2>
       <div class="cart-actions">
         <button id="holdBtn" class="btn small secondary" title="השהה עסקה">⏸ השהה</button>
@@ -63,6 +73,12 @@
       <button id="payBtn" class="btn primary big">תשלום</button>
     </div>
   </aside>
+
+  <button id="mobileCartBar" class="mobile-bar mobile-only">
+    <span>🛒 <span id="mbCount">0</span> פריטים</span>
+    <b id="mbTotal">₪0.00</b>
+    <span class="mb-go">לעגלה ולתשלום ←</span>
+  </button>
 </main>
 
 <!-- ===== PRODUCTS ===== -->
@@ -73,10 +89,12 @@
     <button id="exportProductsBtn" class="btn secondary">ייצוא CSV</button>
     <label class="btn secondary">ייבוא CSV<input id="importProducts" type="file" accept=".csv" hidden></label>
   </div>
+  <div class="table-wrap">
   <table class="table">
     <thead><tr><th>מק״ט</th><th>ברקוד</th><th>שם</th><th>קטגוריה</th><th>מחיר</th><th>עלות</th><th>מלאי</th><th></th></tr></thead>
     <tbody id="productsTable"></tbody>
   </table>
+  </div>
 </main>
 
 <!-- ===== PROMOTIONS ===== -->
@@ -85,10 +103,12 @@
     <button id="addPromoBtn" class="btn primary">+ מבצע חדש</button>
     <span class="muted">המבצעים מחושבים אוטומטית בקופה ומוצגים במסך הלקוח. מבצע גבוה ברשימה מקבל עדיפות.</span>
   </div>
+  <div class="table-wrap">
   <table class="table">
     <thead><tr><th></th><th>מבצע</th><th>תנאי</th><th>תוקף</th><th>מצב</th><th></th></tr></thead>
     <tbody id="promosTable"></tbody>
   </table>
+  </div>
 </main>
 
 <!-- ===== SALES ===== -->
@@ -98,10 +118,12 @@
     <input id="salesFilter" placeholder="חיפוש לפי מס׳ קבלה / לקוח...">
     <button id="exportSalesBtn" class="btn secondary">ייצוא CSV</button>
   </div>
+  <div class="table-wrap">
   <table class="table">
     <thead><tr><th>מס׳ קבלה</th><th>תאריך ושעה</th><th>קופאי</th><th>לקוח</th><th>פריטים</th><th>אמצעי תשלום</th><th>סכום</th><th></th></tr></thead>
     <tbody id="salesTable"></tbody>
   </table>
+  </div>
 </main>
 
 <!-- ===== REPORTS ===== -->

@@ -22,6 +22,7 @@ body {
   display: flex; flex-direction: column;
 }
 button, input, select { font: inherit; }
+button, .product, .cat { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 .topbar {
   display: flex; align-items: center; gap: 16px;
@@ -209,3 +210,75 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
 .logo-field { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .receipt .logo-img { margin: 0 auto; max-height: 48px; filter: grayscale(1); }
 .receipt .logo-svg { margin: 0 auto; }
+
+/* ---------- mobile / phone ---------- */
+.mobile-only { display: none !important; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
+
+@media (max-width: 700px) {
+  .mobile-only { display: inherit !important; }
+  body { min-height: 100dvh; }
+  .topbar { padding: 6px 10px; padding-top: max(6px, env(safe-area-inset-top)); gap: 6px; }
+  .brand { font-size: 1rem; }
+  .brand .slogan, .status, .display-btn { display: none !important; }
+  .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; order: 3; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { white-space: nowrap; padding: 8px 12px; }
+
+  .view { padding: 8px; }
+  #view-pos.active { display: block; overflow: auto; }
+  .searchbar input { font-size: 16px; padding: 10px; min-width: 0; }
+  .searchbar .btn { padding: 8px 10px; }
+  #manualItemBtn { font-size: .85rem; }
+  .categories { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .categories::-webkit-scrollbar { display: none; }
+  .cat { white-space: nowrap; }
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; overflow: visible; padding-bottom: 90px; }
+  .product { min-height: 84px; padding: 10px; }
+
+  /* cart becomes a full-screen sheet */
+  .cart {
+    position: fixed; inset: 0; z-index: 30; border-radius: 0; border: 0; min-height: 0;
+    padding: 10px; padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: max(10px, env(safe-area-inset-bottom));
+    transform: translateY(100%); transition: transform .25s ease; visibility: hidden;
+  }
+  body.cart-open .cart { transform: none; visibility: visible; }
+  .cart-head { flex-wrap: wrap; gap: 6px; }
+  .cart-head h2 { flex: 1; }
+  .cart-actions { width: 100%; }
+  .line .qty button { width: 36px; height: 36px; }
+  .totals .grand { font-size: 1.3rem; }
+  .totals .row:not(.grand):not(.promo-row) { font-size: .85rem; }
+
+  .mobile-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; border: 0; cursor: pointer;
+    background: var(--primary); color: #fff; font: inherit; font-size: 1rem;
+    display: flex !important; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 14px 16px; padding-bottom: max(14px, env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 14px rgba(0,0,0,.18);
+  }
+  .mobile-bar b { font-size: 1.2rem; }
+  .mobile-bar .mb-go { font-size: .85rem; opacity: .9; }
+  .mobile-bar.bump { animation: bump .3s ease; }
+  @keyframes bump { 50% { transform: scale(1.03); } }
+
+  .toolbar input, .toolbar select { font-size: 16px; }
+  .toolbar label { display: flex; flex-direction: column; font-size: .8rem; }
+  .table th, .table td { padding: 6px; font-size: .85rem; white-space: nowrap; }
+
+  .modal { align-items: flex-end; }
+  .modal-box { min-width: 0; width: 100%; max-width: 100%; max-height: 92dvh; border-radius: 16px 16px 0 0; padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  .form, .promo-form { min-width: 0; width: 100%; }
+  .form input, .form select { font-size: 16px; }
+  .pay-methods { grid-template-columns: repeat(2, 1fr); }
+  .settings fieldset { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .kpi .v { font-size: 1.1rem; }
+  .toast { bottom: 80px; max-width: 90vw; text-align: center; }
+}
+
+/* camera scanner */
+.cam-box { position: relative; width: min(480px, 100%); margin: 0 auto; }
+.cam-box video { width: 100%; border-radius: 12px; background: #000; display: block; aspect-ratio: 3 / 4; object-fit: cover; }
+.cam-box .aim { position: absolute; left: 10%; right: 10%; top: 40%; height: 20%; border: 3px solid var(--primary); border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,.25); pointer-events: none; }
+.cam-last { text-align: center; margin-top: 8px; min-height: 1.4em; font-weight: 600; }
