@@ -1,0 +1,13 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  // Desktop (Tauri) bundle loads from local files -> relative base; web server -> absolute base
+  base: process.env.SY_DESKTOP_BUILD || process.env.TAURI_ENV_PLATFORM ? './' : '/',
+  server: {
+    port: 5173,
+    proxy: { '/api': 'http://127.0.0.1:8080' },
+  },
+  build: { outDir: 'dist', sourcemap: false, chunkSizeWarningLimit: 800 },
+});
