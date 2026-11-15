@@ -27,6 +27,11 @@ const DEFAULT_SETTINGS = {
   maxDiscount: 15,
   thanksSeconds: 8,
   slideSeconds: 7,
+  theme: 'dark',
+  autoLockMin: 10,
+  nextRepair: 1001,
+  repairWarranty: 3,
+  repairTerms: 'המעבדה אינה אחראית למידע שבמכשיר – מומלץ לגבות לפני המסירה. מכשיר שלא נאסף תוך 90 יום מהודעת המוכנות יימסר לפי דין.',
 };
 
 // sku, barcode, name, category, price, cost, stock, extra: serial = requires IMEI / serial number,
@@ -70,6 +75,9 @@ const EMBED = !!window.POS_EMBED;
 const freshInstall = (() => { try { return !localStorage.getItem(LS_KEY); } catch { return true; } })();
 let db = load();
 let cart = newCart();
+let currentUser = null; // the employee signed in at this register (see pro.js)
+const cashierName = () => currentUser?.name || db.settings.cashier || 'קופה';
+const svgIcon = id => `<svg class="ic"><use href="#${id}"/></svg>`;
 let activeCategory = 'הכל';
 
 function newCart() {
@@ -79,6 +87,12 @@ function newCart() {
 function normalize(d) {
   d.settings = { ...DEFAULT_SETTINGS, ...d.settings };
   d.products ||= []; d.sales ||= []; d.held ||= []; d.zReports ||= [];
+  d.customers ||= []; d.repairs ||= [];
+  if (!d.users || !d.users.length) {
+    // first run: one manager; an old single manager code becomes this manager's PIN
+    const legacy = /^\d{4}$/.test(String(d.settings.managerPin || '')) ? String(d.settings.managerPin) : '1234';
+    d.users = [{ id: uid(), name: 'מנהל', pin: legacy, role: 'manager' }];
+  }
   d.promotions ||= samplePromotions(d.products);
   return d;
 }
@@ -89,11 +103,11 @@ function load() {
     if (raw) return normalize(JSON.parse(raw));
   } catch (e) { console.error(e); }
   const products = sampleProducts();
-  return {
+  return normalize({
     settings: { ...DEFAULT_SETTINGS },
     products, promotions: samplePromotions(products),
     sales: [], held: [], zReports: [],
-  };
+  });
 }
 
 function samplePromotions(products) {
@@ -329,7 +343,10 @@ function refreshViews() {
   if (v === 'view-products') renderProducts();
   if (v === 'view-promos') renderPromotions();
   if (v === 'view-sales') renderSales();
-  if (v === 'view-settings') fillSettings();
+  if (v === 'view-settings') { fillSettings(); renderUsers(); }
+  if (v === 'view-repairs') renderRepairs();
+  if (v === 'view-customers') renderCustomers();
+  updateRepairBadge();
 }
 
 /* ---------------- utils ---------------- */
@@ -408,12 +425,13 @@ function confirmBox(msg, okText = 'אישור', danger = true) {
   });
 }
 
+/** a manager is signed in, or a manager approves with their PIN */
 async function requireManager(reason) {
-  const pin = db.settings.managerPin;
-  if (!pin) return true;
-  const r = await ask('נדרש אישור מנהל – ' + reason, [{ name: 'pin', label: 'קוד מנהל', type: 'password' }]);
+  if (!currentUser || currentUser.role === 'manager') return true;
+  const r = await ask('נדרש אישור מנהל: ' + reason, [{ name: 'pin', label: 'קוד מנהל', type: 'password' }], 'אשר');
   if (!r) return false;
-  if (r.pin === pin) return true;
+  const mgr = db.users.find(u => u.role === 'manager' && u.pin === r.pin);
+  if (mgr) return true;
   beep(false); toast('קוד מנהל שגוי', true); return false;
 }
 
@@ -447,9 +465,39 @@ function categories() {
   return ['הכל', ...new Set(db.products.map(p => p.category).filter(Boolean))];
 }
 
+/* icons by category / product name */
+function catIcon(n = '') {
+  if (n === 'הכל') return 'i-list';
+  if (/סמארטפו|טלפו|סלולר/.test(n)) return 'i-phone';
+  if (/טאבלט|שעון/.test(n)) return 'i-tablet';
+  if (/רכיב|כרטיס מסך|SSD|זיכרון|מעבד/.test(n)) return 'i-chip';
+  if (/מחשב|לפטופ/.test(n)) return 'i-laptop';
+  if (/קונסול/.test(n)) return 'i-console';
+  if (/גיימינג|משחק/.test(n)) return 'i-gamepad';
+  if (/אודיו|אוזני|רמקול/.test(n)) return 'i-headphones';
+  if (/טעינ|סוללה|מטען|כיסוי/.test(n)) return 'i-battery';
+  if (/מתנה|גיפט/.test(n)) return 'i-gift';
+  return 'i-box';
+}
+function prodIcon(p) {
+  const n = p.name || '';
+  if (/Quest|VR|משקף/i.test(n)) return 'i-vr';
+  if (/כרטיס מסך|SSD|RAM|זיכרון|מעבד/.test(n)) return 'i-chip';
+  if (/מסך גיימינג|מוניטור|מסך \d/.test(n)) return 'i-monitor';
+  if (/PlayStation|Xbox|Switch|קונסול/i.test(n)) return 'i-console';
+  if (/בקר|מקלדת|עכבר/.test(n)) return 'i-gamepad';
+  if (/אוזניות|Buds/i.test(n)) return 'i-headphones';
+  if (/רמקול/.test(n)) return 'i-speaker';
+  if (/מתנה/.test(n)) return 'i-gift';
+  if (/מחשב/.test(n)) return 'i-laptop';
+  if (/Watch|שעון|Tab|טאבלט/i.test(n)) return 'i-tablet';
+  if (/מטען|סוללה/.test(n)) return 'i-battery';
+  return catIcon(p.category);
+}
+
 function renderCategories() {
   $('#categories').innerHTML = categories().map(c =>
-    `<button class="cat ${c === activeCategory ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+    `<button class="cat ${c === activeCategory ? 'active' : ''}" data-cat="${esc(c)}">${svgIcon(catIcon(c))}${esc(c)}</button>`).join('');
 }
 
 function renderGrid() {
@@ -459,10 +507,11 @@ function renderGrid() {
     (activeCategory === 'הכל' || p.category === activeCategory) &&
     (!q || p.name.toLowerCase().includes(q) || String(p.sku).includes(q) || String(p.barcode).includes(q)));
   $('#productGrid').innerHTML = list.length ? list.map(p => `
-    <div class="product ${p.stock <= low ? 'low' : ''}" data-id="${p.id}">
+    <div class="product ${p.stock <= 0 ? 'out' : p.stock <= low ? 'low' : ''}" data-id="${p.id}" title="${esc(p.name)}">
       <div class="name">${esc(p.name)}</div>
-      <div class="meta">מק״ט ${esc(p.sku)} · מלאי ${p.stock}</div>
-      <div class="price">${money(p.price)}</div>
+      <span class="p-ico">${svgIcon(prodIcon(p))}</span>
+      <div class="meta">${esc(p.sku)}</div>
+      <div class="foot"><span class="price">${money(p.price)}</span><span class="stock-chip">${p.stock <= 0 ? 'אזל' : 'מלאי ' + p.stock}</span></div>
     </div>`).join('') : '<div class="empty">לא נמצאו מוצרים</div>';
 }
 
@@ -755,7 +804,7 @@ function showHeld() {
     if (res !== undefined) {
       if (cart.items.length) return toast('יש להשלים או להשהות את העסקה הנוכחית קודם', true);
       const h = db.held.splice(Number(res), 1)[0];
-      cart = { items: h.items, discount: h.discount, refund: h.refund, vrOrderId: h.vrOrderId };
+      cart = { items: h.items, discount: h.discount, refund: h.refund, vrOrderId: h.vrOrderId, customerId: h.customerId };
       $('#customerName').value = h.customer?.name || ''; $('#customerPhone').value = h.customer?.phone || '';
       save(); closeModal(); renderCart();
     } else if (drop !== undefined) {
@@ -765,12 +814,13 @@ function showHeld() {
 }
 
 function getCustomer() {
-  return { name: $('#customerName').value.trim(), phone: $('#customerPhone').value.trim() };
+  return { name: $('#customerName').value.trim(), phone: $('#customerPhone').value.trim(), id: cart.customerId || '' };
 }
 
 function resetCart() {
   cart = newCart();
   $('#customerName').value = ''; $('#customerPhone').value = '';
+  if (window.showCustomerInfo) showCustomerInfo(null);
   renderCart(); renderGrid();
 }
 
@@ -859,7 +909,7 @@ function completeSale(payments, change) {
     id: uid(),
     number: s.nextReceipt++,
     ts: Date.now(),
-    cashier: s.cashier,
+    cashier: cashierName(),
     customer: getCustomer(),
     type: cart.refund ? 'refund' : 'sale',
     items: cart.items.map(it => ({ ...it, total: r2(lineTotal(it) * (cart.refund ? -1 : 1)) })),
@@ -878,6 +928,7 @@ function completeSale(payments, change) {
     const p = db.products.find(x => x.id === it.productId);
     if (p) p.stock = r2(p.stock + (cart.refund ? it.qty : -it.qty));
   }
+  if (window.afterSale) afterSale(sale);
   db.sales.push(sale);
   save();
   resetCart();
@@ -934,8 +985,10 @@ function printReceipt(sale, copy = false) { printHTML(receiptHTML(sale, copy)); 
 
 /* ---------------- products view ---------------- */
 function renderProducts() {
-  const q = $('#prodFilter').value.trim().toLowerCase();
   const low = Number(db.settings.lowStock);
+  const value = db.products.reduce((a, p) => a + Math.max(0, p.stock) * (p.cost || 0), 0);
+  $('#stockSummary').textContent = `${db.products.length} מוצרים · ${db.products.filter(p => p.stock <= low).length} במלאי נמוך · שווי מלאי לפי עלות ${money(r2(value))}`;
+  const q = $('#prodFilter').value.trim().toLowerCase();
   $('#productsTable').innerHTML = db.products
     .filter(p => !q || [p.name, p.sku, p.barcode, p.category].join(' ').toLowerCase().includes(q))
     .map(p => `<tr class="${p.stock <= low ? 'low' : ''}">
@@ -1207,7 +1260,8 @@ function applyHeader() {
   $('#sloganLbl').textContent = s.slogan || '';
   $('#brandLogo').innerHTML = logoHTML(s, 38);
   $('#logoPreview').innerHTML = logoHTML(s, 64);
-  $('#cashierLbl').textContent = '👤 ' + s.cashier;
+  $('#cashierLbl').textContent = cashierName() + (currentUser ? (currentUser.role === 'manager' ? ' · מנהל' : ' · קופאי') : '');
+  document.documentElement.dataset.theme = s.theme === 'light' ? 'light' : 'dark';
   document.title = s.storeName + ' – קופה';
 }
 
@@ -1336,13 +1390,17 @@ function editPromotion(id) {
 
 /* ---------------- navigation ---------------- */
 function switchView(v) {
+  const tab = document.querySelector(`.tab[data-view="${v}"]`);
+  if (tab?.classList.contains('mgr') && currentUser && currentUser.role !== 'manager') return toast('המסך הזה פתוח למנהלים בלבד', true);
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
   document.querySelectorAll('.view').forEach(x => x.classList.toggle('active', x.id === 'view-' + v));
   if (v === 'products') renderProducts();
   if (v === 'promos') renderPromotions();
   if (v === 'vr') { VR.render(); VR.poll(); }
   if (v === 'sales') renderSales();
-  if (v === 'settings') fillSettings();
+  if (v === 'settings') { fillSettings(); renderUsers(); }
+  if (v === 'repairs') renderRepairs();
+  if (v === 'customers') renderCustomers();
   if (v === 'reports' && !$('#reportOut').innerHTML) xReport();
   if (v === 'pos') { renderGrid(); renderCategories(); setTimeout(focusScan, 0); }
 }
@@ -1495,4 +1553,4 @@ function init() {
   });
 }
 
-init();
+document.addEventListener('DOMContentLoaded', init);

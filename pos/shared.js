@@ -48,7 +48,7 @@ function applyBrand(s) {
   const root = document.documentElement.style;
   root.setProperty('--primary', s.brandColor);
   root.setProperty('--primary-d', shade(s.brandColor, -18));
-  root.setProperty('--primary-l', shade(s.brandColor, 85));
+  root.setProperty('--primary-l', /^#[0-9a-f]{6}$/i.test(s.brandColor) ? s.brandColor + '26' : shade(s.brandColor, 85)); // translucent tint, works on dark and light
   root.setProperty('--brand-dark', s.brandDark);
   root.setProperty('--brand-dark-l', shade(s.brandDark, 18));
 }

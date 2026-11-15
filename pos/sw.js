@@ -1,7 +1,7 @@
 /* Service worker: lets the register open and work without internet.
    Pages load from the network when online (so updates arrive) and from the cache when offline. */
-const CACHE = 'pos-v1';
-const SHELL = ['./', 'index.html', 'style.css', 'shared.js', 'app.js', 'customer.html', 'customer.css', 'customer.js',
+const CACHE = 'pos-v2';
+const SHELL = ['./', 'index.html', 'style.css', 'shared.js', 'app.js', 'pro.js', 'customer.html', 'customer.css', 'customer.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

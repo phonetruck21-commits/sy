@@ -90,6 +90,12 @@ function createPosLink({ dataDir, products }) {
     const sales = new Map((server.sales || []).map((s) => [s.id, s]));
     for (const s of incoming.sales || []) sales.set(s.id, { ...(sales.get(s.id) || {}), ...s });
     out.sales = [...sales.values()].sort((a, b) => a.ts - b.ts);
+    // records that two registers may create at the same time: keep both copies' entries
+    for (const key of ['customers', 'repairs']) {
+      const m = new Map((server[key] || []).map((x) => [x.id, x]));
+      for (const x of incoming[key] || []) m.set(x.id, x);
+      out[key] = [...m.values()];
+    }
     const zs = new Map((server.zReports || []).map((z) => [z.number, z]));
     for (const z of incoming.zReports || []) zs.set(z.number, z);
     out.zReports = [...zs.values()].sort((a, b) => a.number - b.number);
@@ -98,6 +104,8 @@ function createPosLink({ dataDir, products }) {
       ...(incoming.settings || {}),
       nextReceipt: Math.max(Number(server.settings?.nextReceipt) || 1, Number(incoming.settings?.nextReceipt) || 1, maxNo + 1),
       nextZ: Math.max(Number(server.settings?.nextZ) || 1, Number(incoming.settings?.nextZ) || 1),
+      nextRepair: Math.max(Number(server.settings?.nextRepair) || 1001, Number(incoming.settings?.nextRepair) || 1001,
+        (out.repairs || []).reduce((m, r) => Math.max(m, Number(r.number) || 0), 0) + 1),
     };
     return out;
   }
