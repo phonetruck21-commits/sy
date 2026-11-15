@@ -579,9 +579,23 @@
       this.lifted = state;
       $('a-scene').object3D.attach(obj);
       const maxDim = Math.max(entry.size.x, entry.size.y, entry.size.z);
-      const k = THREE.MathUtils.clamp(0.3 / maxDim, 1, 2.2);
-      const to = keepInside(f.pos.clone().addScaledVector(f.fwd, 0.62).addScaledVector(f.right, -0.24), f);
-      to.y = f.pos.y - 0.18 - (entry.size.y * k) / 2;
+      let k, to;
+      if (inVR()) {
+        k = THREE.MathUtils.clamp(0.3 / maxDim, 1, 2.2);
+        to = keepInside(f.pos.clone().addScaledVector(f.fwd, 0.62).addScaledVector(f.right, -0.24), f);
+        to.y = f.pos.y - 0.18 - (entry.size.y * k) / 2;
+      } else {
+        // במסך: המוצר במרכז האזור הפנוי שליד חלון המוצר
+        k = THREE.MathUtils.clamp(0.2 / maxDim, 1, 3);
+        const cam = $('a-scene').camera;
+        const W = window.innerWidth, H = window.innerHeight;
+        const mobile = W < 700;
+        const ndc = mobile ? new THREE.Vector3(0, 0.45, 0.5) : new THREE.Vector3(-Math.min(420, W * 0.4) / W, 0.02, 0.5);
+        ndc.unproject(cam);
+        const dir = ndc.sub(f.pos).normalize();
+        to = f.pos.clone().addScaledVector(dir, mobile ? 0.62 : 0.5);
+        to.y -= (entry.size.y * k) / 2;
+      }
       const from = obj.position.clone();
       const fromS = obj.scale.clone();
       const toS = state.scale.clone().multiplyScalar(k);
@@ -709,7 +723,10 @@
     if (el) el.textContent = loaded < total ? `טוען את המוצרים… ${loaded} מתוך ${total}` : 'החנות מוכנה';
     const bar = $('#intro-bar');
     if (bar) bar.style.transform = `scaleX(${loaded / total})`;
-    if (loaded >= total) document.body.classList.add('store-ready');
+    if (loaded >= total) {
+      document.body.classList.add('store-ready');
+      setTimeout(() => Thumbs.makeAll(), 50);
+    }
   }
 
   /* ------------------------------------------------------------------ *
@@ -771,6 +788,13 @@
     const entry = Products[id];
     const p = entry.product;
     const small = p.display !== 'floor';
+    if (!inVR()) {
+      Hover.hide();
+      if (!keepPlace && Sheet.id !== id) Inspect.start(entry);
+      Sheet.open(id);
+      document.body.classList.add('hint-done');
+      return;
+    }
     if (!keepPlace) pick.qty = 1;
     Hover.hide();
     if (!keepPlace && small) Inspect.start(entry);
@@ -841,6 +865,7 @@
    *  סל הקניות                                                          *
    * ------------------------------------------------------------------ */
   function openCart(keepPlace) {
+    if (!inVR()) { CartDrawer.open(); return; }
     Inspect.end();
     Inspect.current = null;
     Hover.hide();
@@ -944,7 +969,7 @@
       const rig = this.el.object3D;
       if (!this.last) this.last = new THREE.Vector2(this.cam.x, this.cam.z);
       const x = this.cam.x, z = this.cam.z;
-      if (!Tk.walkable(x, z)) {
+      if (!this.flying && !Tk.walkable(x, z)) {
         // ניסיון להחליק לאורך הקיר: ציר אחד בכל פעם
         if (Tk.walkable(x, this.last.y)) rig.position.z += this.last.y - z;
         else if (Tk.walkable(this.last.x, z)) rig.position.x += this.last.x - x;
@@ -988,21 +1013,27 @@
       const kind = slots[p.display] ? p.display : 'table';
       const slot = slots[kind][used[kind]++];
       if (!slot) { console.warn('אין מקום תצוגה פנוי עבור', p.id); return; }
+      // משטח מואר מתחת לכל מוצר בשולחן – מסמן "אפשר לגעת"
+      const lift = kind === 'table' ? 0.014 : 0;
+      if (kind === 'table') {
+        const pd = Tk.pad(p.device === 'tablet' ? 0.17 : 0.12);
+        pd.position.set(slot.x, slot.y, slot.z);
+        entity(root, {}, pd);
+      }
       if (slot.stand) {
         const st = Tk.phoneStand();
-        st.position.set(slot.x, slot.y, slot.z);
+        st.position.set(slot.x, slot.y + lift, slot.z);
         entity(root, {}, st);
       }
       const tilt = slot.stand ? -14 : slot.tilt || 0;
-      const el = entity(root, { position: `${slot.x} ${slot.y + (slot.stand ? 0.008 : 0)} ${slot.z}`, rotation: `${tilt} ${slot.ry} 0`, product: `id: ${p.id}` });
-      el.addEventListener('product-ready', (e) => {
-        const size = e.detail.size;
+      const el = entity(root, { position: `${slot.x} ${slot.y + lift + (slot.stand ? 0.008 : 0)} ${slot.z}`, rotation: `${tilt} ${slot.ry} 0`, product: `id: ${p.id}` });
+      el.addEventListener('product-ready', () => {
         if (kind === 'table') {
-          const holder = entity(root, { position: `${slot.x} ${slot.y + 0.03} ${slot.z + Math.max(0.16, size.z / 2 + 0.1)}`, rotation: `0 ${slot.ry} 0` });
-          priceCard(entity(holder, { rotation: '-62 0 0' }), p, { w: 0.2 });
+          const holder = entity(root, { position: `${slot.x} ${slot.y + 0.06} ${Tk.T.TABLE_Z + 0.36}`, rotation: `0 ${slot.ry} 0` });
+          priceCard(entity(holder, { rotation: '-38 0 0' }), p, { w: 0.24 });
         } else {
-          const holder = entity(root, { position: `${slot.x} ${slot.y - 0.075} ${Tk.T.Z0 + 0.405}`, rotation: `0 ${slot.ry} 0` });
-          priceCard(holder, p, { w: 0.2 });
+          const holder = entity(root, { position: `${slot.x} ${slot.y - 0.085} ${Tk.T.Z0 + 0.425}`, rotation: `0 ${slot.ry} 0` });
+          priceCard(holder, p, { w: 0.24 });
         }
       });
     });
@@ -1058,6 +1089,393 @@
   }
 
   /* ------------------------------------------------------------------ *
+   *  ניווט: מעבר חלק בין אזורים בלחיצה אחת                               *
+   * ------------------------------------------------------------------ */
+  const Nav = {
+    current: 'outside',
+    flight: null,
+    rig() { return $('#rig'); },
+    look() { return $('#camera').components['look-controls']; },
+    camWorld() { const v = new THREE.Vector3(); $('#camera').object3D.getWorldPosition(v); return v; },
+    view(id) { return window.StoreTruck.VIEWS.find((v) => v.id === id); },
+
+    /* מסלול: מבחוץ לפנים עוברים דרך המדרגות */
+    path(from, to) {
+      const Tk = window.StoreTruck;
+      const pts = [new THREE.Vector2(from.x, from.z)];
+      const fromIn = Tk.inInterior(from.x, from.z) || Tk.inSteps(from.x, from.z);
+      const toIn = Tk.inInterior(to.x, to.z);
+      if (fromIn !== toIn) {
+        const sx = THREE.MathUtils.clamp(fromIn ? from.x : to.x, -2.5, 2.5);
+        if (!fromIn) { pts.push(new THREE.Vector2(sx, 3.3)); pts.push(new THREE.Vector2(sx, 1.45)); }
+        else { pts.push(new THREE.Vector2(sx, 1.45)); pts.push(new THREE.Vector2(sx, 3.3)); }
+      } else if (toIn && (from.z < -0.3) !== (to.z < -0.3) && Math.abs(from.x - to.x) > 0.1) {
+        // לעבור מצד לצד של השולחן – מסביב לקצה שלו
+        const ex = window.StoreTruck.T.TABLE_X1 + 0.45;
+        pts.push(new THREE.Vector2(ex, from.z), new THREE.Vector2(ex, to.z));
+      }
+      pts.push(new THREE.Vector2(to.x, to.z));
+      return pts;
+    },
+
+    go(id, opts = {}) {
+      let v = typeof id === 'string' ? this.view(id) : id;
+      if (!v) return Promise.resolve();
+      // מסך צר (נייד לאורך): עומדים קצת יותר רחוק מהשולחן כדי לראות יותר מוצרים
+      if (window.innerWidth < 700 && v.z > 1 && v.z < 1.6) v = { ...v, z: 1.6, pitch: v.pitch - 0.04 };
+      Sheet.close(); CartDrawer.close(); Catalog.close();
+      if (Panel.kind) Panel.close();
+      if (typeof id === 'string') this.current = id;
+      this.markActive();
+      if (inVR()) { this.teleport(v); return Promise.resolve(); }
+      const rig = this.rig().object3D;
+      const cam = $('#camera').object3D;
+      const start = this.camWorld();
+      // מאפסים תזוזה מקומית של המצלמה (W A S D זז את המצלמה בתוך ה-rig)
+      rig.position.x = start.x; rig.position.z = start.z; cam.position.x = 0; cam.position.z = 0;
+      const pts = this.path(start, v);
+      const segs = [];
+      let total = 0;
+      for (let i = 1; i < pts.length; i++) { const d = pts[i].distanceTo(pts[i - 1]); segs.push(d); total += d; }
+      const lc = this.look();
+      const y0 = lc.yawObject.rotation.y, p0 = lc.pitchObject.rotation.x;
+      const dy = Math.atan2(Math.sin(v.yaw - y0), Math.cos(v.yaw - y0));
+      const dur = THREE.MathUtils.clamp(total / (opts.speed || 2.2), 0.5, 6) * 1000;
+      const walker = this.rig().components.walker;
+      walker.flying = true;
+      if (this.flight) this.flight.cancel = true;
+      const flight = { cancel: false };
+      this.flight = flight;
+      return new Promise((resolve) => {
+        tween(dur, (k) => {
+          if (flight.cancel) return;
+          let d = k * total, i = 0;
+          while (i < segs.length - 1 && d > segs[i]) { d -= segs[i]; i++; }
+          const a = pts[i], b = pts[i + 1], t = segs[i] ? Math.min(1, d / segs[i]) : 1;
+          rig.position.x = a.x + (b.x - a.x) * t;
+          rig.position.z = a.y + (b.y - a.y) * t;
+          // בהליכה ארוכה הכיוון והזווית משתנים בהדרגה, ומתייצבים לקראת הסוף
+          const kk = opts.walk ? Math.max(0, (k - 0.55) / 0.45) : k;
+          lc.yawObject.rotation.y = y0 + dy * kk;
+          lc.pitchObject.rotation.x = p0 + (v.pitch - p0) * kk;
+        }, () => {
+          walker.flying = false;
+          walker.last = null;
+          if (this.flight === flight) this.flight = null;
+          resolve();
+        }, (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2));
+      });
+    },
+
+    /* במשקף: קפיצה מיידית (בלי תנועה שגורמת לבחילה) */
+    teleport(v) {
+      const rig = this.rig().object3D;
+      const cam = this.camWorld();
+      rig.position.x += v.x - cam.x;
+      rig.position.z += v.z - cam.z;
+      this.rig().components.walker.last = null;
+      pulse($('#rightHand'), 0.4, 40);
+    },
+
+    /* לעמוד מול מוצר מסוים */
+    toProduct(id) {
+      const e = Products[id];
+      const wp = new THREE.Vector3();
+      e.el.object3D.getWorldPosition(wp);
+      const Tk = window.StoreTruck;
+      const onShelf = e.product.display === 'shelf';
+      const v = onShelf
+        ? { x: THREE.MathUtils.clamp(wp.x, -2.6, 1.3), z: -0.48, yaw: 0, pitch: -0.2 }
+        : { x: THREE.MathUtils.clamp(wp.x, Tk.T.TABLE_X0 + 0.3, Tk.T.TABLE_X1), z: 1.3, yaw: 0, pitch: -0.55 };
+      this.current = onShelf ? 'accessories' : (wp.x < -1.3 ? 'devices' : 'phones');
+      return this.go(v).then(() => { this.current = onShelf ? 'accessories' : (wp.x < -1.3 ? 'devices' : 'phones'); this.markActive(); });
+    },
+
+    markActive() {
+      document.querySelectorAll('#zones [data-view]').forEach((b) => b.setAttribute('aria-current', b.dataset.view === this.current ? 'true' : 'false'));
+    },
+  };
+
+  /* נקודות קפיצה על הרצפה (נראות רק במשקף) */
+  function buildTeleports(root) {
+    const Tk = window.StoreTruck;
+    const group = entity(root, { id: 'teleports', visible: 'false' });
+    Tk.VIEWS.forEach((v) => {
+      const y = Tk.floorAt(v.x, v.z) + 0.012;
+      const ring = new THREE.Group();
+      ring.add(mesh(new THREE.RingGeometry(0.22, 0.26, 48), new THREE.MeshBasicMaterial({ color: '#4c8dff', toneMapped: false, transparent: true, opacity: 0.9 }), [0, 0, 0], [-Math.PI / 2, 0, 0]));
+      ring.add(mesh(new THREE.CircleGeometry(0.22, 48), new THREE.MeshBasicMaterial({ color: '#4c8dff', transparent: true, opacity: 0.18, depthWrite: false }), [0, 0, 0], [-Math.PI / 2, 0, 0]));
+      const el = entity(group, { position: `${v.x} ${y} ${v.z}`, class: 'clickable teleport' }, ring);
+      el.addEventListener('click', () => Nav.go(v.id));
+      el.addEventListener('mouseenter', () => el.object3D.scale.setScalar(1.15));
+      el.addEventListener('mouseleave', () => el.object3D.scale.setScalar(1));
+      const label = entity(group, { position: `${v.x} ${y + 0.35} ${v.z}`, 'face-camera': '' });
+      label.setAttribute('canvas-text', { text: v.label, width: 0.5, height: 0.09, fontSize: 0.045, weight: 500, align: 'center', bg: 'rgba(29,28,26,0.85)', color: UI.darkText, radius: 0.045 });
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  תמונות מוצר (נוצרות מהדגם עצמו) – לקטלוג, לחלון המוצר ולסל          *
+   * ------------------------------------------------------------------ */
+  const Thumbs = {
+    renderer: null,
+    make(entry) {
+      try {
+        if (!this.renderer) {
+          const c = document.createElement('canvas'); c.width = c.height = 360;
+          this.renderer = new THREE.WebGLRenderer({ canvas: c, alpha: true, antialias: true, preserveDrawingBuffer: true });
+          this.renderer.setSize(360, 360, false);
+          this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+          this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+          this.scene = new THREE.Scene();
+          this.scene.environment = window.StoreEnv.studioEnvironment(this.renderer);
+          this.scene.add(new THREE.HemisphereLight('#ffffff', '#8a8580', 1.2));
+          const d = new THREE.DirectionalLight('#ffffff', 2.2); d.position.set(2, 3, 4); this.scene.add(d);
+          this.cam = new THREE.PerspectiveCamera(28, 1, 0.01, 50);
+        }
+        const src = entry.el.getObject3D('mesh');
+        if (!src) return null;
+        const obj = src.clone(true);
+        obj.rotation.set(-0.12, -0.42, 0);
+        if (entry.product.device === 'case') obj.rotation.y = 0.42;
+        this.scene.add(obj);
+        obj.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(obj);
+        const c = box.getCenter(new THREE.Vector3());
+        const r = box.getSize(new THREE.Vector3()).length() / 2;
+        const dist = r / Math.sin(THREE.MathUtils.degToRad(28 / 2)) * 1.02;
+        this.cam.position.set(c.x, c.y + dist * 0.12, c.z + dist);
+        this.cam.lookAt(c);
+        this.renderer.setClearColor(0x000000, 0);
+        this.renderer.render(this.scene, this.cam);
+        const url = this.renderer.domElement.toDataURL('image/png');
+        this.scene.remove(obj);
+        return url;
+      } catch (e) { console.warn('thumbnail failed', e); return null; }
+    },
+    makeAll() {
+      Object.values(Products).forEach((e) => { e.thumb = this.make(e); });
+      Catalog.render();
+    },
+  };
+
+  function thumbImg(entry, cls = '') {
+    const img = document.createElement('img');
+    img.className = cls;
+    img.alt = '';
+    if (entry && entry.thumb) img.src = entry.thumb;
+    return img;
+  }
+  const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+
+  /* ------------------------------------------------------------------ *
+   *  חלון מוצר במסך (מחשב ונייד): כמו בחנות אונליין                     *
+   * ------------------------------------------------------------------ */
+  const Sheet = {
+    id: null,
+    open(id) {
+      const entry = Products[id];
+      const p = entry.product;
+      if (this.id !== id) pick.qty = 1;
+      this.id = id;
+      Inspect.current = id;
+      const el = $('#sheet');
+      el.innerHTML = '';
+      const x = h('button', 'drawer-x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'סגירה');
+      x.addEventListener('click', () => this.close());
+      el.append(x);
+      el.append(h('p', 'eyebrow', categoryName(p.category)));
+      const title = h('h2', '', p.name); title.id = 'sheet-name'; el.append(title);
+      const price = h('p', 'sheet-price');
+      const sale = p.oldPrice && p.oldPrice > p.price;
+      price.append(h('span', sale ? 'now sale' : 'now', fmt(p.price)));
+      if (sale) { price.append(h('s', 'was', fmt(p.oldPrice))); price.append(h('span', 'save', `חוסכים ${fmt(p.oldPrice - p.price)}`)); }
+      el.append(price);
+      el.append(h('p', 'sheet-desc', p.description));
+
+      if (p.variants) {
+        const v = p.variants.find((x2) => x2.id === entry.variant) || p.variants[0];
+        const box = h('fieldset', 'sheet-colors');
+        const lg = h('legend', '', 'צבע: '); lg.append(h('b', '', v.label)); box.append(lg);
+        const row = h('div', 'swatches');
+        p.variants.forEach((vr) => {
+          const b = h('button', 'swatch'); b.type = 'button';
+          b.style.setProperty('--c', vr.color);
+          b.setAttribute('aria-label', vr.label);
+          b.setAttribute('aria-pressed', vr.id === entry.variant ? 'true' : 'false');
+          b.title = vr.label;
+          b.addEventListener('click', () => { Sound.click(); entry.setVariant(vr.id).then(() => this.open(id)); });
+          row.append(b);
+        });
+        box.append(row);
+        el.append(box);
+      }
+
+      const buy = h('div', 'sheet-buy');
+      const step = h('div', 'stepper');
+      const minus = h('button', '', '−'); minus.type = 'button'; minus.setAttribute('aria-label', 'פחות');
+      const out = h('output', '', String(pick.qty));
+      const plus = h('button', '', '+'); plus.type = 'button'; plus.setAttribute('aria-label', 'יותר');
+      plus.addEventListener('click', () => { pick.qty = Math.min(9, pick.qty + 1); this.open(id); });
+      minus.addEventListener('click', () => { pick.qty = Math.max(1, pick.qty - 1); this.open(id); });
+      step.append(plus, out, minus);
+      const add = h('button', 'btn-buy', `הוספה לסל · ${fmt(p.price * pick.qty)}`); add.type = 'button';
+      add.addEventListener('click', () => addToCart(entry));
+      buy.append(step, add);
+      el.append(buy);
+      if (Cart.count()) {
+        const go = h('button', 'link', `לסל הקניות (${Cart.count()}) ←`); go.type = 'button';
+        go.addEventListener('click', () => CartDrawer.open());
+        el.append(go);
+      }
+
+      const specs = h('ul', 'sheet-specs');
+      specs.append(h('li', '', dimsText(entry.size)));
+      (p.details || []).forEach((d) => specs.append(h('li', '', d)));
+      el.append(specs);
+      el.append(h('p', 'sheet-hint', 'גררו את המוצר כדי לסובב אותו'));
+      el.hidden = false;
+      document.body.classList.add('sheet-open');
+      setLook(false);
+    },
+    close() {
+      if (!this.id) return;
+      this.id = null;
+      $('#sheet').hidden = true;
+      document.body.classList.remove('sheet-open');
+      Inspect.end();
+      Inspect.current = null;
+      setLook(true);
+    },
+    refresh() { if (this.id) this.open(this.id); },
+  };
+
+  /* בזמן בחינת מוצר: גרירה מסובבת את המוצר במקום את המבט */
+  function setLook(on) {
+    const lc = $('#camera').components['look-controls'];
+    if (lc) lc.data.enabled = on;
+  }
+  function setupDragRotate(canvas) {
+    let drag = null;
+    canvas.addEventListener('pointerdown', (e) => { if (Sheet.id && Inspect.lifted) drag = { x: e.clientX, y: e.clientY }; });
+    window.addEventListener('pointerup', () => { drag = null; });
+    window.addEventListener('pointermove', (e) => {
+      if (!drag || !Inspect.lifted) return;
+      const o = Inspect.lifted.el.object3D;
+      Inspect.lifted.spin = false;
+      o.rotation.y += (e.clientX - drag.x) * 0.012;
+      o.rotation.x = THREE.MathUtils.clamp(o.rotation.x + (e.clientY - drag.y) * 0.008, -0.9, 0.9);
+      drag = { x: e.clientX, y: e.clientY };
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  סל קניות במסך                                                      *
+   * ------------------------------------------------------------------ */
+  const CartDrawer = {
+    isOpen: false,
+    open() {
+      Sheet.close(); Catalog.close();
+      this.isOpen = true;
+      this.render();
+      $('#cart-drawer').hidden = false;
+    },
+    close() { this.isOpen = false; $('#cart-drawer').hidden = true; },
+    render() {
+      if (!this.isOpen) return;
+      const el = $('#cart-drawer');
+      el.innerHTML = '';
+      const x = h('button', 'drawer-x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'סגירה');
+      x.addEventListener('click', () => this.close());
+      el.append(x, h('h2', '', 'סל הקניות'));
+      const lines = Cart.lines();
+      if (!lines.length) {
+        el.append(h('p', 'empty', 'הסל ריק. בחרו מוצר מהתצוגה או מהקטלוג.'));
+        const b = h('button', 'btn-buy', 'לכל המוצרים'); b.type = 'button';
+        b.addEventListener('click', () => Catalog.open());
+        el.append(b);
+        return;
+      }
+      const ul = h('ul', 'cart-lines');
+      lines.forEach((l) => {
+        const li = h('li');
+        li.append(thumbImg(Products[l.product.id], 'thumb'));
+        const info = h('div', 'info');
+        info.append(h('p', 'name', l.product.name));
+        if (l.variant) info.append(h('p', 'sub', l.variant.label));
+        const row = h('div', 'row');
+        const st = h('div', 'stepper small');
+        const plus = h('button', '', '+'); plus.type = 'button'; plus.setAttribute('aria-label', 'יותר');
+        const minus = h('button', '', '−'); minus.type = 'button'; minus.setAttribute('aria-label', 'פחות');
+        plus.addEventListener('click', () => Cart.setQty(l.key, l.qty + 1));
+        minus.addEventListener('click', () => Cart.setQty(l.key, l.qty - 1));
+        st.append(plus, h('output', '', String(l.qty)), minus);
+        const rm = h('button', 'link', 'הסרה'); rm.type = 'button';
+        rm.addEventListener('click', () => Cart.setQty(l.key, 0));
+        row.append(st, rm);
+        info.append(row);
+        li.append(info, h('span', 'price', fmt(l.subtotal)));
+        ul.append(li);
+      });
+      el.append(ul);
+      const sum = h('dl', 'totals');
+      const add = (a, b, cls) => { const d = h('div', cls); d.append(h('dt', '', a), h('dd', '', b)); sum.append(d); };
+      add('סכום ביניים', fmt(Cart.total()));
+      add('משלוח', Cart.shipping() ? fmt(Cart.shipping()) : 'חינם');
+      add('סה״כ', fmt(Cart.grandTotal()), 'grand');
+      el.append(sum);
+      const rem = Cart.toFreeShipping();
+      if (CFG.freeShippingOver) {
+        const ship = h('div', 'ship');
+        ship.append(h('p', '', rem ? `עוד ${fmt(rem)} ומקבלים משלוח חינם` : 'מגיע לכם משלוח חינם'));
+        const bar = h('div', 'bar'); const fill = h('i');
+        fill.style.width = `${Math.min(100, (Cart.total() / CFG.freeShippingOver) * 100)}%`;
+        bar.append(fill); ship.append(bar);
+        el.append(ship);
+      }
+      const pay = h('button', 'btn-buy', 'לתשלום מאובטח'); pay.type = 'button';
+      pay.addEventListener('click', () => { this.close(); confirmOrder(); });
+      const more = h('button', 'link', 'המשך בקנייה'); more.type = 'button';
+      more.addEventListener('click', () => this.close());
+      el.append(pay, more);
+    },
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  קטלוג: כל המוצרים עם תמונות                                        *
+   * ------------------------------------------------------------------ */
+  const Catalog = {
+    open() { Sheet.close(); CartDrawer.close(); this.render(); $('#catalog').hidden = false; $('#catalog .drawer-x').focus(); },
+    close() { $('#catalog').hidden = true; },
+    render() {
+      const grid = $('#catalog-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      window.CATEGORIES.forEach((cat) => {
+        const items = window.PRODUCTS.filter((p) => p.category === cat.id);
+        if (!items.length) return;
+        items.forEach((p) => {
+          const card = h('button', 'card'); card.type = 'button';
+          const pic = h('div', 'pic'); pic.append(thumbImg(Products[p.id]));
+          card.append(pic, h('span', 'cat', cat.name), h('span', 'name', p.name));
+          const price = h('span', 'price');
+          const sale = p.oldPrice && p.oldPrice > p.price;
+          price.append(h('b', sale ? 'sale' : '', fmt(p.price)));
+          if (sale) price.append(h('s', '', fmt(p.oldPrice)));
+          card.append(price);
+          if (p.variants) {
+            const dots = h('span', 'dots');
+            p.variants.forEach((v) => { const d = h('i'); d.style.background = v.color; dots.append(d); });
+            card.append(dots);
+          }
+          card.addEventListener('click', () => { this.close(); Nav.toProduct(p.id).then(() => openProduct(p.id)); });
+          grid.append(card);
+        });
+      });
+    },
+  };
+
+  /* ------------------------------------------------------------------ *
    *  ממשק HTML: מסך פתיחה, סרגל עליון, תשלום                            *
    * ------------------------------------------------------------------ */
   function setupDOM(scene) {
@@ -1072,27 +1490,51 @@
       $('#hud-cart-total').textContent = n ? fmt(Cart.grandTotal()) : '';
     };
     Cart.onChange(hud); hud();
-    Cart.onChange(() => Panel.refresh());
+    Cart.onChange(() => { Panel.refresh(); Sheet.refresh(); CartDrawer.render(); });
 
     $('#hud-cart').addEventListener('click', () => openCart());
     $('#co-close').addEventListener('click', () => Checkout.close());
     $('#co-close-done').addEventListener('click', () => Checkout.close());
     $('#co-back-vr').addEventListener('click', () => Checkout.backToVR());
 
+    // סרגל האזורים
+    const zones = $('#zones-list');
+    window.StoreTruck.VIEWS.forEach((v) => {
+      const b = h('button', '', v.label); b.type = 'button'; b.dataset.view = v.id;
+      b.addEventListener('click', () => { Sound.click(); Nav.go(v.id); });
+      zones.append(b);
+    });
+    Nav.markActive();
+    $('#zones-catalog').addEventListener('click', () => Catalog.open());
+    $('#catalog .drawer-x').addEventListener('click', () => Catalog.close());
+    $('#catalog').addEventListener('click', (e) => { if (e.target.id === 'catalog') Catalog.close(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!$('#catalog').hidden) Catalog.close();
+      else if (CartDrawer.isOpen) CartDrawer.close();
+      else Sheet.close();
+    });
+    setupDragRotate(scene.canvas || scene);
+
     const enter = (vr) => {
       Sound.unlock();
       $('#intro').hidden = true;
       document.body.classList.add('in-store');
-      if (vr) scene.enterVR();
-      setTimeout(() => document.body.classList.add('hint-done'), 9000);
+      if (vr) { scene.enterVR(); return; }
+      // נכנסים לחנות: הליכה אוטומטית מהרחבה, במעלה המדרגות, אל שולחן הטלפונים
+      setTimeout(() => Nav.go('phones', { walk: true, speed: 1.9 }), 350);
     };
     $('#intro-enter').addEventListener('click', () => enter(false));
     $('#intro-vr').addEventListener('click', () => enter(true));
     if (navigator.xr && navigator.xr.isSessionSupported) {
-      navigator.xr.isSessionSupported('immersive-vr').then((ok) => { $('#intro-vr').hidden = !ok; }).catch(() => {});
+      navigator.xr.isSessionSupported('immersive-vr').then((ok) => { $('#intro-vr').hidden = !ok; $('#hud-vr').hidden = !ok; }).catch(() => {});
     }
+    $('#hud-vr').addEventListener('click', () => scene.enterVR());
 
+    scene.addEventListener('exit-vr', () => { $('#teleports').object3D.visible = false; });
     scene.addEventListener('enter-vr', () => {
+      $('#teleports').object3D.visible = true;
+      Sheet.close(); CartDrawer.close(); Catalog.close();
       $('#intro').hidden = true;
       $('#checkout').hidden = true;
       Panel.close();
@@ -1112,6 +1554,7 @@
       buildDisplays(root);
       buildVideoWall(root);
       buildCounter(root);
+      buildTeleports(root);
 
       // סל על פרק היד (במשקף)
       const wrist = $('#wrist-cart');
@@ -1135,5 +1578,5 @@
     },
   });
 
-  window.VRStore = { Cart, Panel, Checkout, Products, openProduct, openCart, confirmOrder, Inspect, addToCart };
+  window.VRStore = { Cart, Panel, Checkout, Products, openProduct, openCart, confirmOrder, Inspect, addToCart, Nav, Sheet, CartDrawer, Catalog };
 })();

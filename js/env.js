@@ -195,5 +195,5 @@
     return tw;
   }
 
-  window.StoreEnv = { oakFloor, oakWood, woolRug, shadowMesh, tween, rng };
+  window.StoreEnv = { oakFloor, oakWood, woolRug, shadowMesh, tween, rng, studioEnvironment };
 })();

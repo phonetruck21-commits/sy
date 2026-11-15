@@ -164,9 +164,13 @@
       glass: new THREE.MeshPhysicalMaterial({ color: '#0d1115', roughness: 0.03, metalness: 0.3, clearcoat: 1 }),
       steel: new THREE.MeshStandardMaterial({ color: '#2b2c2f', roughness: 0.35, metalness: 0.85 }),
       brushed: new THREE.MeshStandardMaterial({ color: '#b9bbbf', roughness: 0.35, metalness: 0.9 }),
-      inner: new THREE.MeshStandardMaterial({ color: '#f4f3f1', roughness: 0.9, emissive: '#f4f3f1', emissiveIntensity: 0.22 }),
+      inner: new THREE.MeshStandardMaterial({ color: '#e7e4df', roughness: 0.9, emissive: '#e7e4df', emissiveIntensity: 0.12 }),
       ceiling: new THREE.MeshStandardMaterial({ color: '#f7f6f4', roughness: 1, emissive: '#f7f6f4', emissiveIntensity: 0.55 }),
-      floor: new THREE.MeshStandardMaterial({ map: tex.concrete(), roughness: 0.32, metalness: 0 }),
+      floor: new THREE.MeshStandardMaterial({ map: tex.concrete(), color: '#77736d', roughness: 0.35, metalness: 0 }),
+      charcoal: new THREE.MeshStandardMaterial({ color: '#2a2b2e', roughness: 0.8 }),
+      oakWall: (() => { const m = new THREE.MeshStandardMaterial({ map: tex.oak(), roughness: 0.6 }); m.map.rotation = Math.PI / 2; m.map.repeat.set(1, 4); return m; })(),
+      pad: new THREE.MeshPhysicalMaterial({ color: '#fbfbfa', roughness: 0.18, clearcoat: 0.8 }),
+      padGlow: new THREE.MeshBasicMaterial({ color: '#cfe0ff', toneMapped: false }),
       slat: new THREE.MeshStandardMaterial({ color: '#e9e8e6', roughness: 0.8, emissive: '#e9e8e6', emissiveIntensity: 0.15 }),
       oak: new THREE.MeshStandardMaterial({ map: tex.oak(), roughness: 0.5 }),
       white: new THREE.MeshPhysicalMaterial({ color: '#f5f5f4', roughness: 0.25, clearcoat: 0.6 }),
@@ -350,48 +354,61 @@
     // פסי לד בתקרה ותאורה פנימית
     [-1.0, 0, 1.0].forEach((z) => g.add(box(L - 0.6, 0.012, 0.045, M.led, 0, CEIL - 0.007, z)));
     [-2.6, 2.6].forEach((x) => {
-      const l = new THREE.PointLight('#fff4e6', 5, 6.5, 1.6);
+      const l = new THREE.PointLight('#fff4e6', 7, 6.5, 1.6);
       l.position.set(x, CEIL - 0.3, -0.2);
       g.add(l);
     });
     // פס לד בבסיס הקירות
     g.add(box(L, 0.01, 0.01, M.ledWarm, 0, F + 0.03, Z0 + 0.09));
 
-    // קיר אביזרים: פאנל סלאטים, מדפי עץ עם תאורה
-    const wallX0 = -4.6, wallX1 = 2.3, wallLen = wallX1 - wallX0, wallC = (wallX0 + wallX1) / 2;
-    g.add(box(wallLen, 2.2, 0.03, M.slat, wallC, F + 1.35, Z0 + 0.1));
-    for (let i = 0; i < 22; i++) g.add(box(wallLen, 0.006, 0.006, M.inner, wallC, F + 0.3 + i * 0.1, Z0 + 0.118));
+    // קיר אביזרים: פאנל עץ במסגרת כהה, שלט, מדפים מוארים
+    const wallX0 = -3.0, wallX1 = 1.6, wallLen = wallX1 - wallX0, wallC = (wallX0 + wallX1) / 2;
+    g.add(box(wallLen + 0.3, H - 0.1, 0.03, M.charcoal, wallC, F + (H - 0.1) / 2, Z0 + 0.105));
+    g.add(box(wallLen, 1.55, 0.02, M.oakWall, wallC, F + 1.25, Z0 + 0.125));
+    g.add(mesh(new THREE.PlaneGeometry(2.2, 0.36), new THREE.MeshBasicMaterial({ map: signTex('אביזרים ואודיו', 'מטענים · סוללות · אוזניות · כיסויים', 2.2, 0.36, '#2a2b2e'), toneMapped: false }), [wallC, F + 2.32, Z0 + 0.122]));
     T.SHELVES.forEach((y) => {
-      g.add(box(wallLen - 0.2, 0.03, 0.3, M.oak, wallC, y - 0.015, Z0 + 0.25));
-      g.add(box(wallLen - 0.3, 0.008, 0.02, M.ledWarm, wallC, y - 0.034, Z0 + 0.36));
+      g.add(box(wallLen - 0.15, 0.03, 0.3, M.white, wallC, y - 0.015, Z0 + 0.27));
+      g.add(box(wallLen - 0.25, 0.008, 0.02, M.ledWarm, wallC, y - 0.034, Z0 + 0.38));
     });
-    // אריזות מוצרים על המדפים (תפאורה)
-    const pack = packMaterials();
-    const packs = [
-      [T.SHELVES[0], [2.0, 1.75, -0.35, -2.3, -2.55, -4.2]],
-      [T.SHELVES[1], [2.0, 0.35, 0.1, -1.75, -3.6, -3.85, -4.2]],
-    ];
-    packs.forEach(([y, xs]) => xs.forEach((x, i) => {
-      const tall = i % 3 === 0;
-      const w = tall ? 0.1 : 0.17, h = tall ? 0.19 : 0.04, d = tall ? 0.05 : 0.11;
-      const stack = tall ? 1 : 3;
-      for (let k = 0; k < stack; k++) {
-        const b = mesh(new THREE.BoxGeometry(w, h, d), pack[(i + k) % pack.length], [x, y + h / 2 + k * h, Z0 + 0.26]);
-        b.rotation.y = tall ? 0 : (k - 1) * 0.04;
-        g.add(b);
-      }
-    }));
-
-    // שולחן תצוגה מרכזי
-    const tX0 = -3.55, tX1 = 1.15, tZ = T.TABLE_Z, tTop = F + 0.9;
+    // שולחן תצוגה מרכזי ושלט תלוי מעליו
+    const tX0 = T.TABLE_X0, tX1 = T.TABLE_X1, tZ = T.TABLE_Z, tTop = F + 0.9;
     const tl = tX1 - tX0, tc = (tX0 + tX1) / 2;
     g.add(box(tl - 0.2, 0.86, 0.72, M.white, tc, F + 0.43, tZ));
     g.add(box(tl, 0.04, 0.9, M.oak, tc, tTop - 0.02, tZ));
     g.add(box(tl - 0.3, 0.01, 0.01, M.ledWarm, tc, F + 0.02, tZ + 0.37));
+    const signY = CEIL - 0.55;
+    const hang = new THREE.Group();
+    const st = signTex('טלפונים, טאבלטים ושעונים', 'הרימו כל מכשיר ובחנו אותו מקרוב', 2.0, 0.34, '#2a2b2e');
+    hang.add(mesh(new THREE.BoxGeometry(2.04, 0.38, 0.03), M.charcoal));
+    hang.add(mesh(new THREE.PlaneGeometry(2.0, 0.34), new THREE.MeshBasicMaterial({ map: st, toneMapped: false }), [0, 0, 0.016]));
+    hang.add(mesh(new THREE.PlaneGeometry(2.0, 0.34), new THREE.MeshBasicMaterial({ map: st, toneMapped: false }), [0, 0, -0.016], [0, Math.PI, 0]));
+    [-0.9, 0.9].forEach((x) => hang.add(mesh(new THREE.CylinderGeometry(0.004, 0.004, CEIL - signY - 0.19, 6), M.steel, [x, (CEIL - signY) / 2 + 0.095, 0])));
+    hang.position.set(tc, signY, tZ);
+    g.add(hang);
 
-    // דלפק קופה
+    // דלפק קופה ושלט
     g.add(box(0.6, 1.0, 1.55, M.white, 4.8, F + 0.5, -0.55));
     g.add(box(0.66, 0.04, 1.6, M.oak, 4.8, F + 1.02, -0.55));
+  }
+
+  /* שלט: כותרת ושורת משנה על רקע כהה */
+  function signTex(title, sub, w, h, bg) {
+    return canvasTex(Math.round(w * 400), Math.round(h * 400), (ctx, W, H) => {
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      ctx.direction = 'rtl'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff'; ctx.font = `700 ${H * 0.36}px ${FONT}`;
+      ctx.fillText(title, W / 2, H * 0.4);
+      ctx.fillStyle = '#b9bdc4'; ctx.font = `400 ${H * 0.17}px ${FONT}`;
+      ctx.fillText(sub, W / 2, H * 0.76);
+    }, { live: true });
+  }
+
+  /* משטח תצוגה מואר מתחת למוצר */
+  function pad(M, r) {
+    const p = new THREE.Group();
+    p.add(mesh(new THREE.CylinderGeometry(r, r, 0.014, 48), M.pad, [0, 0.007, 0]));
+    p.add(mesh(new THREE.TorusGeometry(r, 0.0025, 8, 64), M.padGlow, [0, 0.012, 0], [Math.PI / 2, 0, 0]));
+    return p;
   }
 
   /* אריזות לבנות ושחורות עם שם המותג */
@@ -425,8 +442,9 @@
     T,
     build(cfg) {
       Truck.cfg = cfg;
-      T.SHELVES = [F + 1.0, F + 1.45];
+      T.SHELVES = [F + 1.0, F + 1.48];
       T.TABLE_Z = 0.25;
+      T.TABLE_X0 = -2.95; T.TABLE_X1 = 0.95;
       const M = materials();
       const g = new THREE.Group();
       buildWorld(g, M);
@@ -436,25 +454,27 @@
       return g;
     },
     phoneStand: () => phoneStand(Truck.M),
+    pad: (r) => pad(Truck.M, r),
     /* מקומות התצוגה (בקואורדינטות העולם) */
     slots() {
       const tTop = F + 0.9;
       return {
+        // טלפונים בקבוצה אחת, טאבלט ושעון לידם
         table: [
-          { x: 0.55, z: T.TABLE_Z, y: tTop, ry: 0, stand: true },
-          { x: -0.45, z: T.TABLE_Z, y: tTop, ry: 0, stand: true },
-          { x: -1.45, z: T.TABLE_Z, y: tTop, ry: 0, stand: true },
-          { x: -2.45, z: T.TABLE_Z, y: tTop, ry: 0, tilt: -12 },
-          { x: -3.25, z: T.TABLE_Z, y: tTop, ry: 0 },
-          { x: 0.85, z: T.TABLE_Z - 0.3, y: tTop, ry: 0 },
+          { x: 0.35, z: T.TABLE_Z, y: tTop, ry: 0, stand: true },
+          { x: -0.25, z: T.TABLE_Z, y: tTop, ry: 0, stand: true },
+          { x: -0.85, z: T.TABLE_Z, y: tTop, ry: 0, stand: true },
+          { x: -1.65, z: T.TABLE_Z, y: tTop, ry: 0, tilt: -12 },
+          { x: -2.4, z: T.TABLE_Z, y: tTop, ry: 0 },
+          { x: 0.75, z: T.TABLE_Z - 0.3, y: tTop, ry: 0 },
         ],
         shelf: [
-          { x: 1.4, z: T.Z0 + 0.27, y: T.SHELVES[1], ry: 0 },
-          { x: 0.85, z: T.Z0 + 0.27, y: T.SHELVES[0], ry: 0 },
-          { x: -0.6, z: T.Z0 + 0.27, y: T.SHELVES[1], ry: 0 },
-          { x: -1.2, z: T.Z0 + 0.27, y: T.SHELVES[0], ry: 0 },
-          { x: -2.6, z: T.Z0 + 0.27, y: T.SHELVES[1], ry: 0, tilt: -10 },
-          { x: -3.6, z: T.Z0 + 0.27, y: T.SHELVES[0], ry: 0 },
+          { x: 0.95, z: T.Z0 + 0.29, y: T.SHELVES[1], ry: 0 },
+          { x: 0.3, z: T.Z0 + 0.29, y: T.SHELVES[0], ry: 0 },
+          { x: -0.4, z: T.Z0 + 0.29, y: T.SHELVES[1], ry: 0 },
+          { x: -1.05, z: T.Z0 + 0.29, y: T.SHELVES[0], ry: 0 },
+          { x: -1.75, z: T.Z0 + 0.29, y: T.SHELVES[1], ry: 0, tilt: -10 },
+          { x: -2.35, z: T.Z0 + 0.29, y: T.SHELVES[0], ry: 0 },
         ],
       };
     },
@@ -464,7 +484,7 @@
     walkable(x, z) {
       if (Truck.inInterior(x, z) || Truck.inSteps(x, z)) {
         // רהיטים בתוך החנות
-        if (x > -3.65 && x < 1.25 && Math.abs(z - T.TABLE_Z) < 0.62) return false;
+        if (x > T.TABLE_X0 - 0.1 && x < T.TABLE_X1 + 0.1 && Math.abs(z - T.TABLE_Z) < 0.62) return false;
         if (x > 4.35 && z > -1.5 && z < 0.4) return false;
         return true;
       }
@@ -477,6 +497,14 @@
       return z > 1.9 && z < 11 && Math.abs(x) < 11 ? 0.04 : 0;
     },
     redraw() { redrawers.forEach((fn) => fn()); },
+    /* נקודות עצירה לניווט: מיקום המבקר, כיוון מבט וזווית */
+    VIEWS: [
+      { id: 'outside', label: 'מבחוץ', x: 0, z: 8.2, yaw: 0, pitch: 0.03 },
+      { id: 'phones', label: 'טלפונים', x: -0.25, z: 1.3, yaw: 0, pitch: -0.55 },
+      { id: 'devices', label: 'טאבלט ושעון', x: -2.0, z: 1.3, yaw: 0, pitch: -0.55 },
+      { id: 'accessories', label: 'אביזרים', x: -0.65, z: -0.48, yaw: 0, pitch: -0.12 },
+      { id: 'checkout', label: 'קופה', x: 3.7, z: -0.55, yaw: -Math.PI / 2, pitch: 0.02 },
+    ],
   };
   window.StoreTruck = Truck;
 })();

@@ -34,8 +34,8 @@
         <p id="intro-progress">טוען את המוצרים…</p>
       </div>
       <dl class="intro-controls">
-        <div><dt>במשקף</dt><dd>כוונו עם הבקר ולחצו על ההדק לבחירה. כפתור Grip מרים מוצר ביד. סטיק שמאלי להליכה, ימני לסיבוב.</dd></div>
-        <div><dt>במחשב</dt><dd>גררו כדי להסתכל, W A S D להליכה (קדימה, אל המשאית), לחיצה על מוצר לפרטים.</dd></div>
+        <div><dt>במשקף</dt><dd>כוונו על העיגולים הכחולים ברצפה כדי לעבור אזור. ההדק בוחר, Grip מרים מוצר ביד.</dd></div>
+        <div><dt>במחשב ובנייד</dt><dd>עוברים בין האזורים בסרגל למטה, או פותחים את "כל המוצרים". לחיצה על מוצר מקרבת אותו, וגרירה מסובבת אותו.</dd></div>
       </dl>
     </div>
   </section>
@@ -43,14 +43,37 @@
   <!-- סרגל עליון (מוסתר במשקף) -->
   <header id="hud">
     <div class="hud-brand"><span class="brand-name">נובה</span><span class="brand-tagline">חנות סלולר ניידת</span></div>
+    <div class="hud-actions">
+    <button id="hud-vr" type="button" hidden>כניסה ל-VR</button>
     <button id="hud-cart" type="button" aria-label="סל הקניות">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
       <span>סל</span>
       <span id="hud-cart-count" class="hud-count" hidden>0</span>
       <span id="hud-cart-total" class="hud-total"></span>
     </button>
+    </div>
   </header>
-  <p id="hint">גררו כדי להסתכל · W A S D להליכה · לחיצה על מוצר לפרטים</p>
+  <p id="hint">לחצו על מוצר כדי לבחון אותו מקרוב</p>
+
+  <!-- ניווט בין אזורי החנות -->
+  <nav id="zones" aria-label="אזורים בחנות">
+    <div id="zones-list"></div>
+    <button id="zones-catalog" type="button">כל המוצרים</button>
+  </nav>
+
+  <!-- חלון מוצר -->
+  <aside id="sheet" class="drawer" role="dialog" aria-labelledby="sheet-name" hidden></aside>
+  <!-- סל קניות -->
+  <aside id="cart-drawer" class="drawer" role="dialog" aria-label="סל הקניות" hidden></aside>
+  <!-- קטלוג -->
+  <div id="catalog" hidden>
+    <div class="catalog-card" role="dialog" aria-labelledby="catalog-title">
+      <button class="drawer-x" type="button" aria-label="סגירה">×</button>
+      <h2 id="catalog-title">כל המוצרים</h2>
+      <p class="catalog-sub">לחצו על מוצר ותגיעו אליו בחנות</p>
+      <div id="catalog-grid"></div>
+    </div>
+  </div>
   <div id="dom-toast" role="status" aria-live="polite"></div>
 
   <!-- תשלום -->
@@ -85,7 +108,8 @@
     renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 0.95; foveationLevel: 1"
     cursor="rayOrigin: mouse; fuse: false"
     raycaster="objects: .clickable; far: 20; interval: 40"
-    xr-mode-ui="enabled: true"
+    xr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
     loading-screen="enabled: false">
 
     <a-entity light="type: hemisphere; color: #dbe8ff; groundColor: #8f877b; intensity: 0.9"></a-entity>
