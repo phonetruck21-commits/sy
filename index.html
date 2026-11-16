@@ -198,6 +198,13 @@ nav.tabs .on{color:var(--accent)}
 td.best{background:var(--ok-soft);color:var(--ok);font-weight:800}
 td.unk{color:var(--warn)}
 td.miss{color:var(--bad);font-weight:700}
+.pdf-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;text-decoration:none;color:var(--bad);padding:6px;text-align:center}
+.pdf-tile b{font-size:18px}.pdf-tile span{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;max-width:100%;white-space:nowrap}
+.m-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 58px 84px;gap:6px;align-items:center;font-size:14px}
+.m-row input{min-height:42px;padding:6px 8px}
+.rank{display:flex;flex-direction:column;gap:6px}
+.rank .r{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.rank .r .pos{font-weight:800;color:var(--muted);text-align:center}
 .ai-box{white-space:pre-wrap;line-height:1.65;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .ai-note{font-size:12.5px;color:var(--muted)}
 .sl-row{display:grid;grid-template-columns:minmax(0,1fr) 64px 92px 42px;gap:6px;align-items:center}
@@ -440,7 +447,7 @@ function render(){
   if(/^p-/.test(r)||r==="server"||r==="farm"){tab="projects"}
   else if(/^q-/.test(r)){tab="quotes"}
   else if(/^j-/.test(r)){tab="jobs"}
-  else if(["installs","finance","suppliers","reminders","missing","compare","prices"].indexOf(r)>=0||/^c-/.test(r)){tab="more"}
+  else if(["installs","finance","suppliers","reminders","missing","compare","prices","supstats"].indexOf(r)>=0||/^c-/.test(r)){tab="more"}
   else if(r==="fastcam"){tab="quotes"}
   document.querySelectorAll("nav.tabs [data-tab]").forEach(function(a){a.classList.toggle("on",a.getAttribute("data-tab")===tab)});
   if(r==="home")html=vHome();
@@ -454,6 +461,7 @@ function render(){
   else if(r==="missing")html=vMissing();
   else if(r==="compare")html=vCompares();
   else if(r==="prices")html=vPrices();
+  else if(r==="supstats")html=vSupStats();
   else if(r==="fastcam")html=vFast();
   else if(/^c-/.test(r))html=vCompare(r.slice(2));
   else if(r==="server")html=vTemplate("server");
@@ -587,6 +595,11 @@ function checklistSec(it,title,opt){
   '</div>';
 }
 function photoSrc(p){return p.url||(p.id?"/_blob/"+p.id:p.data)||""}
+function fileTile(p,i,delAttr){
+  var del=delAttr?'<button type="button" '+delAttr+' data-i="'+i+'" aria-label="הסר קובץ">✕</button>':"";
+  if(p.type==="pdf")return '<div class="ph"><a class="pdf-tile" href="'+esc(photoSrc(p))+'" target="_blank" rel="noopener"><b>PDF</b><span>'+esc(p.name||"קובץ")+'</span></a>'+del+'</div>';
+  return '<div class="ph"><img src="'+esc(photoSrc(p))+'" alt="קובץ '+(i+1)+'" loading="lazy" onerror="this.style.opacity=.2">'+del+'</div>';
+}
 function photosSec(it){
   var ph=it.photos||[];
   return '<div class="sec"><div class="sec-h"><h2>תמונות</h2><span class="small muted num">'+ph.length+'</span></div><div class="photos">'+
@@ -809,8 +822,10 @@ function supStats(name){
   return st;
 }
 function normDesc(s){return String(s||"").trim().toLowerCase().replace(/["'״׳.,]/g,"").replace(/\s+/g," ")}
+function lineKey(l){return normDesc(l.match||l.desc)}
+function lineName(l){return l.match||l.desc}
 function sqCalc(q){
-  var sub=quoteTotal(q.lines),ship=hasNum(q.shipping)?n(q.shipping):0,base=sub+ship;
+  var sub=hasNum(q.totalOverride)?n(q.totalOverride):quoteTotal(q.lines),ship=hasNum(q.shipping)?n(q.shipping):0,base=sub+ship;
   var withVat=q.vatInc==="כולל מע״מ"?base:q.vatInc==="לא כולל מע״מ"?base*(1+VAT):null;
   return{sub:sub,ship:ship,base:base,withVat:withVat,comparable:withVat!=null?withVat:base,vatUnknown:withVat==null};
 }
@@ -818,10 +833,10 @@ function scoreOf(s,w){var tot=0,miss=[];Object.keys(w).forEach(function(k){var v
 function analyzeCompare(c){
   var qs=all("squote").filter(function(q){return q.compareId===c.id}).sort(function(a,b){return (a.createdAt||"")<(b.createdAt||"")?-1:1});
   var union={},order=[];
-  qs.forEach(function(q){(q.lines||[]).forEach(function(l){var k=normDesc(l.desc);if(k&&!union[k]){union[k]=l.desc;order.push(k)}})});
+  qs.forEach(function(q){(q.lines||[]).forEach(function(l){var k=lineKey(l);if(k&&!union[k]){union[k]=lineName(l);order.push(k)}})});
   var rows=qs.map(function(q){
     var sup=supByName(q.supplier)||{},have={};
-    (q.lines||[]).forEach(function(l){var k=normDesc(l.desc);if(k)have[k]=l});
+    (q.lines||[]).forEach(function(l){var k=lineKey(l);if(k)have[k]=l});
     var em=(q.emergency&&q.emergency!=="לא ידוע")?q.emergency:((sup.emergency&&sup.emergency!=="לא ידוע")?sup.emergency:"");
     return{q:q,name:q.supplier||"ספק ללא שם",calc:sqCalc(q),sup:sup,have:have,
       coverage:order.length?order.filter(function(k){return have[k]}).length/order.length:null,
@@ -874,11 +889,25 @@ function compareItem(c){
   return '<button class="item" data-go="#c-'+esc(c.id)+'"><div class="main"><span class="t">'+esc(c.title||"השוואה")+'</span><span class="meta"><span>הצעות: <span class="num">'+A.rows.length+'</span></span>'+(proj?'<span>'+esc(proj.name)+'</span>':"")+(A.minP?'<span>הכי זול: <span class="num">'+money(A.minP)+'</span></span>':"")+'</span></div>'+
   '<div class="side">'+statusPill(c.status||"פתוחה")+(c.chosenPartner?'<span class="small">'+esc(c.chosenPartner)+'</span>':"")+'</div></button>';
 }
+function cmpDate(c){return (c.purchase&&c.purchase.date)||(c.createdAt||"").slice(0,10)}
 function vCompares(){
-  var list=all("compare").sort(function(a,b){return (b.updatedAt||"")<(a.updatedAt||"")?-1:1});
+  var f=S.filters.cmp||{};var q=(f.q||"").toLowerCase();
+  var list=all("compare").filter(function(c){
+    if(f.status&&c.status!==f.status)return false;
+    if(f.domain&&c.domain!==f.domain)return false;
+    if(f.supplier){var has=all("squote").some(function(x){return x.compareId===c.id&&x.supplier===f.supplier})||(c.requests||[]).some(function(r){return r.supplier===f.supplier});if(!has)return false}
+    if(f.from&&cmpDate(c)<f.from)return false;if(f.to&&cmpDate(c)>f.to)return false;
+    if(q&&[c.title,c.notes,c.domain].join(" ").toLowerCase().indexOf(q)<0)return false;return true;
+  }).sort(function(a,b){return (b.updatedAt||"")<(a.updatedAt||"")?-1:1});
   return '<div class="row between"><h1>השוואת הצעות מספקים</h1><button class="btn pri" data-act="new-compare">+ השוואה חדשה</button></div>'+
   '<div class="small muted">פותחים השוואה אחת לכל קנייה (למשל "מצלמות לבית ספר"), ומוסיפים אליה את ההצעה של כל ספק. הדף מראה מה ההבדלים ואיזה ספק מתאים לעבודה שוטפת ואיזה לחירום.</div>'+
-  (list.length?'<div class="list">'+list.map(compareItem).join("")+'</div>':'<div class="empty">אין השוואות עדיין. לחץ "השוואה חדשה".</div>');
+  '<a class="btn wide" href="#supstats">📊 ניתוח ספקים לאורך השנה</a>'+
+  '<div class="filters" data-fkey="cmp"><input class="q" type="search" id="f-cmp-q" placeholder="חיפוש השוואה…" value="'+esc(f.q||"")+'" data-filter="q">'+
+    '<select id="f-cmp-supplier" data-filter="supplier" aria-label="ספק">'+opts(uniq(all("supplier").map(function(x){return x.name})),f.supplier,"כל הספקים")+'</select>'+
+    '<select id="f-cmp-domain" data-filter="domain" aria-label="תחום">'+opts(DOMAINS,f.domain,"כל התחומים")+'</select>'+
+    '<select id="f-cmp-status" data-filter="status" aria-label="סטטוס">'+opts(CSTATUS,f.status,"כל הסטטוסים")+'</select>'+
+    '<input type="date" id="f-cmp-from" data-filter="from" value="'+esc(f.from||"")+'" aria-label="מתאריך"></div>'+
+  (list.length?'<div class="list">'+list.map(compareItem).join("")+'</div>':'<div class="empty">אין השוואות שמתאימות לסינון.</div>');
 }
 function fmtAI(t){return esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/^#+\s*(.+)$/gm,"<b>$1</b>")}
 function vCompare(id){
@@ -931,14 +960,14 @@ function vCompare(id){
 
   // item by item
   if(A.keys.length){
-    h+='<div class="sec"><h2>השוואה לפי פריט (מחיר ליחידה)</h2><div class="small muted">פריטים מותאמים לפי השם בדיוק. אם ספק קרא לפריט בשם אחר, ערוך את השם בהצעה שלו כדי שיופיעו באותה שורה.</div><div class="tbl-wrap"><table><thead><tr><th>פריט</th>'+A.rows.map(function(r){return'<th>'+esc(r.name)+'</th>'}).join("")+'</tr></thead><tbody>'+
+    h+='<div class="sec"><h2>השוואה לפי פריט (מחיר ליחידה)</h2><div class="row between"><div class="small muted">כל ספק כותב אחרת. לחץ "התאמת פריטים" כדי לקבוע איזה פריט אצל ספק אחד הוא אותו פריט אצל ספק אחר, ולתקן כמויות ומחירים ביד.</div><button class="btn sm" data-act="match-open" data-id="'+esc(id)+'">התאמת פריטים</button></div><div class="tbl-wrap"><table><thead><tr><th>פריט</th>'+A.rows.map(function(r){return'<th>'+esc(r.name)+'</th>'}).join("")+'</tr></thead><tbody>'+
       A.keys.map(function(k){
         var prices=A.rows.map(function(r){var l=r.have[k];return l&&hasNum(l.unit)?n(l.unit):null});
         var mn=prices.filter(function(x){return x!=null});mn=mn.length?Math.min.apply(null,mn):null;
         return '<tr><th>'+esc(A.union[k])+'</th>'+A.rows.map(function(r,i){var l=r.have[k];
           if(!l)return'<td class="miss">חסר</td>';
           if(prices[i]==null)return'<td class="unk">אין מחיר</td>';
-          return '<td class="'+(prices[i]===mn&&A.rows.length>1?"best":"")+'"><span class="num">'+money(prices[i])+'</span>'+(hasNum(l.qty)&&n(l.qty)!==1?' <span class="small muted">×<span class="num">'+esc(l.qty)+'</span></span>':"")+'</td>'}).join("")+'</tr>';
+          return '<td class="'+(prices[i]===mn&&A.rows.length>1?"best":"")+'"><span class="num">'+money(prices[i])+'</span>'+(l.match&&normDesc(l.match)!==normDesc(l.desc)?'<div class="small muted">'+esc(l.desc)+'</div>':"")+(hasNum(l.qty)&&n(l.qty)!==1?' <span class="small muted">×<span class="num">'+esc(l.qty)+'</span></span>':"")+'</td>'}).join("")+'</tr>';
       }).join("")+'</tbody></table></div></div>';
   }
 
@@ -952,7 +981,7 @@ function vCompare(id){
   h+='<div class="sec"><h2>ההחלטה שלי</h2><div class="grid2">'+
     '<label class="f">ספק לעבודה שוטפת / שותף<select id="cmp-p-'+esc(id)+'" data-cmpchoice="'+esc(id)+'" data-f="chosenPartner">'+opts(names,c.chosenPartner||"","עוד לא החלטתי")+'</select></label>'+
     '<label class="f">ספק לחירום<select id="cmp-e-'+esc(id)+'" data-cmpchoice="'+esc(id)+'" data-f="chosenEmerg">'+opts(names,c.chosenEmerg||"","עוד לא החלטתי")+'</select></label>'+
-  '</div></div>';
+  '</div></div>'+purchaseSec(c,names);
 
   // quotes list
   h+='<div class="sec"><h2>ההצעות</h2><div class="list">'+A.rows.map(function(r){var q=r.q;
@@ -961,7 +990,7 @@ function vCompare(id){
     (q.aiSummary?'<div class="small"><b>סיכום Claude:</b> '+esc(q.aiSummary)+'</div>':"")+
     ((q.aiUnclear||[]).length?'<div class="small" style="color:var(--warn)"><b>לברר עם הספק:</b> '+q.aiUnclear.map(esc).join(" · ")+'</div>':"")+
     (q.notes?'<div class="small" style="white-space:pre-wrap">'+esc(q.notes)+'</div>':"")+
-    ((q.photos||[]).length?'<div class="photos">'+q.photos.map(function(p,i){return'<div class="ph"><img src="'+esc(photoSrc(p))+'" alt="צילום הצעה '+(i+1)+'" loading="lazy"></div>'}).join("")+'</div>':"")+
+    ((q.photos||[]).length?'<div class="photos">'+q.photos.map(function(p,i){return fileTile(p,i,"")}).join("")+'</div>':"")+
     '<div class="row"><button class="btn sm" data-act="sq-edit" data-id="'+esc(q.id)+'">עריכה</button><button class="btn sm" data-act="sq-toprices" data-id="'+esc(q.id)+'">העבר מחירים למחירון</button><button class="btn sm bad" data-act="del" data-id="'+esc(q.id)+'" data-back="#c-'+esc(id)+'">מחיקה</button></div></div>'}).join("")+'</div></div>';
   h+='<div class="row"><button class="btn bad" data-act="del-compare" data-id="'+esc(id)+'">מחיקת ההשוואה</button></div>';
   return h;
@@ -1164,6 +1193,166 @@ function fastToQuote(){
   persist(q);toast("נוצרה הצעת מחיר (גרסה 1)");location.hash="#q-"+q.id;
 }
 
+/* purchase (what actually happened) */
+function purchaseSec(c,names){
+  var p=c.purchase||{};var sups=uniq(names.concat(all("supplier").map(function(s){return s.name})));
+  return '<div class="sec"><h2>מה קניתי בפועל</h2><div class="small muted">ממלאים אחרי הקנייה. ככה בסוף השנה רואים מי סיפק בזמן ובכמה קנית מכל ספק.</div><div class="grid2">'+
+    '<label class="f">קניתי מ<select id="buy-s-'+esc(c.id)+'" data-buy="'+esc(c.id)+'" data-f="supplier">'+opts(sups,p.supplier||"","עוד לא קניתי")+'</select></label>'+
+    '<label class="f">סכום ששולם (₪)<input type="number" inputmode="decimal" step="any" id="buy-a-'+esc(c.id)+'" data-buy="'+esc(c.id)+'" data-f="amount" value="'+esc(p.amount||"")+'"></label>'+
+    '<label class="f">תאריך קנייה<input type="date" id="buy-d-'+esc(c.id)+'" data-buy="'+esc(c.id)+'" data-f="date" value="'+esc(p.date||"")+'"></label>'+
+    '<label class="f">האם סופק בזמן?<select id="buy-o-'+esc(c.id)+'" data-buy="'+esc(c.id)+'" data-f="delivery">'+opts(["בזמן","באיחור","לא סופק"],p.delivery||"","לא ידוע")+'</select></label>'+
+    '<label class="f full">בעיות / הערות (איכות, החזרות, שירות)<input type="text" id="buy-n-'+esc(c.id)+'" data-buy="'+esc(c.id)+'" data-f="notes" value="'+esc(p.notes||"")+'"></label></div></div>';
+}
+
+/* manual item matching across suppliers */
+function matchForm(cid){
+  var qs=all("squote").filter(function(q){return q.compareId===cid});
+  var rows=[];qs.forEach(function(q){(q.lines||[]).forEach(function(l){rows.push({qid:q.id,lid:l.id,supplier:q.supplier||"ספק",desc:l.desc||"",match:l.match||"",qty:l.qty||"",unit:l.unit||""})})});
+  if(!rows.length){toast("אין שורות בהצעות. הוסף פריטים להצעות קודם.");return}
+  var names=uniq(rows.map(function(r){return r.match||r.desc}));
+  var body='<datalist id="dl-match">'+names.map(function(x){return'<option value="'+esc(x)+'">'}).join("")+'</datalist>'+
+  '<div class="small muted">בעמודה "שם אחיד" כותבים את אותו שם לפריטים שהם אותו מוצר אצל ספקים שונים. אפשר גם לתקן כמות ומחיר ליחידה. מה שהספק כתב במקור נשמר.</div>'+
+  '<button type="button" class="btn" data-act="match-ai" id="match-ai-btn">הצע התאמה עם Claude</button><div class="small" id="match-ai-out"></div>'+
+  '<div class="m-row qhead"><span>אצל הספק</span><span>שם אחיד</span><span>כמות</span><span>מחיר יח׳</span></div>'+
+  rows.map(function(r,i){var prev=i>0&&rows[i-1].qid===r.qid;return (prev?"":'<b style="margin-top:6px">'+esc(r.supplier)+'</b>')+
+    '<div class="m-row"><span style="overflow-wrap:anywhere">'+esc(r.desc||"—")+'</span>'+
+    '<input type="text" list="dl-match" id="m-n-'+i+'" value="'+esc(r.match||r.desc)+'" aria-label="שם אחיד">'+
+    '<input type="number" inputmode="decimal" step="any" id="m-q-'+i+'" value="'+esc(r.qty)+'" aria-label="כמות">'+
+    '<input type="number" inputmode="decimal" step="any" id="m-u-'+i+'" value="'+esc(r.unit)+'" aria-label="מחיר ליחידה"></div>'}).join("");
+  openSheet("התאמת פריטים בין ספקים",body,function(){
+    var byQ={};rows.forEach(function(r,i){
+      var nm=(document.getElementById("m-n-"+i).value||"").trim(),qt=document.getElementById("m-q-"+i).value.trim(),un=document.getElementById("m-u-"+i).value.trim();
+      (byQ[r.qid]=byQ[r.qid]||{})[r.lid]={match:nm&&normDesc(nm)!==normDesc(r.desc)?nm:"",qty:qt,unit:un};
+    });
+    Object.keys(byQ).forEach(function(qid){var q=get(qid);if(!q)return;q.lines=(q.lines||[]).map(function(l){var u=byQ[qid][l.id];if(u){l.match=u.match;l.qty=u.qty;l.unit=u.unit}return l});persist(q)});
+    closeSheet();toast("ההתאמה נשמרה");
+  },{noFocus:true});
+  sheetState.matchRows=rows;
+}
+function matchAI(){
+  var rows=sheetState&&sheetState.matchRows;if(!rows)return;
+  var out=document.getElementById("match-ai-out"),btn=document.getElementById("match-ai-btn");
+  getSample().then(function(sample){
+    if(!sample){toast("ניתוח עם Claude לא זמין כאן");return}
+    btn.disabled=true;out.textContent="Claude מתאים פריטים…";
+    var list=rows.map(function(r,i){return{i:i,ספק:r.supplier,פריט:r.desc,כמות:r.qty,מחיר_ליחידה:r.unit}});
+    var prompt="אלה שורות מהצעות מחיר של ספקים שונים לאותה עבודה. ספקים כותבים את אותו מוצר בשמות שונים.\n"+JSON.stringify(list).slice(0,40000)+
+      "\n\nתן לכל שורה \"name\": שם אחיד וקצר בעברית (מותר מק\"ט או דגם באנגלית). שורות שהן אותו מוצר או שירות אצל ספקים שונים מקבלות בדיוק אותו name. אם לא בטוח שזה אותו מוצר, אל תאחד אותן והשאר שם נפרד. אם ההבדל הוא בדגם או במפרט (למשל 4MP מול 8MP), זה לא אותו מוצר.\n"+
+      "החזר JSON בלבד: {\"matches\":[{\"i\":0,\"name\":\"...\"}],\"notes\":[\"הבדלים חשובים שכדאי לשים לב אליהם, למשל דגם שונה או כמות שונה\"]}";
+    sample.json(prompt).then(function(d){
+      var c=0;(d&&d.matches||[]).forEach(function(m){var el=document.getElementById("m-n-"+m.i);if(el&&m.name){el.value=m.name;c++}});
+      out.innerHTML='עודכנו <span class="num">'+c+'</span> שורות. בדוק ותקן לפני שמירה.'+((d&&d.notes||[]).length?'<div style="color:var(--warn)">'+d.notes.map(esc).join(" · ")+'</div>':"");
+    }).catch(function(e){out.textContent="";toast(aiErr(e))}).then(function(){btn.disabled=false});
+  });
+}
+
+/* supplier analysis over time */
+function ssFilter(){
+  var f=S.filters.ss=S.filters.ss||{};
+  if(!f.period){f.period="year";f.from=new Date().getFullYear()+"-01-01";f.to=""}
+  return f;
+}
+function inRange(d,f){if(!d)return !f.from&&!f.to;if(f.from&&d<f.from)return false;if(f.to&&d>f.to)return false;return true}
+function supStatsData(){
+  var f=ssFilter();
+  var comps=all("compare").filter(function(c){return inRange(cmpDate(c),f)&&(!f.domain||c.domain===f.domain)});
+  var st={};
+  function S0(name){return st[name]=st[name]||{name:name,quotes:0,cmp2:0,cheapest:0,above:[],value:0,partner:0,emerg:0,buys:0,buySum:0,onTime:0,late:0,notDel:0,days:[],war:[],asked:0,answered:0,branch:0,hours:[]}}
+  var items={};
+  comps.forEach(function(c){
+    var A=analyzeCompare(c);
+    A.rows.forEach(function(r){
+      var x=S0(r.name);x.quotes++;x.value+=r.calc.comparable||0;
+      if(A.rows.length>=2&&r.calc.comparable>0&&A.minP){x.cmp2++;if(r.calc.comparable===A.minP)x.cheapest++;x.above.push((r.calc.comparable-A.minP)/A.minP*100)}
+      if(r.days!=null)x.days.push(r.days);if(r.warranty!=null)x.war.push(r.warranty);
+      var qd=r.q.date||cmpDate(c);
+      (r.q.lines||[]).forEach(function(l){if(!hasNum(l.unit))return;var k=lineKey(l);if(!k)return;
+        var u=r.q.vatInc==="כולל מע״מ"?n(l.unit)/(1+VAT):n(l.unit);
+        var it=items[k]=items[k]||{name:lineName(l),by:{}};(it.by[r.name]=it.by[r.name]||[]).push({d:qd,u:u})});
+    });
+    if(c.chosenPartner)S0(c.chosenPartner).partner++;
+    if(c.chosenEmerg)S0(c.chosenEmerg).emerg++;
+    var p=c.purchase||{};if(p.supplier){var b=S0(p.supplier);b.buys++;b.buySum+=n(p.amount);if(p.delivery==="בזמן")b.onTime++;else if(p.delivery==="באיחור")b.late++;else if(p.delivery==="לא סופק")b.notDel++}
+    (c.requests||[]).forEach(function(r){if(!r.supplier)return;var x=S0(r.supplier);x.asked++;
+      if(r.status==="ענה"){x.answered++;if(r.askedAt&&r.answeredAt){var h=(new Date(r.answeredAt)-new Date(r.askedAt))/36e5;if(isFinite(h)&&h>=0)x.hours.push(h)}}
+      else if(r.status==="דרש להגיע לסניף")x.branch++});
+  });
+  function avg(a){return a.length?a.reduce(function(s,v){return s+v},0)/a.length:null}
+  var list=Object.keys(st).map(function(k){var x=st[k];var sup=supByName(x.name)||{};
+    x.avgAbove=avg(x.above);x.avgH=avg(x.hours);x.avgDays=avg(x.days);x.avgWar=avg(x.war);
+    x.respRate=x.asked?x.answered/x.asked:null;var del=x.onTime+x.late+x.notDel;x.onTimeRate=del?x.onTime/del:null;
+    x.emergencyAvail=sup.emergency&&sup.emergency!=="לא ידוע"?sup.emergency:"";x.rating=hasNum(sup.rating)?n(sup.rating):null;
+    // yearly scores: unknown parts count as 0.4 and are listed
+    function sc(parts){var t=0,w=0,miss=[];parts.forEach(function(p){var v=p[1];if(v==null){v=0.4;miss.push(p[2])}t+=v*p[0];w+=p[0]});return{v:Math.round(t/w*100),miss:miss}}
+    x.partnerScore=sc([[.3,x.cmp2?x.cheapest/x.cmp2:null,"השוואות מחיר"],[.25,x.avgAbove!=null?Math.max(0,1-x.avgAbove/50):null,"פער מחיר"],[.2,x.onTimeRate,"אספקה בזמן"],[.15,x.respRate,"תגובה לפניות"],[.1,x.rating!=null?x.rating/5:null,"דירוג"]]);
+    x.emergScore=sc([[.35,x.respRate!=null?x.respRate*(x.asked?1-x.branch/x.asked*0.5:1):null,"תגובה לפניות"],[.25,x.avgH!=null?1/(1+x.avgH/4):null,"זמן תגובה"],[.25,x.emergencyAvail?EMERG_SCORE[x.emergencyAvail]:null,"זמינות בחירום"],[.15,x.onTimeRate,"אספקה בזמן"]]);
+    return x});
+  if(f.supplier)list=list.filter(function(x){return x.name===f.supplier});
+  return{f:f,comps:comps,list:list,items:items};
+}
+function vSupStats(){
+  var D=supStatsData(),f=D.f,L=D.list;
+  var per=[["year","השנה"],["12m","12 חודשים"],["last","שנה שעברה"],["all","הכול"]];
+  var h='<h1>📊 ניתוח ספקים</h1>'+
+  '<div class="seg" role="group">'+per.map(function(p){return'<button type="button" data-act="ss-period" data-val="'+p[0]+'" aria-pressed="'+(f.period===p[0])+'">'+p[1]+'</button>'}).join("")+'</div>'+
+  '<div class="filters" data-fkey="ss">'+
+    '<select id="f-ss-supplier" data-filter="supplier" aria-label="ספק">'+opts(uniq(all("supplier").map(function(s){return s.name})),f.supplier,"כל הספקים")+'</select>'+
+    '<select id="f-ss-domain" data-filter="domain" aria-label="תחום">'+opts(DOMAINS,f.domain,"כל התחומים")+'</select>'+
+    '<input type="date" id="f-ss-from" data-filter="from" value="'+esc(f.from||"")+'" aria-label="מתאריך">'+
+    '<input type="date" id="f-ss-to" data-filter="to" value="'+esc(f.to||"")+'" aria-label="עד תאריך"></div>'+
+  '<div class="small muted">'+(f.from||f.to?"תקופה: "+(f.from?fmtDate(f.from):"ההתחלה")+" עד "+(f.to?fmtDate(f.to):"היום"):"כל התקופה")+' · <span class="num">'+D.comps.length+'</span> השוואות</div>';
+  if(!L.length)return h+'<div class="empty">אין עדיין נתונים בתקופה הזו. כל השוואה, פנייה לספק וקנייה שתרשום תיכנס לכאן.</div>';
+  function rank(title,arr,val,sub){return '<div class="card stack"><h3>'+esc(title)+'</h3>'+(arr.length?'<div class="rank">'+arr.slice(0,5).map(function(x,i){return'<div class="r"><span class="pos num">'+(i+1)+'</span><span><b>'+esc(x.name)+'</b><div class="small muted">'+sub(x)+'</div></span><b class="num">'+val(x)+'</b></div>'}).join("")+'</div>':'<div class="small muted">אין מספיק נתונים.</div>')+'</div>'}
+  var byP=L.slice().sort(function(a,b){return b.partnerScore.v-a.partnerScore.v});
+  var byE=L.slice().sort(function(a,b){return b.emergScore.v-a.emergScore.v});
+  var cheap=L.filter(function(x){return x.cmp2}).sort(function(a,b){return a.avgAbove-b.avgAbove});
+  var buy=L.filter(function(x){return x.buySum>0}).sort(function(a,b){return b.buySum-a.buySum});
+  h+='<div class="reco">'+
+    rank("ספק לשותפות / עבודה שוטפת",byP,function(x){return x.partnerScore.v},function(x){return (x.cmp2?"הכי זול ב-"+x.cheapest+"/"+x.cmp2+" השוואות":"אין השוואות מחיר")+(x.partnerScore.miss.length?" · חסר: "+x.partnerScore.miss.join(", "):"")})+
+    rank("ספק לחירום",byE,function(x){return x.emergScore.v},function(x){return (x.asked?"ענה "+x.answered+"/"+x.asked+(x.avgH!=null?" · "+fmtHours(x.avgH):""):"אין פניות רשומות")+(x.branch?" · דרש סניף ×"+x.branch:"")+(x.emergScore.miss.length?" · חסר: "+x.emergScore.miss.join(", "):"")})+
+    rank("הכי זול לאורך זמן",cheap,function(x){return "+"+Math.round(x.avgAbove)+"%"},function(){return "בממוצע מעל ההצעה הזולה ביותר"})+
+    rank("קניתי הכי הרבה",buy,function(x){return money(x.buySum)},function(x){return x.buys+" קניות"+(x.onTimeRate!=null?" · "+Math.round(x.onTimeRate*100)+"% בזמן":"")})+
+  '</div><div class="ai-note">הציונים מחושבים בדף. לשותפות: כמה פעמים היה הכי זול, פער מחיר ממוצע, אספקה בזמן, תגובה לפניות ודירוג. לחירום: אחוז תגובה (עם קנס על "דרש להגיע לסניף"), מהירות תגובה, זמינות בחירום ואספקה בזמן. נתון חסר נחשב חלש ומופיע כ"חסר".</div>';
+  function td(v,cls){return '<td'+(cls?' class="'+cls+'"':"")+'>'+v+'</td>'}
+  h+='<div class="sec"><h2>כל הספקים — מקצה לקצה</h2><div class="tbl-wrap"><table><thead><tr><th>ספק</th><th>הצעות</th><th>הכי זול</th><th>מעל הזול (ממוצע)</th><th>נבחר שוטף / חירום</th><th>קניות</th><th>סופק בזמן</th><th>ענה לפניות</th><th>זמן תגובה</th><th>דרש סניף</th><th>אספקה (ימים)</th><th>אחריות (חודשים)</th><th>חירום</th></tr></thead><tbody>'+
+    L.map(function(x){return'<tr><th>'+esc(x.name)+'</th>'+td('<span class="num">'+x.quotes+'</span>')+td(x.cmp2?'<span class="num">'+x.cheapest+'/'+x.cmp2+'</span>':"—",x.cmp2&&x.cheapest===x.cmp2?"best":"")+
+      td(x.avgAbove!=null?'<span class="num">'+Math.round(x.avgAbove)+'%</span>':"—")+td('<span class="num">'+x.partner+' / '+x.emerg+'</span>')+
+      td(x.buys?'<span class="num">'+x.buys+' · '+money(x.buySum)+'</span>':"—")+td(x.onTimeRate!=null?'<span class="num">'+Math.round(x.onTimeRate*100)+'%</span>':"לא ידוע",x.onTimeRate==null?"unk":x.onTimeRate===1?"best":"")+
+      td(x.asked?'<span class="num">'+x.answered+'/'+x.asked+'</span>':"אין נתונים",x.asked?(x.answered===x.asked?"best":""):"unk")+td(x.avgH!=null?esc(fmtHours(x.avgH)):"—")+
+      td(x.branch?'<span class="num">'+x.branch+'</span>':"0",x.branch?"miss":"")+td(x.avgDays!=null?'<span class="num">'+(Math.round(x.avgDays*10)/10)+'</span>':"—")+td(x.avgWar!=null?'<span class="num">'+Math.round(x.avgWar)+'</span>':"—")+
+      td(esc(x.emergencyAvail||"לא ידוע"),x.emergencyAvail?"":"unk")+'</tr>'}).join("")+'</tbody></table></div></div>';
+  // item prices over time
+  var iq=(f.item||"").toLowerCase();
+  var keys=Object.keys(D.items).filter(function(k){return !iq||D.items[k].name.toLowerCase().indexOf(iq)>=0});
+  var sups=L.map(function(x){return x.name});
+  h+='<div class="sec"><h2>מחירי פריטים לאורך זמן</h2><div class="small muted">מחיר ליחידה לפני מע״מ, מההצעה האחרונה של כל ספק. כשלא ידוע אם המחיר כולל מע״מ, הוא מוצג כפי שנכתב. החץ מראה את השינוי מההצעה הראשונה לאחרונה.</div>'+
+    '<div class="filters" data-fkey="ss"><input class="q" type="search" id="f-ss-item" data-filter="item" placeholder="חיפוש פריט…" value="'+esc(f.item||"")+'"></div>'+
+    (keys.length?'<div class="tbl-wrap"><table><thead><tr><th>פריט</th>'+sups.map(function(n){return'<th>'+esc(n)+'</th>'}).join("")+'</tr></thead><tbody>'+
+      keys.slice(0,60).map(function(k){var it=D.items[k];
+        var last=sups.map(function(sn){var a=(it.by[sn]||[]).slice().sort(function(x,y){return x.d<y.d?-1:1});return a.length?{first:a[0].u,last:a[a.length-1].u,cnt:a.length}:null});
+        var mn=last.filter(Boolean).map(function(x){return x.last});mn=mn.length?Math.min.apply(null,mn):null;
+        return '<tr><th>'+esc(it.name)+'</th>'+last.map(function(x){if(!x)return'<td class="muted">—</td>';
+          var ch=x.cnt>1&&x.first?Math.round((x.last-x.first)/x.first*100):null;
+          return '<td class="'+(x.last===mn&&sups.length>1?"best":"")+'"><span class="num">'+money(Math.round(x.last*100)/100)+'</span>'+(ch?'<div class="small" style="color:'+(ch>0?"var(--bad)":"var(--ok)")+'">'+(ch>0?"▲ +":"▼ ")+ch+'%</div>':"")+'</td>'}).join("")+'</tr>'}).join("")+'</tbody></table></div>'
+    :'<div class="empty">אין מחירי פריטים בתקופה הזו.</div>')+'</div>';
+  h+='<div class="sec"><div class="sec-h"><h2>סיכום תקופה מ-Claude</h2><button class="btn sm" data-act="ss-ai" id="ss-ai-btn">נתח את הספקים</button></div><div class="ai-box" id="ss-ai-out">'+(S.ssAI?fmtAI(S.ssAI):'<span class="muted">Claude יקבל רק את הטבלה שלמעלה, ויסביר במילים פשוטות מי הספק הכי משתלם, מי הכי אמין בחירום, ואיפה כדאי לנהל משא ומתן.</span>')+'</div></div>';
+  return h;
+}
+function ssAI(){
+  var D=supStatsData();if(!D.list.length){toast("אין נתונים לניתוח");return}
+  var out=document.getElementById("ss-ai-out"),btn=document.getElementById("ss-ai-btn");
+  getSample().then(function(sample){
+    if(!sample){toast("ניתוח עם Claude לא זמין כאן");return}
+    btn.disabled=true;out.textContent="Claude מנתח…";
+    var data=D.list.map(function(x){return{ספק:x.name,הצעות:x.quotes,הכי_זול:x.cmp2?x.cheapest+"/"+x.cmp2:null,ממוצע_מעל_הזול_אחוז:x.avgAbove!=null?Math.round(x.avgAbove):null,נבחר_לשוטף:x.partner,נבחר_לחירום:x.emerg,קניות:x.buys,סכום_קניות:Math.round(x.buySum),אחוז_אספקה_בזמן:x.onTimeRate!=null?Math.round(x.onTimeRate*100):null,פניות:x.asked,ענה:x.answered,דרש_להגיע_לסניף:x.branch,זמן_תגובה_ממוצע_שעות:x.avgH!=null?Math.round(x.avgH*10)/10:null,זמינות_בחירום:x.emergencyAvail||"לא ידוע",דירוג_שלי:x.rating,ציון_שותפות:x.partnerScore.v,ציון_חירום:x.emergScore.v}});
+    var prompt="אני טכנאי (מצלמות, רשתות, אזעקות, חשמל). זה סיכום הספקים שלי לתקופה "+(D.f.from||"ההתחלה")+" עד "+(D.f.to||"היום")+(D.f.domain?" בתחום "+D.f.domain:"")+":\n"+JSON.stringify(data).slice(0,50000)+
+      "\n\nכתוב בעברית פשוטה, משפטים קצרים, עד 250 מילים:\n**מי הספק הכי משתלם ולמה**\n**על מי אפשר לסמוך בחירום**\n**ספקים שכדאי להיזהר מהם**\n**איפה לנהל משא ומתן או לבקש הנחה**\n**מה חסר לי לרשום כדי שהניתוח יהיה טוב יותר**\n"+
+      "השתמש רק בנתונים. null = לא ידוע. אם יש מעט נתונים, אמור שהמסקנה חלשה.";
+    sample(prompt,{onText:function(x){out.textContent=x.text}}).then(function(res){S.ssAI=res.text;out.innerHTML=fmtAI(res.text)})
+      .catch(function(e){out.textContent=(e&&e.text)||"";toast(aiErr(e))}).then(function(){btn.disabled=false});
+  });
+}
+
 /* Claude (sample capability) */
 var samplePromise=null;
 function getSample(){if(!samplePromise){samplePromise=(window.claude&&window.claude.use)?window.claude.use("sample").catch(function(){return null}):Promise.resolve(null)}return samplePromise}
@@ -1196,10 +1385,11 @@ function compareForm(c,isNew){
   var projs=all("project");
   var body='<div class="grid2">'+field("מה קונים? (שם ההשוואה)","title",c.title,"text","full")+
     '<label class="f full">פרויקט<select name="projectId" id="fm-projectId"><option value="">ללא</option>'+projs.map(function(p){return'<option value="'+esc(p.id)+'"'+(p.id===c.projectId?" selected":"")+'>'+esc(p.name)+'</option>'}).join("")+'</select></label>'+
+    selField("תחום","domain",DOMAINS,c.domain||"","בחר תחום")+
     selField("סטטוס","status",CSTATUS,c.status||"פתוחה")+
     field("הערות","notes",c.notes,"textarea","full")+'</div>';
   openSheet(isNew?"השוואה חדשה":"עריכת השוואה",body,function(form){
-    c.title=fval(form,"title");c.status=fval(form,"status")||"פתוחה";c.projectId=fval(form,"projectId");c.notes=fval(form,"notes");
+    c.title=fval(form,"title");c.status=fval(form,"status")||"פתוחה";c.domain=fval(form,"domain");c.projectId=fval(form,"projectId");c.notes=fval(form,"notes");
     if(!c.title){toast("כתוב מה קונים");return}
     persist(c);closeSheet();if(isNew)location.hash="#c-"+c.id;
   });
@@ -1207,7 +1397,7 @@ function compareForm(c,isNew){
 function sqForm(q,isNew){
   var sups=uniq(all("supplier").map(function(s){return s.name}));
   var body=datalists()+
-  '<div class="card stack" style="gap:8px"><b>יש לך את ההצעה בטקסט או בצילום?</b><div class="small muted">הדבק את הטקסט או צרף צילום של ההצעה, ולחץ "מלא אוטומטית עם Claude". Claude ימלא את השדות, ואתה בודק ומתקן לפני השמירה. שדה שלא כתוב בהצעה יישאר ריק.</div>'+
+  '<div class="card stack" style="gap:8px"><b>יש לך את ההצעה בטקסט, בצילום או ב-PDF?</b><div class="small muted">העלה את הקובץ או הדבק את הטקסט, ולחץ "מלא אוטומטית עם Claude". Claude ימלא את השדות, ואתה בודק ומתקן לפני השמירה. שדה שלא כתוב בהצעה יישאר ריק.</div>'+
     '<label class="f">טקסט ההצעה<textarea name="rawText" id="fm-rawText" placeholder="הדבק כאן מייל או הודעה מהספק…">'+esc(q.rawText||"")+'</textarea></label>'+
     '<div class="photos" id="sheet-photos"></div>'+
     '<button type="button" class="btn" data-act="sq-ai" id="sq-ai-btn">מלא אוטומטית עם Claude</button><div class="small" id="sq-ai-out"></div></div>'+
@@ -1218,11 +1408,12 @@ function sqForm(q,isNew){
     field("זמן אספקה (ימים)","deliveryDays",q.deliveryDays,"number")+field("אחריות (חודשים)","warrantyMonths",q.warrantyMonths,"number")+
     selField("מלאי","stock",STOCK,q.stock||"לא ידוע")+selField("זמינות בחירום","emergency",EMERG,q.emergency||"לא ידוע")+
     field("תנאי תשלום","payment",q.payment,"text","full")+
+    '<label class="f full">סה״כ כפי שכתוב בהצעה (לא חובה)<input type="number" inputmode="decimal" step="any" name="totalOverride" id="fm-totalOverride" value="'+esc(q.totalOverride||"")+'"><span class="hint">כשהספק נתן רק מחיר כולל בלי פירוט, או כשהסכום שלו שונה מסכום השורות. אם מלא, ההשוואה משתמשת בו במקום סכום השורות (משלוח מתווסף בנפרד).</span></label>'+
   '</div>'+
   '<div class="sec"><h3>פריטים ומחירים</h3><div class="sl-row qhead"><span>תיאור</span><span>כמות</span><span>מחיר יח׳</span><span></span></div><div id="sheet-lines" class="stack" style="gap:6px"></div><button type="button" class="btn sm" data-act="sl-add">+ שורה</button></div>'+
   field("הערות","notes",q.notes,"textarea","full");
   openSheet(isNew?"הצעה מספק":"עריכת הצעה מספק",body,function(form){
-    ["supplier","date","validUntil","vatInc","shipping","deliveryDays","warrantyMonths","stock","emergency","payment","notes","rawText"].forEach(function(k){q[k]=fval(form,k)});
+    ["supplier","date","validUntil","vatInc","shipping","deliveryDays","warrantyMonths","stock","emergency","payment","notes","rawText","totalOverride"].forEach(function(k){q[k]=fval(form,k)});
     q.lines=readSheetLines().filter(function(l){return l.desc||l.unit});
     q.photos=sheetState.photos;
     if(sheetState.ai){q.aiSummary=sheetState.ai.summary||"";q.aiUnclear=sheetState.ai.unclear||[]}
@@ -1230,6 +1421,7 @@ function sqForm(q,isNew){
     if(!supByName(q.supplier)){persist({id:uid(),kind:"supplier",name:q.supplier,category:"",contact:"",phone:"",emergencyPhone:"",emergency:"לא ידוע",rating:"",payment:"",notes:""})}
     persist(q);closeSheet();toast("ההצעה נשמרה");
   },{photos:(q.photos||[]).slice()});
+  sheetState.allowPdf=true;
   sheetState.lines=(q.lines&&q.lines.length?clone(q.lines):[{id:uid(),desc:"",qty:"1",unit:""}]);
   sheetState.files=[];
   renderSheetLines();renderSheetPhotos();
@@ -1239,7 +1431,7 @@ function readSheetLines(){
   var root=document.getElementById("sheet-lines");if(!root)return sheetState.lines;
   sheetState.lines=sheetState.lines.map(function(l){
     function v(f){var el=root.querySelector('[data-sl="'+l.id+'"][data-f="'+f+'"]');return el?el.value.trim():(l[f]||"")}
-    return{id:l.id,desc:v("desc"),qty:v("qty"),unit:v("unit")};
+    return{id:l.id,desc:v("desc"),qty:v("qty"),unit:v("unit"),match:l.match||""};
   });
   return sheetState.lines;
 }
@@ -1259,7 +1451,9 @@ function sqAI(){
   getSample().then(function(sample){
     if(!sample){toast("ניתוח עם Claude לא זמין כאן");return}
     return sample.limits().catch(function(){return null}).then(function(lim){
-      var imgs=lim&&lim.images?files.filter(function(f){return f.size<=lim.images.maxInputBytes}).slice(0,lim.images.maxCount):[];
+      var imgs=lim&&lim.images?files.filter(function(f){return f.size<=lim.images.maxInputBytes&&(!lim.images.mediaTypes||lim.images.mediaTypes.indexOf(f.type)>=0||(f.type||"").indexOf("image/")===0&&lim.images.mediaTypes.indexOf(f.type)>=0)}).slice(0,lim.images.maxCount):[];
+      var skippedPdf=files.some(function(f){return f.type==="application/pdf"})&&!imgs.some(function(f){return f.type==="application/pdf"});
+      if(skippedPdf)toast("את ה-PDF Claude לא יכול לקרוא כאן. צלם מסך של ההצעה או הדבק את הטקסט.");
       if(!raw&&!imgs.length){toast("לא ניתן לשלוח את הצילום. הדבק את הטקסט.");return}
       btn.disabled=true;out.textContent="Claude קורא את ההצעה…";
       var prompt="אתה עוזר לטכנאי בישראל לקרוא הצעת מחיר שקיבל מספק. "+(imgs.length?"מצורפים צילומים של ההצעה. ":"")+"החזר JSON בלבד, במבנה הזה:\n"+
@@ -1337,8 +1531,9 @@ function jobForm(j,isNew){
 }
 function renderSheetPhotos(){
   var el=document.getElementById("sheet-photos");if(!el||!sheetState)return;
-  el.innerHTML=sheetState.photos.map(function(p,i){return'<div class="ph"><img src="'+esc(photoSrc(p))+'" alt="תמונה '+(i+1)+'"><button type="button" data-act="sph-del" data-i="'+i+'" aria-label="הסר תמונה">✕</button></div>'}).join("")+
-  '<label class="ph-add">+ צלם / בחר<input type="file" accept="image/*" multiple data-photo-for="__sheet"></label>';
+  var pdf=sheetState.allowPdf;
+  el.innerHTML=sheetState.photos.map(function(p,i){return fileTile(p,i,'data-act="sph-del"')}).join("")+
+  '<label class="ph-add">'+(pdf?"+ העלה הצעה (צילום / PDF)":"+ צלם / בחר")+'<input type="file" accept="'+(pdf?"image/*,application/pdf":"image/*")+'" multiple data-photo-for="__sheet"></label>';
 }
 
 function newJob(pre){
@@ -1406,7 +1601,7 @@ function supForm(s,isNew){
     field("תנאי תשלום רגילים","payment",s.payment,"text","full")+
     field("הערות","notes",s.notes,"textarea","full")+'</div>'+
   (s.phone?'<div class="row"><span class="num">'+esc(s.phone)+'</span><button type="button" class="btn sm" data-act="copy" data-text="'+esc(s.phone)+'">העתק מספר</button></div>':"")+
-  (isNew?"":'<button type="button" class="btn bad sm" data-act="del" data-id="'+esc(s.id)+'" data-back="#suppliers">מחק ספק</button>');
+  (isNew?"":'<div class="row"><button type="button" class="btn sm" data-act="sup-stats" data-name="'+esc(s.name)+'">ניתוח הספק לאורך השנה</button><button type="button" class="btn bad sm" data-act="del" data-id="'+esc(s.id)+'" data-back="#suppliers">מחק ספק</button></div>');
   openSheet(isNew?"ספק חדש":"עריכת ספק",body,function(form){
     ["name","category","contact","phone","emergencyPhone","emergency","rating","payment","notes"].forEach(function(k){s[k]=fval(form,k)});
     if(!s.name){toast("צריך שם ספק");return}
@@ -1436,7 +1631,7 @@ function confirmSheet(msg,label,fn){
 }
 function menuSheet(){
   var b='<div class="menu-grid">'+
-    [["#fastcam","⚡ הצעה מהירה למצלמות"],["#prices","המחירון שלי"],["#compare","השוואת הצעות מספקים"],["#installs","התקנות: מצלמות, רשתות, אזעקות"],["#server","חדר שרתים"],["#farm","חוות הסוסים בגיאה"],["#reminders","תזכורות וחשמלאי"],["#missing","ציוד חסר"],["#finance","הכנסות והוצאות"],["#suppliers","ספקים"],["#jobs","עבודות ותקלות"]]
+    [["#fastcam","⚡ הצעה מהירה למצלמות"],["#supstats","📊 ניתוח ספקים"],["#prices","המחירון שלי"],["#compare","השוואת הצעות מספקים"],["#installs","התקנות: מצלמות, רשתות, אזעקות"],["#server","חדר שרתים"],["#farm","חוות הסוסים בגיאה"],["#reminders","תזכורות וחשמלאי"],["#missing","ציוד חסר"],["#finance","הכנסות והוצאות"],["#suppliers","ספקים"],["#jobs","עבודות ותקלות"]]
     .map(function(x){return'<a class="btn" href="'+x[0]+'" data-act="sheet-close-nav">'+esc(x[1])+'</a>'}).join("")+'</div>'+'<div class="small muted">ההמלצה במסך השוואת הספקים מחושבת בדף עצמו. ניתוח עם Claude רץ רק כשלוחצים על הכפתור שלו.</div>';
   openSheet("עוד",b,null,{noSave:true,noFocus:true});
 }
@@ -1456,6 +1651,10 @@ function handlePhotos(files,target){
   toast("מעלה "+files.length+" תמונות…");
   var chain=Promise.resolve(),added=[];
   files.forEach(function(file){chain=chain.then(function(){
+    if(file.type==="application/pdf"){
+      if(S.mode==="db"&&S.assets)return S.assets.upload(file,{type:"application/pdf"}).then(function(up){added.push({id:up.id,url:up.url,name:file.name,type:"pdf",at:today()})}).catch(function(){toast("העלאת PDF נכשלה")});
+      toast("קובץ PDF נשמר רק כשהדף מחובר לענן. צלם מסך של ההצעה במקום.");return;
+    }
     if(S.mode==="db"&&S.assets){
       return compress(file,1600,0.82).then(function(r){return S.assets.upload(r.blob||file,{type:"image/jpeg"})}).then(function(up){added.push({id:up.id,url:up.url,name:file.name,at:today()})}).catch(function(){toast("העלאת תמונה נכשלה")});
     }
@@ -1542,6 +1741,13 @@ document.addEventListener("click",function(ev){
     case "sl-del":readSheetLines();var slid=t.getAttribute("data-l");sheetState.lines=sheetState.lines.filter(function(l){return l.id!==slid});renderSheetLines();break;
     case "cmp-ai":cmpAI(id);break;
     case "req-add":reqForm(id);break;
+    case "match-open":matchForm(id);break;
+    case "match-ai":matchAI();break;
+    case "sup-stats":S.filters.ss=S.filters.ss||{};S.filters.ss.supplier=t.getAttribute("data-name");closeSheet();location.hash="#supstats";break;
+    case "ss-period":S.filters.ss=S.filters.ss||{};var pr=t.getAttribute("data-val");var y=new Date().getFullYear();
+      if(pr==="year"){S.filters.ss.from=y+"-01-01";S.filters.ss.to=""}else if(pr==="12m"){var d12=new Date();d12.setFullYear(d12.getFullYear()-1);S.filters.ss.from=d12.toISOString().slice(0,10);S.filters.ss.to=""}else if(pr==="last"){S.filters.ss.from=(y-1)+"-01-01";S.filters.ss.to=(y-1)+"-12-31"}else{S.filters.ss.from="";S.filters.ss.to=""}
+      S.filters.ss.period=pr;render();break;
+    case "ss-ai":ssAI();break;
     case "req-del":var rid=t.getAttribute("data-r");confirmSheet("למחוק את רישום הפנייה?","מחק",function(){mutate(id,function(c){c.requests=(c.requests||[]).filter(function(r){return r.id!==rid})})});break;
     case "price-new":priceForm({id:uid(),kind:"price",name:"",category:"",unit:"יח׳",cost:"",sell:"",supplier:"",notes:"",history:[]},true);break;
     case "price-edit":priceForm(get(id),false);break;
@@ -1570,8 +1776,8 @@ document.addEventListener("input",function(ev){
   var t=ev.target;
   if(t.hasAttribute("data-fcset")){var st0=fcSettings();st0[t.getAttribute("data-fcset")]=t.value.trim();S.items[st0.id]=st0;updateFastSummary();return}
   if((t.hasAttribute("data-fc")||t.hasAttribute("data-fcsite")||t.hasAttribute("data-fcx"))&&t.tagName!=="SELECT"){fastFromInput(t);updateFastSummary();return}
-  if(t.hasAttribute("data-filter")){var k=t.closest("[data-fkey]").getAttribute("data-fkey");S.filters[k]=S.filters[k]||{};S.filters[k][t.getAttribute("data-filter")]=t.value;
-    if(t.tagName==="SELECT"){render()}else{clearTimeout(filterTimer);filterTimer=setTimeout(function(){var pos=t.selectionStart,idd=t.id;render();var el=document.getElementById(idd);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}},250)}
+  if(t.hasAttribute("data-filter")){var k=t.closest("[data-fkey]").getAttribute("data-fkey");S.filters[k]=S.filters[k]||{};S.filters[k][t.getAttribute("data-filter")]=t.value;if(k==="ss"&&(t.getAttribute("data-filter")==="from"||t.getAttribute("data-filter")==="to"))S.filters.ss.period="custom";
+    if(t.tagName==="SELECT"||t.type==="date"){render()}else{clearTimeout(filterTimer);filterTimer=setTimeout(function(){var pos=t.selectionStart,idd=t.id;render();var el=document.getElementById(idd);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}},250)}
   }
 });
 document.addEventListener("change",function(ev){
@@ -1584,6 +1790,7 @@ document.addEventListener("change",function(ev){
   if(t.hasAttribute("data-spec")){mutate(t.getAttribute("data-spec"),function(p){p.specs.forEach(function(s){if(s.id===t.getAttribute("data-s"))s.value=t.value.trim()})});return}
   if(t.hasAttribute("data-vlan")){mutate(t.getAttribute("data-vlan"),function(p){p.vlans.forEach(function(v){if(v.id===t.getAttribute("data-v"))v[t.getAttribute("data-f")]=t.value.trim()})});return}
   if(t.hasAttribute("data-cmpchoice")){mutate(t.getAttribute("data-cmpchoice"),function(c){c[t.getAttribute("data-f")]=t.value;if(c.status!=="העסקה הלכה למתחרה")c.status=(c.chosenPartner||c.chosenEmerg)?"הוחלט":"פתוחה"});return}
+  if(t.hasAttribute("data-buy")){mutate(t.getAttribute("data-buy"),function(c){c.purchase=c.purchase||{};c.purchase[t.getAttribute("data-f")]=t.value.trim()});return}
   if(t.hasAttribute("data-qlost")){mutate(t.getAttribute("data-qlost"),function(q){q.lostReason=t.value});return}
   if(t.hasAttribute("data-req")){mutate(t.getAttribute("data-req"),function(c){(c.requests||[]).forEach(function(r){if(r.id===t.getAttribute("data-r")){r[t.getAttribute("data-f")]=t.value;if(t.getAttribute("data-f")==="status"&&t.value!=="ממתין לתשובה"&&!r.answeredAt&&r.askedAt)r.answeredAt=nowLocal()}})});return}
   if(t.hasAttribute("data-fcset")){var st=fcSettings();st[t.getAttribute("data-fcset")]=t.value.trim();persist(st);updateFastSummary();return}
