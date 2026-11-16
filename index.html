@@ -270,7 +270,7 @@ var DOMAINS=["מצלמות","רשתות","אזעקות","חשמל","שרתים",
 var INSTALL_DOMAINS=["מצלמות","רשתות","אזעקות"];
 var JTYPES=["משימה","קריאת שירות","תקלה","התקנה"];
 var JSTATUS=["פתוח","בטיפול","ממתין לחלקים","ממתין ללקוח","ממתין לחשמלאי","הושלם","בוטל"];
-var QSTATUS=["טיוטה","נשלחה","אושרה","נדחתה","הומרה לפרויקט"];
+var QSTATUS=["טיוטה","נשלחה","אושרה","נדחתה","הלקוח סגר עם אחר","הומרה לפרויקט"];
 var PSTATUS=["תכנון","פעיל","ממתין","הושלם"];
 var ESTATUS=["לא ידוע","נדרש","הוזמן","התקבל","הותקן"];
 var VAT=0.18;
@@ -280,8 +280,14 @@ var VATINC=["לא ידוע","כולל מע״מ","לא כולל מע״מ"];
 var EMERG_SCORE={"זמין 24/7":1,"זמין גם בערב ובסופ״ש":0.7,"רק בשעות עבודה":0.25};
 var STOCK_SCORE={"במלאי":1,"חלקי במלאי":0.6,"בהזמנה":0.25};
 var CRIT={price:"מחיר",delivery:"זמן אספקה",warranty:"אחריות",emergency:"זמינות בחירום",stock:"מלאי",rating:"הדירוג שלך לספק",coverage:"כל הפריטים בהצעה"};
-var W_PARTNER={price:.35,coverage:.2,rating:.2,warranty:.15,delivery:.1};
-var W_EMERG={emergency:.35,stock:.25,delivery:.25,rating:.1,price:.05};
+CRIT.response="עונה לפניות";
+var W_PARTNER={price:.35,coverage:.2,rating:.15,warranty:.15,delivery:.1,response:.05};
+var W_EMERG={emergency:.3,stock:.2,delivery:.2,response:.15,rating:.1,price:.05};
+var REQ_ST=["ממתין לתשובה","ענה","לא ענה","דרש להגיע לסניף","סירב"];
+var CSTATUS=["פתוחה","הוחלט","העסקה הלכה למתחרה"];
+var LOST_REASONS=["לא הספקתי לתת מחיר בזמן","המחיר שלי גבוה","הלקוח לא חזר אליי","אחר"];
+var PCATS=["מצלמות","מקליטים (NVR)","דיסקים","כבלים ואביזרים","רשתות","אזעקות","חשמל","שרתים","עבודה","אחר"];
+var PUNITS=["יח׳","מטר","גליל 305 מ׳"];
 
 /* ---------- state ---------- */
 var S={items:{},mode:"loading",db:null,assets:null,col:null,filters:{},seg:{},dirty:false,loadedOnce:false};
@@ -307,7 +313,8 @@ function opts(list,sel,emptyLabel){var o=emptyLabel!=null?'<option value="">'+es
 function uniq(arr){return Array.from(new Set(arr.filter(Boolean))).sort(function(a,b){return a.localeCompare(b,"he")})}
 function statusPill(s){
   var cls={"הושלם":"ok","הותקן":"ok","התקבל":"ok","אושרה":"ok","הומרה לפרויקט":"acc","פעיל":"acc","בטיפול":"acc","נשלחה":"acc","הוזמן":"acc",
-    "ממתין לחשמלאי":"warn","ממתין לחלקים":"warn","ממתין ללקוח":"warn","ממתין":"warn","נדרש":"warn","לא ידוע":"","פתוח":"","טיוטה":"","תכנון":"","נדחתה":"bad","בוטל":"bad"}[s]||"";
+    "ממתין לחשמלאי":"warn","ממתין לחלקים":"warn","ממתין ללקוח":"warn","ממתין":"warn","נדרש":"warn","לא ידוע":"","פתוח":"","טיוטה":"","תכנון":"","נדחתה":"bad","בוטל":"bad",
+    "הלקוח סגר עם אחר":"bad","העסקה הלכה למתחרה":"bad","הוחלט":"ok","פתוחה":"","ענה":"ok","ממתין לתשובה":"warn","לא ענה":"bad","דרש להגיע לסניף":"bad","סירב":"bad"}[s]||"";
   return '<span class="pill '+cls+'">'+esc(s||"ללא סטטוס")+'</span>';
 }
 function toast(msg){var t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove()},2200)}
@@ -433,7 +440,8 @@ function render(){
   if(/^p-/.test(r)||r==="server"||r==="farm"){tab="projects"}
   else if(/^q-/.test(r)){tab="quotes"}
   else if(/^j-/.test(r)){tab="jobs"}
-  else if(["installs","finance","suppliers","reminders","missing","compare"].indexOf(r)>=0||/^c-/.test(r)){tab="more"}
+  else if(["installs","finance","suppliers","reminders","missing","compare","prices"].indexOf(r)>=0||/^c-/.test(r)){tab="more"}
+  else if(r==="fastcam"){tab="quotes"}
   document.querySelectorAll("nav.tabs [data-tab]").forEach(function(a){a.classList.toggle("on",a.getAttribute("data-tab")===tab)});
   if(r==="home")html=vHome();
   else if(r==="jobs")html=vJobs();
@@ -445,6 +453,8 @@ function render(){
   else if(r==="reminders")html=vReminders();
   else if(r==="missing")html=vMissing();
   else if(r==="compare")html=vCompares();
+  else if(r==="prices")html=vPrices();
+  else if(r==="fastcam")html=vFast();
   else if(/^c-/.test(r))html=vCompare(r.slice(2));
   else if(r==="server")html=vTemplate("server");
   else if(r==="farm")html=vTemplate("farm");
@@ -480,6 +490,7 @@ function vHome(){
   return ''+
   '<div class="row between"><div><h1>שלום, מה עושים היום?</h1><div class="muted small">'+d.toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+'</div></div></div>'+
   '<button class="btn pri big-new" data-act="new-job">+ עבודה חדשה</button>'+
+  '<a class="btn big-new" href="#fastcam">⚡ הצעה מהירה למצלמות</a>'+
   (alerts.length?'<div class="alerts">'+alerts.join("")+'</div>':"")+
   '<div class="tiles">'+
     tile(tasks.length,"משימות פתוחות","#jobs")+
@@ -611,6 +622,7 @@ function vQuote(id){
   return backLink("#quotes","הצעות מחיר")+
   '<div class="row between"><div><h1>'+esc(q.title||q.client||"הצעת מחיר")+'</h1><div class="small muted">'+[q.client,q.domain,q.address,q.area].filter(Boolean).map(esc).join(" · ")+'</div></div>'+statusPill(q.status)+'</div>'+
   '<div class="sec"><h3>סטטוס</h3><div class="seg">'+QSTATUS.filter(function(s){return s!=="הומרה לפרויקט"}).map(function(s){return'<button type="button" data-act="q-status" data-id="'+esc(id)+'" data-val="'+esc(s)+'" aria-pressed="'+(s===q.status)+'">'+esc(s)+'</button>'}).join("")+'</div></div>'+
+  (q.status==="הלקוח סגר עם אחר"?'<label class="f">למה הלקוח סגר עם אחר?<select id="q-lost-'+esc(id)+'" data-qlost="'+esc(id)+'">'+opts(LOST_REASONS,q.lostReason||"","בחר סיבה")+'</select></label>':"")+
   '<div class="sec"><div class="sec-h"><h2>שורות ההצעה (טיוטה נוכחית)</h2></div>'+
   '<div class="qline qhead"><span>תיאור</span><span>כמות</span><span>מחיר יח׳</span><span></span></div>'+
   (q.lines||[]).map(function(l){return '<div class="qline">'+
@@ -719,6 +731,7 @@ function vInstalls(){
   var quotes=all("quote").filter(function(q){return q.domain===seg});
   var projects=all("project").filter(function(p){return p.domain===seg});
   return '<h1>התקנות והצעות לפי תחום</h1>'+segBar("installs",INSTALL_DOMAINS,seg)+
+  (seg==="מצלמות"?'<a class="btn wide" href="#fastcam">⚡ הצעה מהירה למצלמות (מהמחירון שלך)</a>':"")+
   '<div class="row"><button class="btn pri" data-act="new-job" data-domain="'+esc(seg)+'" data-jtype="התקנה">+ התקנת '+esc(seg)+'</button><button class="btn" data-act="new-quote" data-domain="'+esc(seg)+'">+ הצעת מחיר ל'+esc(seg)+'</button></div>'+
   '<div class="sec"><h2>הצעות מחיר — '+esc(seg)+'</h2>'+(quotes.length?'<div class="list">'+quotes.map(quoteItem).join("")+'</div>':'<div class="empty">אין הצעות בתחום הזה.</div>')+'</div>'+
   '<div class="sec"><h2>פרויקטים — '+esc(seg)+'</h2>'+(projects.length?'<div class="list">'+projects.map(projectItem).join("")+'</div>':'<div class="empty">אין פרויקטים בתחום הזה.</div>')+'</div>'+
@@ -753,7 +766,7 @@ function vSuppliers(){
   '<div class="filters" data-fkey="sup"><input class="q" type="search" id="f-sup-q" placeholder="חיפוש ספק…" value="'+esc((S.filters.sup||{}).q||"")+'" data-filter="q"></div>'+
   '<a class="btn wide" href="#compare">השוואת הצעות מחיר מספקים</a>'+
   (list.length?'<div class="list">'+list.map(function(s){var st=supStats(s.name);return'<button class="item" data-act="edit-sup" data-id="'+esc(s.id)+'"><div class="main"><span class="t">'+esc(s.name||"ספק")+'</span><span class="meta">'+(s.category?'<span>'+esc(s.category)+'</span>':"")+(s.contact?'<span>'+esc(s.contact)+'</span>':"")+(s.phone?'<span class="num">'+esc(s.phone)+'</span>':"")+'<span>חירום: '+esc(s.emergency||"לא ידוע")+'</span>'+(hasNum(s.rating)?'<span>דירוג: <span class="num">'+esc(s.rating)+'/5</span></span>':"")+'</span>'+(s.notes?'<span class="small">'+esc(s.notes)+'</span>':"")+'</div>'+
-    '<div class="side">'+(st.quotes?'<span class="pill">הצעות: '+st.quotes+'</span>':"")+(st.partner?'<span class="pill ok">נבחר לשוטף ×'+st.partner+'</span>':"")+(st.emerg?'<span class="pill warn">נבחר לחירום ×'+st.emerg+'</span>':"")+'</div></button>'}).join("")+'</div>':'<div class="empty">עוד לא נוספו ספקים.</div>');
+    '<div class="side">'+(st.quotes?'<span class="pill">הצעות: '+st.quotes+'</span>':"")+(st.partner?'<span class="pill ok">נבחר לשוטף ×'+st.partner+'</span>':"")+(st.emerg?'<span class="pill warn">נבחר לחירום ×'+st.emerg+'</span>':"")+(st.resp.asked?'<span class="pill'+(st.resp.answered===st.resp.asked?" ok":"")+'">ענה '+st.resp.answered+'/'+st.resp.asked+(st.resp.avgH!=null?" · "+fmtHours(st.resp.avgH):"")+'</span>':"")+(st.resp.branch?'<span class="pill bad">דרש להגיע לסניף ×'+st.resp.branch+'</span>':"")+'</div></button>'}).join("")+'</div>':'<div class="empty">עוד לא נוספו ספקים.</div>');
 }
 
 /* missing equipment */
@@ -792,6 +805,7 @@ function supStats(name){
   var st={quotes:0,partner:0,emerg:0};if(!name)return st;
   all("squote").forEach(function(q){if(q.supplier===name)st.quotes++});
   all("compare").forEach(function(c){if(c.chosenPartner===name)st.partner++;if(c.chosenEmerg===name)st.emerg++});
+  st.resp=supResp(name);
   return st;
 }
 function normDesc(s){return String(s||"").trim().toLowerCase().replace(/["'״׳.,]/g,"").replace(/\s+/g," ")}
@@ -813,7 +827,7 @@ function analyzeCompare(c){
       coverage:order.length?order.filter(function(k){return have[k]}).length/order.length:null,
       missingItems:order.filter(function(k){return!have[k]}).length,
       emergency:em,days:hasNum(q.deliveryDays)?n(q.deliveryDays):null,warranty:hasNum(q.warrantyMonths)?n(q.warrantyMonths):null,rating:hasNum(sup.rating)?n(sup.rating):null,
-      stock:(q.stock&&q.stock!=="לא ידוע")?q.stock:""};
+      stock:(q.stock&&q.stock!=="לא ידוע")?q.stock:"",resp:supResp(q.supplier)};
   });
   function mm(arr,fn){arr=arr.filter(function(x){return x!=null});return arr.length?fn.apply(null,arr):null}
   var A={qs:qs,rows:rows,keys:order,union:union};
@@ -830,6 +844,7 @@ function analyzeCompare(c){
     s.stock=r.stock?STOCK_SCORE[r.stock]:null;
     s.rating=r.rating!=null?r.rating/5:null;
     s.coverage=r.coverage;
+    s.response=r.resp.asked?r.resp.answered/r.resp.asked:null;
     r.s=s;r.partner=scoreOf(s,W_PARTNER);r.emerg=scoreOf(s,W_EMERG);
   });
   function best(key){var b=null;rows.forEach(function(r){if(!b||r[key].v>b[key].v)b=r});return b}
@@ -848,6 +863,8 @@ function reasonsFor(r,A,mode){
   var wr=r.warranty!=null?"אחריות "+r.warranty+" חודשים"+(r.warranty===A.maxW&&A.rows.length>1&&r.warranty>0?" (הכי ארוכה)":""):"";
   if(mode==="emerg"){out.push(em,dl);if(st)out.push(st);out.push(priceTxt)}
   else{out.push(priceTxt);if(wr)out.push(wr);out.push(dl);if(r.rating!=null)out.push("הדירוג שלך: "+r.rating+"/5")}
+  if(r.resp.asked)out.push("ענה ל-"+r.resp.answered+" מתוך "+r.resp.asked+" פניות"+(r.resp.avgH!=null?", בממוצע תוך "+fmtHours(r.resp.avgH):""));
+  if(r.resp.branch)out.push("דרש להגיע לסניף במקום לתת מחיר ("+r.resp.branch+" פעמים)");
   if(r.missingItems)out.push("חסרים בהצעה "+r.missingItems+" פריטים שיש אצל אחרים, ולכן המחיר עלול להיראות זול מדי");
   if(r.calc.vatUnknown&&r.calc.comparable>0)out.push("לא ברור אם המחיר כולל מע״מ");
   return out;
@@ -855,7 +872,7 @@ function reasonsFor(r,A,mode){
 function compareItem(c){
   var A=analyzeCompare(c);var proj=c.projectId&&S.items[c.projectId];
   return '<button class="item" data-go="#c-'+esc(c.id)+'"><div class="main"><span class="t">'+esc(c.title||"השוואה")+'</span><span class="meta"><span>הצעות: <span class="num">'+A.rows.length+'</span></span>'+(proj?'<span>'+esc(proj.name)+'</span>':"")+(A.minP?'<span>הכי זול: <span class="num">'+money(A.minP)+'</span></span>':"")+'</span></div>'+
-  '<div class="side">'+(c.status==="הוחלט"?'<span class="pill ok">הוחלט</span>':'<span class="pill">פתוחה</span>')+(c.chosenPartner?'<span class="small">'+esc(c.chosenPartner)+'</span>':"")+'</div></button>';
+  '<div class="side">'+statusPill(c.status||"פתוחה")+(c.chosenPartner?'<span class="small">'+esc(c.chosenPartner)+'</span>':"")+'</div></button>';
 }
 function vCompares(){
   var list=all("compare").sort(function(a,b){return (b.updatedAt||"")<(a.updatedAt||"")?-1:1});
@@ -868,9 +885,10 @@ function vCompare(id){
   var c=S.items[id];if(!c)return notFound();
   var A=analyzeCompare(c);var proj=c.projectId&&S.items[c.projectId];
   var h=backLink("#compare","השוואות")+
-  '<div class="row between"><div><h1>'+esc(c.title||"השוואה")+'</h1><div class="small muted">'+(proj?esc(proj.name)+" · ":"")+'<span class="num">'+A.rows.length+'</span> הצעות</div></div>'+(c.status==="הוחלט"?'<span class="pill ok">הוחלט</span>':'<span class="pill">פתוחה</span>')+'</div>'+
+  '<div class="row between"><div><h1>'+esc(c.title||"השוואה")+'</h1><div class="small muted">'+(proj?esc(proj.name)+" · ":"")+'<span class="num">'+A.rows.length+'</span> הצעות</div></div>'+statusPill(c.status||"פתוחה")+'</div>'+
   '<div class="row"><button class="btn pri" data-act="sq-new" data-id="'+esc(id)+'">+ הצעה מספק</button><button class="btn sm" data-act="edit-compare" data-id="'+esc(id)+'">עריכה</button></div>';
-  if(!A.rows.length)return h+'<div class="empty">הוסף לפחות שתי הצעות מספקים שונים כדי לראות השוואה.</div>';
+  h+=reqSec(c);
+  if(!A.rows.length)return h+'<div class="empty">עוד לא הוזנו הצעות עם מחירים. הוסף לפחות שתי הצעות מספקים שונים כדי לראות השוואה.</div>'+'<div class="row"><button class="btn bad" data-act="del-compare" data-id="'+esc(id)+'">מחיקת ההשוואה</button></div>';
 
   // bottom line
   if(A.rows.length<2){h+='<div class="banner">יש כרגע הצעה אחת. הוסף עוד הצעה כדי להשוות.</div>'}
@@ -903,6 +921,7 @@ function vCompare(id){
     ["מלאי",function(r){return cell(r.stock?esc(r.stock):"לא ידוע",r.stock==="במלאי",!r.stock)}],
     ["פריטים בהצעה",function(r){return cell(A.keys.length?'<span class="num">'+(A.keys.length-r.missingItems)+'/'+A.keys.length+'</span>':"—",r.missingItems===0&&A.keys.length>0,false)}],
     ["ההצעה בתוקף עד",function(r){return cell(r.q.validUntil?'<span class="num">'+fmtDate(r.q.validUntil)+'</span>':"לא ידוע",false,!r.q.validUntil)}],
+    ["עונה לפניות",function(r){return cell(r.resp.asked?'<span class="num">'+r.resp.answered+'/'+r.resp.asked+'</span>'+(r.resp.avgH!=null?' · '+fmtHours(r.resp.avgH):""):"אין נתונים",false,!r.resp.asked)}],
     ["הדירוג שלך",function(r){return cell(r.rating!=null?'<span class="num">'+r.rating+'/5</span>':"לא דורג",false,r.rating==null)}],
     ["ציון לשוטף",function(r){return cell('<span class="num">'+r.partner.v+'</span>',A.bestPartner===r,false)}],
     ["ציון לחירום",function(r){return cell('<span class="num">'+r.emerg.v+'</span>',A.bestEmerg===r,false)}]
@@ -943,7 +962,7 @@ function vCompare(id){
     ((q.aiUnclear||[]).length?'<div class="small" style="color:var(--warn)"><b>לברר עם הספק:</b> '+q.aiUnclear.map(esc).join(" · ")+'</div>':"")+
     (q.notes?'<div class="small" style="white-space:pre-wrap">'+esc(q.notes)+'</div>':"")+
     ((q.photos||[]).length?'<div class="photos">'+q.photos.map(function(p,i){return'<div class="ph"><img src="'+esc(photoSrc(p))+'" alt="צילום הצעה '+(i+1)+'" loading="lazy"></div>'}).join("")+'</div>':"")+
-    '<div class="row"><button class="btn sm" data-act="sq-edit" data-id="'+esc(q.id)+'">עריכה</button><button class="btn sm bad" data-act="del" data-id="'+esc(q.id)+'" data-back="#c-'+esc(id)+'">מחיקה</button></div></div>'}).join("")+'</div></div>';
+    '<div class="row"><button class="btn sm" data-act="sq-edit" data-id="'+esc(q.id)+'">עריכה</button><button class="btn sm" data-act="sq-toprices" data-id="'+esc(q.id)+'">העבר מחירים למחירון</button><button class="btn sm bad" data-act="del" data-id="'+esc(q.id)+'" data-back="#c-'+esc(id)+'">מחיקה</button></div></div>'}).join("")+'</div></div>';
   h+='<div class="row"><button class="btn bad" data-act="del-compare" data-id="'+esc(id)+'">מחיקת ההשוואה</button></div>';
   return h;
 }
@@ -955,6 +974,194 @@ function recoCard(kind,r,key,A){
   (sc.miss.length?'<div class="small" style="color:var(--warn)">חסר מידע: '+sc.miss.map(esc).join(", ")+'</div>':"")+
   (weak?'<div class="small" style="color:var(--warn)"><b>ההמלצה חלשה:</b> חסרים נתונים רבים. השלם אותם לפני שמחליטים.</div>':"")+
   '</div>';
+}
+
+/* supplier response tracking */
+function nowLocal(){var d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)}
+function fmtHours(h){if(h==null)return"";if(h<1)return Math.max(1,Math.round(h*60))+" דק׳";if(h<48)return (Math.round(h*10)/10)+" שעות";return Math.round(h/24)+" ימים"}
+function fmtDT(s){if(!s)return"";var p=s.split("T");return fmtDate(p[0])+(p[1]?" "+p[1].slice(0,5):"")}
+function supResp(name){
+  var o={asked:0,answered:0,branch:0,none:0,hours:[],avgH:null};if(!name)return o;
+  all("compare").forEach(function(c){(c.requests||[]).forEach(function(r){
+    if(r.supplier!==name)return;o.asked++;
+    if(r.status==="ענה")o.answered++;else if(r.status==="דרש להגיע לסניף")o.branch++;else if(r.status==="לא ענה"||r.status==="סירב")o.none++;
+    if(r.status==="ענה"&&r.askedAt&&r.answeredAt){var h=(new Date(r.answeredAt)-new Date(r.askedAt))/36e5;if(isFinite(h)&&h>=0)o.hours.push(h)}
+  })});
+  if(o.hours.length)o.avgH=o.hours.reduce(function(a,b){return a+b},0)/o.hours.length;
+  return o;
+}
+function reqSec(c){
+  var rq=c.requests||[];
+  return '<div class="sec"><div class="sec-h"><h2>למי פניתי ומי ענה</h2><button class="btn sm" data-act="req-add" data-id="'+esc(c.id)+'">+ פנייה לספק</button></div>'+
+  '<div class="small muted">רושמים כל ספק שביקשת ממנו מחיר. ככה רואים מי עונה מהר ומי לא, וזה נכנס לציון לחירום.</div>'+
+  (rq.length?'<div class="list">'+rq.map(function(r){
+    var dur="";if(r.status==="ענה"&&r.askedAt&&r.answeredAt){var h=(new Date(r.answeredAt)-new Date(r.askedAt))/36e5;if(isFinite(h)&&h>=0)dur="ענה תוך "+fmtHours(h)}
+    return '<div class="card stack" style="gap:8px;padding:12px"><div class="row between"><b>'+esc(r.supplier||"ספק")+'</b>'+statusPill(r.status)+'</div>'+
+    '<div class="grid2"><label class="f">מה קרה<select id="rq-s-'+esc(r.id)+'" data-req="'+esc(c.id)+'" data-r="'+esc(r.id)+'" data-f="status">'+opts(REQ_ST,r.status)+'</select></label>'+
+    '<label class="f">מתי ביקשתי<input type="datetime-local" id="rq-a-'+esc(r.id)+'" value="'+esc(r.askedAt||"")+'" data-req="'+esc(c.id)+'" data-r="'+esc(r.id)+'" data-f="askedAt"></label>'+
+    '<label class="f">מתי ענה<input type="datetime-local" id="rq-b-'+esc(r.id)+'" value="'+esc(r.answeredAt||"")+'" data-req="'+esc(c.id)+'" data-r="'+esc(r.id)+'" data-f="answeredAt"></label>'+
+    '<label class="f">הערה<input type="text" id="rq-n-'+esc(r.id)+'" value="'+esc(r.notes||"")+'" data-req="'+esc(c.id)+'" data-r="'+esc(r.id)+'" data-f="notes"></label></div>'+
+    '<div class="row between"><span class="small muted">'+esc(dur)+'</span><button class="icon-btn" data-act="req-del" data-id="'+esc(c.id)+'" data-r="'+esc(r.id)+'" aria-label="מחק פנייה">✕</button></div></div>'}).join("")+'</div>'
+  :'<div class="empty">עוד לא נרשמו פניות לספקים.</div>')+'</div>';
+}
+function reqForm(cid){
+  var c=get(cid);if(!c)return;
+  var body=datalists()+'<div class="grid2"><label class="f full">ספק<input type="text" name="supplier" id="fm-supplier" list="dl-sup"></label>'+
+    selField("מה קרה","status",REQ_ST,"ממתין לתשובה")+field("מתי ביקשתי","askedAt",nowLocal(),"datetime-local")+field("הערה","notes","","text","full")+'</div>';
+  openSheet("פנייה לספק",body,function(form){
+    var r={id:uid(),supplier:fval(form,"supplier"),status:fval(form,"status"),askedAt:fval(form,"askedAt"),answeredAt:"",notes:fval(form,"notes")};
+    if(!r.supplier){toast("כתוב שם ספק");return}
+    if(r.status==="ענה"&&r.askedAt)r.answeredAt="";
+    c.requests=(c.requests||[]).concat([r]);
+    if(!supByName(r.supplier))persist({id:uid(),kind:"supplier",name:r.supplier,category:"",contact:"",phone:"",emergencyPhone:"",emergency:"לא ידוע",rating:"",payment:"",notes:""});
+    persist(c);closeSheet();
+  });
+}
+
+/* price list */
+function priceByName(name){var k=normDesc(name);return all("price").filter(function(p){return normDesc(p.name)===k})[0]}
+function vPrices(){
+  var f=S.filters.prices||{};var q=(f.q||"").toLowerCase();var cat=S.seg.prices||"הכול";
+  var list=all("price").filter(function(p){return (cat==="הכול"||p.category===cat)&&(!q||[p.name,p.supplier,p.category,p.notes].join(" ").toLowerCase().indexOf(q)>=0)}).sort(function(a,b){return (a.name||"").localeCompare(b.name||"","he")});
+  return '<div class="row between"><h1>המחירון שלי</h1><button class="btn pri" data-act="price-new">+ פריט</button></div>'+
+  '<div class="small muted">המחירים שלך, לפני מע״מ. מכאן ההצעה המהירה לוקחת מחירים. אפשר להזין ביד, או ללחוץ "העבר מחירים למחירון" על הצעה של ספק. כשיש כמה ספקים לאותו פריט, נשמר המחיר הזול ביותר וגם ההיסטוריה.</div>'+
+  segBar("prices",["הכול"].concat(PCATS),cat)+
+  '<div class="filters" data-fkey="prices"><input class="q" type="search" id="f-prices-q" placeholder="חיפוש פריט…" value="'+esc(f.q||"")+'" data-filter="q"></div>'+
+  (list.length?'<div class="list">'+list.map(function(p){return'<button class="item" data-act="price-edit" data-id="'+esc(p.id)+'"><div class="main"><span class="t">'+esc(p.name)+'</span><span class="meta">'+(p.category?'<span>'+esc(p.category)+'</span>':"")+(p.supplier?'<span>'+esc(p.supplier)+'</span>':"")+(p.updated?'<span>עודכן <span class="num">'+fmtDate(p.updated)+'</span></span>':"")+(p.vatNote?'<span style="color:var(--warn)">'+esc(p.vatNote)+'</span>':"")+'</span></div>'+
+    '<div class="side"><b class="num">'+(hasNum(p.cost)?money(p.cost):"אין מחיר")+'</b><span class="small muted">'+esc(p.unit||"יח׳")+'</span>'+(hasNum(p.sell)?'<span class="small num">ללקוח '+money(p.sell)+'</span>':"")+'</div></button>'}).join("")+'</div>'
+  :'<div class="empty">המחירון ריק. הוסף פריטים כמו מצלמה, מקליט, דיסק וכבל, עם המחיר שאתה משלם.</div>');
+}
+function priceForm(p,isNew){
+  var body=datalists()+'<div class="grid2">'+field("שם הפריט","name",p.name,"text","full")+selField("קטגוריה","category",PCATS,p.category||"","בחר")+selField("יחידה","unit",PUNITS,p.unit||"יח׳")+
+    field("המחיר שלי לפני מע״מ (₪)","cost",p.cost,"number")+field("מחיר קבוע ללקוח (לא חובה)","sell",p.sell,"number")+field("ספק","supplier",p.supplier,"text","list:dl-sup")+field("הערות","notes",p.notes,"text","full")+'</div>'+
+    ((p.history||[]).length?'<div class="sec"><h3>היסטוריית מחירים</h3><div class="small">'+p.history.slice().reverse().slice(0,10).map(function(h){return'<div><span class="num">'+fmtDate(h.date)+'</span> · '+esc(h.supplier||"")+' · <span class="num">'+money(h.cost)+'</span></div>'}).join("")+'</div></div>':"")+
+    (isNew?"":'<button type="button" class="btn bad sm" data-act="del" data-id="'+esc(p.id)+'" data-back="#prices">מחק פריט</button>');
+  openSheet(isNew?"פריט למחירון":"עריכת פריט",body,function(form){
+    ["name","category","unit","cost","sell","supplier","notes"].forEach(function(k){p[k]=fval(form,k)});
+    if(!p.name){toast("כתוב שם פריט");return}
+    p.updated=today();persist(p);closeSheet();
+  });
+}
+function squoteToPrices(qid){
+  var q=get(qid);if(!q)return;var cnt=0,skipped=0;
+  (q.lines||[]).forEach(function(l){
+    if(!l.desc||!hasNum(l.unit)){skipped++;return}
+    var cost=q.vatInc==="כולל מע״מ"?n(l.unit)/(1+VAT):n(l.unit);cost=Math.round(cost*100)/100;
+    var vatNote=(!q.vatInc||q.vatInc==="לא ידוע")?"לא ידוע אם כולל מע״מ":"";
+    var ex=priceByName(l.desc);var date=q.date||today();
+    if(ex){ex=clone(ex);ex.history=(ex.history||[]).concat([{supplier:q.supplier,cost:cost,date:date}]);
+      if(!hasNum(ex.cost)||cost<=n(ex.cost)||ex.supplier===q.supplier){ex.cost=cost;ex.supplier=q.supplier;ex.updated=date;ex.vatNote=vatNote}
+      persist(ex);}
+    else persist({id:uid(),kind:"price",name:l.desc,category:"",unit:"יח׳",cost:cost,sell:"",supplier:q.supplier,notes:"",updated:date,vatNote:vatNote,history:[{supplier:q.supplier,cost:cost,date:date}]});
+    cnt++;
+  });
+  toast(cnt?("עודכנו "+cnt+" פריטים במחירון"+(skipped?" ("+skipped+" בלי מחיר דולגו)":"")):"אין שורות עם מחיר להעברה");
+}
+
+/* fast camera quote */
+var FAST_KEY="sywc-fastcam-draft";
+function fastDefault(){return{client:"",phone:"",area:"",sites:[{id:uid(),name:"בית 1",cams:"",cableM:""}],cam:"",nvr:"",hdd:"",cable:"",extras:[]}}
+function fastState(){if(!S.fast){try{S.fast=JSON.parse(localStorage.getItem(FAST_KEY)||"null")}catch(e){}if(!S.fast)S.fast=fastDefault()}return S.fast}
+function saveFast(){try{localStorage.setItem(FAST_KEY,JSON.stringify(S.fast))}catch(e){}}
+function fcSettings(){return get("set-fastcam")||{id:"set-fastcam",kind:"settings",markup:"",laborCam:"",laborSite:""}}
+function nvrCh(c){return c<=4?4:c<=8?8:c<=16?16:32}
+function fastCalc(){
+  var F=fastState(),st=fcSettings(),mk=hasNum(st.markup)?n(st.markup)/100:null;
+  var cams=0,meters=0,sites=0;F.sites.forEach(function(s){cams+=n(s.cams);meters+=n(s.cableM);if(n(s.cams)>0)sites++});
+  var lines=[],missing=[];
+  function add(pid,qty,fallback){
+    if(!qty)return;var p=pid&&S.items[pid];
+    if(!p){missing.push(fallback);lines.push({desc:fallback,qty:qty,cost:null,sell:null});return}
+    var cost=hasNum(p.cost)?n(p.cost):null;
+    var sell=hasNum(p.sell)?n(p.sell):(cost!=null&&mk!=null?cost*(1+mk):null);
+    if(cost==null)missing.push("מחיר ל"+p.name);
+    lines.push({desc:p.name,qty:qty,cost:cost,sell:sell});
+  }
+  add(F.cam,cams,"מצלמה (לא נבחרה מהמחירון)");
+  add(F.nvr,sites,"מקליט NVR (לא נבחר)");
+  if(F.hdd)add(F.hdd,sites,"דיסק");
+  if(meters){var cp=F.cable&&S.items[F.cable];var cq=cp&&cp.unit==="גליל 305 מ׳"?Math.ceil(meters/305):meters;add(F.cable,cq,"כבל רשת ("+meters+" מטר, לא נבחר)")}
+  (F.extras||[]).forEach(function(x){if(x.pid)add(x.pid,n(x.qty)||0,"פריט נוסף")});
+  if(cams){if(hasNum(st.laborCam))lines.push({desc:"התקנה וחיווט מצלמה",qty:cams,cost:0,sell:n(st.laborCam),labor:true});else missing.push("מחיר עבודה למצלמה")}
+  if(sites){if(hasNum(st.laborSite))lines.push({desc:"הגדרת מערכת, אפליקציה והדרכה (לבית)",qty:sites,cost:0,sell:n(st.laborSite),labor:true});else missing.push("מחיר עבודה לבית")}
+  if(mk==null&&lines.some(function(l){return!l.labor&&l.cost!=null}))missing.push("אחוז רווח על ציוד");
+  var cost=0,sell=0,sellKnown=true;
+  lines.forEach(function(l){if(l.cost!=null)cost+=l.cost*l.qty;if(l.sell!=null)sell+=l.sell*l.qty;else sellKnown=false});
+  return{F:F,cams:cams,meters:meters,sites:sites,lines:lines,missing:uniq(missing),cost:cost,sell:sell,sellKnown:sellKnown};
+}
+function priceOpts(sel,prefCat){
+  var ps=all("price").slice().sort(function(a,b){var x=(a.category===prefCat?0:1)-(b.category===prefCat?0:1);return x||(a.name||"").localeCompare(b.name||"","he")});
+  return '<option value="">'+(ps.length?"בחר מהמחירון":"המחירון ריק")+'</option>'+ps.map(function(p){return'<option value="'+esc(p.id)+'"'+(p.id===sel?" selected":"")+'>'+esc(p.name)+(hasNum(p.cost)?" · "+money(p.cost):" · אין מחיר")+'</option>'}).join("");
+}
+function vFast(){
+  var F=fastState(),st=fcSettings();
+  var lost=all("quote").filter(function(q){return q.status==="הלקוח סגר עם אחר"});
+  var lostTime=lost.filter(function(q){return q.lostReason==="לא הספקתי לתת מחיר בזמן"}).length;
+  return '<div class="row between"><h1>⚡ הצעה מהירה למצלמות</h1><button class="btn sm" data-act="fc-reset">התחל מחדש</button></div>'+
+  '<div class="small muted">ממלאים כמה מצלמות בכל בית, והמחיר מחושב מיד מהמחירון שלך, בלי לחכות לספקים. אפשר לשלוח ללקוח מחיר משוער עכשיו ולאשר מול הספק אחר כך.</div>'+
+  (lost.length?'<div class="banner">עסקאות שהלכו למתחרה: <b class="num">'+lost.length+'</b>'+(lostTime?' · מתוכן <b class="num">'+lostTime+'</b> כי לא הספקת לתת מחיר בזמן':"")+'</div>':"")+
+  '<div class="card stack"><h2>לקוח</h2><div class="grid2">'+
+    '<label class="f">לקוח<input type="text" id="fc-client" data-fc="client" value="'+esc(F.client)+'" list="dl-clients"></label>'+
+    '<label class="f">טלפון<input type="tel" dir="ltr" id="fc-phone" data-fc="phone" value="'+esc(F.phone)+'"></label>'+
+    '<label class="f full">אזור / כתובת<input type="text" id="fc-area" data-fc="area" value="'+esc(F.area)+'"></label></div>'+datalists()+'</div>'+
+  '<div class="card stack"><div class="sec-h"><h2>בתים / אתרים</h2><button class="btn sm" data-act="fc-site-add">+ בית</button></div>'+
+    F.sites.map(function(s,i){var c=n(s.cams);return'<div class="stack" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><div class="grid2">'+
+      '<label class="f full">שם<input type="text" id="fcs-n-'+esc(s.id)+'" data-fcsite="'+i+'" data-f="name" value="'+esc(s.name)+'"></label>'+
+      '<label class="f">כמה מצלמות<input type="number" inputmode="numeric" id="fcs-c-'+esc(s.id)+'" data-fcsite="'+i+'" data-f="cams" value="'+esc(s.cams)+'"></label>'+
+      '<label class="f">מטר כבל (הערכה)<input type="number" inputmode="numeric" id="fcs-m-'+esc(s.id)+'" data-fcsite="'+i+'" data-f="cableM" value="'+esc(s.cableM)+'"></label></div>'+
+      '<div class="row between"><span class="small muted" id="fcs-h-'+i+'">'+(c?"צריך מקליט של "+nvrCh(c)+" ערוצים לפחות":"")+'</span>'+(F.sites.length>1?'<button class="icon-btn" data-act="fc-site-del" data-i="'+i+'" aria-label="מחק בית">✕</button>':"")+'</div></div>'}).join("")+
+  '</div>'+
+  '<div class="card stack"><div class="sec-h"><h2>ציוד מהמחירון</h2><a class="btn sm" href="#prices">למחירון</a></div><div class="grid2">'+
+    '<label class="f full">מצלמה<select id="fc-cam" data-fc="cam">'+priceOpts(F.cam,"מצלמות")+'</select></label>'+
+    '<label class="f full">מקליט NVR (אחד לכל בית)<select id="fc-nvr" data-fc="nvr">'+priceOpts(F.nvr,"מקליטים (NVR)")+'</select></label>'+
+    '<label class="f full">דיסק (אחד לכל בית)<select id="fc-hdd" data-fc="hdd">'+priceOpts(F.hdd,"דיסקים")+'</select></label>'+
+    '<label class="f full">כבל רשת<select id="fc-cable" data-fc="cable">'+priceOpts(F.cable,"כבלים ואביזרים")+'</select></label></div>'+
+    '<h3>פריטים נוספים</h3>'+(F.extras||[]).map(function(x,i){return'<div class="addline"><select id="fcx-p-'+i+'" data-fcx="'+i+'" data-f="pid" aria-label="פריט">'+priceOpts(x.pid,"כבלים ואביזרים")+'</select><input type="number" inputmode="numeric" style="max-width:80px" id="fcx-q-'+i+'" data-fcx="'+i+'" data-f="qty" value="'+esc(x.qty)+'" aria-label="כמות"><button class="icon-btn" data-act="fc-extra-del" data-i="'+i+'" aria-label="מחק">✕</button></div>'}).join("")+
+    '<button class="btn sm" data-act="fc-extra-add">+ פריט נוסף</button></div>'+
+  '<div class="card stack"><h2>המחירים שלי</h2><div class="small muted">נשמרים לפעם הבאה. ריק = עוד לא הוגדר.</div><div class="grid2">'+
+    '<label class="f">רווח על ציוד (%)<input type="number" inputmode="decimal" id="fc-mk" data-fcset="markup" value="'+esc(st.markup||"")+'"></label>'+
+    '<label class="f">עבודה למצלמה (₪)<input type="number" inputmode="decimal" id="fc-lc" data-fcset="laborCam" value="'+esc(st.laborCam||"")+'"></label>'+
+    '<label class="f">עבודה לבית (₪)<input type="number" inputmode="decimal" id="fc-ls" data-fcset="laborSite" value="'+esc(st.laborSite||"")+'"></label></div></div>'+
+  '<div id="fc-sum">'+fastSummaryHtml()+'</div>';
+}
+function fastSummaryHtml(){
+  var R=fastCalc();
+  if(!R.cams)return '<div class="empty">כתוב כמה מצלמות יש בכל בית כדי לראות מחיר.</div>';
+  var vat=R.sell*VAT;
+  return '<div class="card stack" style="border-color:var(--accent)"><h2>הסיכום</h2>'+
+  '<div class="small muted"><span class="num">'+R.sites+'</span> בתים · <span class="num">'+R.cams+'</span> מצלמות'+(R.meters?' · <span class="num">'+R.meters+'</span> מטר כבל':"")+'</div>'+
+  '<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>פריט</th><th>כמות</th><th>ללקוח</th></tr></thead><tbody>'+R.lines.map(function(l){return'<tr><td>'+esc(l.desc)+'</td><td class="num">'+l.qty+'</td><td class="'+(l.sell==null?"unk":"")+'">'+(l.sell!=null?'<span class="num">'+money(l.sell*l.qty)+'</span>':"חסר מחיר")+'</td></tr>'}).join("")+'</tbody></table></div>'+
+  '<div class="totals"><span class="small muted">העלות שלי <span class="num">'+money(R.cost)+'</span></span><span class="small muted">ללקוח לפני מע״מ <span class="num">'+money(R.sell)+'</span></span><span class="small muted">מע״מ 18% <span class="num">'+money(vat)+'</span></span>'+(R.sellKnown?'<span class="g num">'+money(R.sell+vat)+'</span><span class="small" style="color:var(--ok)">רווח משוער <span class="num">'+money(R.sell-R.cost)+'</span></span>':'<span class="g" style="color:var(--warn)">מחיר חלקי</span>')+'</div>'+
+  (R.missing.length?'<div class="banner"><b>חסר כדי שהמחיר יהיה מלא:</b> '+R.missing.map(esc).join(" · ")+'</div>':"")+
+  '<div class="row"><button class="btn pri" data-act="fc-quote">צור הצעת מחיר</button><button class="btn" data-act="fc-copy">העתק הודעה ללקוח</button></div>'+
+  '<textarea id="fc-msg" readonly aria-label="הודעה ללקוח" style="min-height:150px">'+esc(fastMessage(R))+'</textarea></div>';
+}
+function fastMessage(R){
+  var F=R.F,vat=R.sell*VAT;
+  return "הצעת מחיר — התקנת מצלמות"+(F.client?"\nלקוח: "+F.client:"")+(F.area?"\nמקום: "+F.area:"")+"\n\n"+
+    F.sites.filter(function(s){return n(s.cams)>0}).map(function(s){return (s.name||"בית")+": "+n(s.cams)+" מצלמות + מקליט"}).join("\n")+
+    "\n\nכולל: "+R.lines.map(function(l){return l.desc+" ×"+l.qty}).join(", ")+
+    "\n\nסה״כ לפני מע״מ: "+money(R.sell)+"\nסה״כ כולל מע״מ: "+money(R.sell+vat)+
+    (R.missing.length?"\n(המחיר עדיין חלקי)":"")+"\n\nהמחיר משוער, וסופי אחרי סיור קצר באתר.";
+}
+function updateFastSummary(){var el=document.getElementById("fc-sum");if(el)el.innerHTML=fastSummaryHtml();
+  var F=fastState();F.sites.forEach(function(s,i){var h=document.getElementById("fcs-h-"+i);if(h){var c=n(s.cams);h.textContent=c?"צריך מקליט של "+nvrCh(c)+" ערוצים לפחות":""}})}
+function fastFromInput(t){
+  var F=fastState();
+  if(t.hasAttribute("data-fc"))F[t.getAttribute("data-fc")]=t.value;
+  else if(t.hasAttribute("data-fcsite")){var s=F.sites[+t.getAttribute("data-fcsite")];if(s)s[t.getAttribute("data-f")]=t.value}
+  else if(t.hasAttribute("data-fcx")){var x=F.extras[+t.getAttribute("data-fcx")];if(x)x[t.getAttribute("data-f")]=t.value}
+  saveFast();
+}
+function fastToQuote(){
+  var R=fastCalc();if(!R.cams){toast("כתוב כמה מצלמות");return}
+  var F=R.F;
+  var q={id:uid(),kind:"quote",title:"מצלמות — "+R.sites+(R.sites===1?" בית":" בתים")+(F.client?" ("+F.client+")":""),client:F.client,phone:F.phone,domain:"מצלמות",address:F.area,area:"",status:"טיוטה",
+    lines:R.lines.map(function(l){return{id:uid(),desc:l.desc,qty:String(l.qty),unit:l.sell!=null?String(Math.round(l.sell*100)/100):""}}),
+    notes:F.sites.filter(function(s){return n(s.cams)>0}).map(function(s){return (s.name||"בית")+": "+n(s.cams)+" מצלמות"+(n(s.cableM)?", כ-"+n(s.cableM)+" מטר כבל":"")}).join("\n")+"\nנבנה בהצעה המהירה לפי המחירון מתאריך "+fmtDate(today())+".",
+    versions:[],projectId:""};
+  q.versions=[{n:1,savedAt:today(),lines:clone(q.lines),notes:q.notes,total:quoteTotal(q.lines)}];
+  persist(q);toast("נוצרה הצעת מחיר (גרסה 1)");location.hash="#q-"+q.id;
 }
 
 /* Claude (sample capability) */
@@ -989,9 +1196,10 @@ function compareForm(c,isNew){
   var projs=all("project");
   var body='<div class="grid2">'+field("מה קונים? (שם ההשוואה)","title",c.title,"text","full")+
     '<label class="f full">פרויקט<select name="projectId" id="fm-projectId"><option value="">ללא</option>'+projs.map(function(p){return'<option value="'+esc(p.id)+'"'+(p.id===c.projectId?" selected":"")+'>'+esc(p.name)+'</option>'}).join("")+'</select></label>'+
+    selField("סטטוס","status",CSTATUS,c.status||"פתוחה")+
     field("הערות","notes",c.notes,"textarea","full")+'</div>';
   openSheet(isNew?"השוואה חדשה":"עריכת השוואה",body,function(form){
-    c.title=fval(form,"title");c.projectId=fval(form,"projectId");c.notes=fval(form,"notes");
+    c.title=fval(form,"title");c.status=fval(form,"status")||"פתוחה";c.projectId=fval(form,"projectId");c.notes=fval(form,"notes");
     if(!c.title){toast("כתוב מה קונים");return}
     persist(c);closeSheet();if(isNew)location.hash="#c-"+c.id;
   });
@@ -1228,7 +1436,7 @@ function confirmSheet(msg,label,fn){
 }
 function menuSheet(){
   var b='<div class="menu-grid">'+
-    [["#compare","השוואת הצעות מספקים"],["#installs","התקנות: מצלמות, רשתות, אזעקות"],["#server","חדר שרתים"],["#farm","חוות הסוסים בגיאה"],["#reminders","תזכורות וחשמלאי"],["#missing","ציוד חסר"],["#finance","הכנסות והוצאות"],["#suppliers","ספקים"],["#jobs","עבודות ותקלות"]]
+    [["#fastcam","⚡ הצעה מהירה למצלמות"],["#prices","המחירון שלי"],["#compare","השוואת הצעות מספקים"],["#installs","התקנות: מצלמות, רשתות, אזעקות"],["#server","חדר שרתים"],["#farm","חוות הסוסים בגיאה"],["#reminders","תזכורות וחשמלאי"],["#missing","ציוד חסר"],["#finance","הכנסות והוצאות"],["#suppliers","ספקים"],["#jobs","עבודות ותקלות"]]
     .map(function(x){return'<a class="btn" href="'+x[0]+'" data-act="sheet-close-nav">'+esc(x[1])+'</a>'}).join("")+'</div>'+'<div class="small muted">ההמלצה במסך השוואת הספקים מחושבת בדף עצמו. ניתוח עם Claude רץ רק כשלוחצים על הכפתור שלו.</div>';
   openSheet("עוד",b,null,{noSave:true,noFocus:true});
 }
@@ -1333,6 +1541,18 @@ document.addEventListener("click",function(ev){
     case "sl-add":readSheetLines();sheetState.lines.push({id:uid(),desc:"",qty:"1",unit:""});renderSheetLines();break;
     case "sl-del":readSheetLines();var slid=t.getAttribute("data-l");sheetState.lines=sheetState.lines.filter(function(l){return l.id!==slid});renderSheetLines();break;
     case "cmp-ai":cmpAI(id);break;
+    case "req-add":reqForm(id);break;
+    case "req-del":var rid=t.getAttribute("data-r");confirmSheet("למחוק את רישום הפנייה?","מחק",function(){mutate(id,function(c){c.requests=(c.requests||[]).filter(function(r){return r.id!==rid})})});break;
+    case "price-new":priceForm({id:uid(),kind:"price",name:"",category:"",unit:"יח׳",cost:"",sell:"",supplier:"",notes:"",history:[]},true);break;
+    case "price-edit":priceForm(get(id),false);break;
+    case "sq-toprices":squoteToPrices(id);break;
+    case "fc-site-add":var Fs=fastState();Fs.sites.push({id:uid(),name:"בית "+(Fs.sites.length+1),cams:"",cableM:""});saveFast();render();break;
+    case "fc-site-del":var Fd=fastState();Fd.sites.splice(+t.getAttribute("data-i"),1);saveFast();render();break;
+    case "fc-extra-add":var Fe=fastState();Fe.extras=(Fe.extras||[]).concat([{pid:"",qty:"1"}]);saveFast();render();break;
+    case "fc-extra-del":var Fx=fastState();Fx.extras.splice(+t.getAttribute("data-i"),1);saveFast();render();break;
+    case "fc-reset":confirmSheet("לנקות את הטופס של ההצעה המהירה? המחירון וההגדרות נשארים.","נקה",function(){S.fast=fastDefault();saveFast();render()});break;
+    case "fc-quote":fastToQuote();break;
+    case "fc-copy":var msg=fastMessage(fastCalc());try{navigator.clipboard.writeText(msg).then(function(){toast("ההודעה הועתקה. הדבק בוואטסאפ.")},function(){var ta=document.getElementById("fc-msg");if(ta){ta.focus();ta.select()}toast("סמן והעתק את הטקסט")})}catch(e){toast("סמן והעתק את הטקסט")}break;
     case "copy":var tx=t.getAttribute("data-text");try{navigator.clipboard.writeText(tx).then(function(){toast("הועתק")},function(){toast(tx)})}catch(e){toast(tx)}break;
     case "del":var back=t.getAttribute("data-back");if(sheetState)closeSheet();confirmSheet("למחוק לצמיתות? אי אפשר לבטל.","מחק",function(){removeItem(id);location.hash=back||"#home";toast("נמחק")});break;
   }
@@ -1348,6 +1568,8 @@ document.addEventListener("submit",function(ev){
 var filterTimer=null;
 document.addEventListener("input",function(ev){
   var t=ev.target;
+  if(t.hasAttribute("data-fcset")){var st0=fcSettings();st0[t.getAttribute("data-fcset")]=t.value.trim();S.items[st0.id]=st0;updateFastSummary();return}
+  if((t.hasAttribute("data-fc")||t.hasAttribute("data-fcsite")||t.hasAttribute("data-fcx"))&&t.tagName!=="SELECT"){fastFromInput(t);updateFastSummary();return}
   if(t.hasAttribute("data-filter")){var k=t.closest("[data-fkey]").getAttribute("data-fkey");S.filters[k]=S.filters[k]||{};S.filters[k][t.getAttribute("data-filter")]=t.value;
     if(t.tagName==="SELECT"){render()}else{clearTimeout(filterTimer);filterTimer=setTimeout(function(){var pos=t.selectionStart,idd=t.id;render();var el=document.getElementById(idd);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}},250)}
   }
@@ -1361,7 +1583,11 @@ document.addEventListener("change",function(ev){
   if(t.hasAttribute("data-eqstatus")){mutate(t.getAttribute("data-eqstatus"),function(p){p.equipment.forEach(function(e){if(e.id===t.getAttribute("data-e"))e.status=t.value})});return}
   if(t.hasAttribute("data-spec")){mutate(t.getAttribute("data-spec"),function(p){p.specs.forEach(function(s){if(s.id===t.getAttribute("data-s"))s.value=t.value.trim()})});return}
   if(t.hasAttribute("data-vlan")){mutate(t.getAttribute("data-vlan"),function(p){p.vlans.forEach(function(v){if(v.id===t.getAttribute("data-v"))v[t.getAttribute("data-f")]=t.value.trim()})});return}
-  if(t.hasAttribute("data-cmpchoice")){mutate(t.getAttribute("data-cmpchoice"),function(c){c[t.getAttribute("data-f")]=t.value;c.status=(c.chosenPartner||c.chosenEmerg)?"הוחלט":"פתוחה"});return}
+  if(t.hasAttribute("data-cmpchoice")){mutate(t.getAttribute("data-cmpchoice"),function(c){c[t.getAttribute("data-f")]=t.value;if(c.status!=="העסקה הלכה למתחרה")c.status=(c.chosenPartner||c.chosenEmerg)?"הוחלט":"פתוחה"});return}
+  if(t.hasAttribute("data-qlost")){mutate(t.getAttribute("data-qlost"),function(q){q.lostReason=t.value});return}
+  if(t.hasAttribute("data-req")){mutate(t.getAttribute("data-req"),function(c){(c.requests||[]).forEach(function(r){if(r.id===t.getAttribute("data-r")){r[t.getAttribute("data-f")]=t.value;if(t.getAttribute("data-f")==="status"&&t.value!=="ממתין לתשובה"&&!r.answeredAt&&r.askedAt)r.answeredAt=nowLocal()}})});return}
+  if(t.hasAttribute("data-fcset")){var st=fcSettings();st[t.getAttribute("data-fcset")]=t.value.trim();persist(st);updateFastSummary();return}
+  if(t.hasAttribute("data-fc")||t.hasAttribute("data-fcsite")||t.hasAttribute("data-fcx")){fastFromInput(t);if(t.tagName==="SELECT")render();return}
   if(t.hasAttribute("data-remdue")){mutate(t.getAttribute("data-remdue"),function(r){r.due=t.value});return}
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheetState)closeSheet()});
