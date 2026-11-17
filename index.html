@@ -5,7 +5,7 @@
 :root{
   --bg:#eef1f4; --surface:#ffffff; --surface-2:#f5f7f9; --line:#d5dbe1; --ink:#14202b; --muted:#5b6a78;
   --accent:#1c5a9e; --accent-ink:#ffffff; --accent-soft:#e1ebf6;
-  --ok:#1d7a4c; --ok-soft:#e2f3ea; --warn:#a85d00; --warn-soft:#fbefdc; --bad:#b4302f; --bad-soft:#f9e3e2;
+  --ok:#1d7a4c; --ok-soft:#e2f3ea; --warn:#985400; --warn-soft:#fbefdc; --bad:#b4302f; --bad-soft:#f9e3e2;
   --font:system-ui,-apple-system,"Segoe UI","Noto Sans Hebrew","Arial Hebrew",Arial,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --r:12px; --tap:52px;
@@ -47,9 +47,7 @@ h3{font-size:15px;margin:0;color:var(--muted);font-weight:700;letter-spacing:.02
 
 /* buttons */
 .btn{min-height:var(--tap);padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;color:var(--ink)}
-.btn:hover{background:var(--surface-2)}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.pri:hover{filter:brightness(1.08)}
 .btn.bad{color:var(--bad);border-color:var(--bad)}
 .btn.sm{min-height:42px;padding:0 13px;font-size:15px}
 .btn.wide{width:100%}
@@ -61,7 +59,6 @@ h3{font-size:15px;margin:0;color:var(--muted);font-weight:700;letter-spacing:.02
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media(min-width:640px){.tiles{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:start;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:86px;text-decoration:none;color:var(--ink)}
-.tile:hover{border-color:var(--accent)}
 .tile .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
 .tile .l{font-size:14px;color:var(--muted);font-weight:600}
 .tile.warn{border-color:var(--warn);background:var(--warn-soft)}
@@ -70,7 +67,6 @@ h3{font-size:15px;margin:0;color:var(--muted);font-weight:700;letter-spacing:.02
 /* lists */
 .list{display:flex;flex-direction:column;gap:8px}
 .item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;text-align:start;width:100%}
-.item:hover{border-color:var(--accent)}
 .item .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .item .t{font-weight:700;font-size:16px;overflow-wrap:anywhere}
 .item .meta{font-size:13px;color:var(--muted);display:flex;gap:4px 12px;flex-wrap:wrap}
@@ -116,7 +112,6 @@ label.f span.hint{font-weight:400;color:var(--muted);font-size:12.5px}
 .ck-row .txt{flex:1;min-width:0;overflow-wrap:anywhere}
 .ck-row .elec{font-size:12px}
 .icon-btn{width:42px;height:42px;flex-shrink:0;border-radius:10px;border:1px solid transparent;background:none;cursor:pointer;color:var(--muted);font-size:18px}
-.icon-btn:hover{border-color:var(--line);background:var(--surface-2)}
 .addline{display:flex;gap:8px}
 .addline input{flex:1;min-width:0}
 
@@ -209,6 +204,28 @@ td.miss{color:var(--bad);font-weight:700}
 .ai-note{font-size:12.5px;color:var(--muted)}
 .sl-row{display:grid;grid-template-columns:minmax(0,1fr) 64px 92px 42px;gap:6px;align-items:center}
 .sl-row input{min-height:44px;padding:6px 8px}
+/* touch feedback: a quick press response instead of the browser's blue flash */
+a,button,label,select,input,textarea{-webkit-tap-highlight-color:transparent}
+.btn,.tile,.item,.alert,.seg button,.ck-box,.icon-btn,.port,.ph-add,nav.tabs a,nav.tabs button{transition:transform .14s cubic-bezier(.23,1,.32,1),background-color .15s ease,border-color .15s ease}
+:is(.btn,.seg button,.ck-box,.icon-btn,.port,.ph-add):active{transform:scale(.96)}
+:is(.tile,.item,.alert):active{transform:scale(.985)}
+nav.tabs :is(a,button):active{transform:scale(.92)}
+/* hover only where there is a real mouse, so it does not stick after a tap on a phone */
+@media (hover:hover) and (pointer:fine){
+  .btn:hover{background:var(--surface-2)}
+  .btn.pri:hover{background:var(--accent);filter:brightness(1.08)}
+  .tile:hover,.item:hover{border-color:var(--accent)}
+  .icon-btn:hover{border-color:var(--line);background:var(--surface-2)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ic{width:1.15em;height:1.15em;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em;flex-shrink:0;display:inline-block}
+.ck-box .ic{width:24px;height:24px;stroke-width:3}
+.icon-btn .ic{width:18px;height:18px}
+.tiles.compact{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tiles.compact .tile{min-height:70px;padding:9px 10px}
+.tiles.compact .tile .v{font-size:21px}
+.tiles.compact .tile .l{font-size:12.5px;line-height:1.3}
+.details-empty{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}}
 </style>
 
@@ -297,9 +314,18 @@ var PCATS=["מצלמות","מקליטים (NVR)","דיסקים","כבלים וא
 var PUNITS=["יח׳","מטר","גליל 305 מ׳"];
 
 /* ---------- state ---------- */
+var viewUrls={}; // upload URLs valid for this visit only; never stored
 var S={items:{},mode:"loading",db:null,assets:null,col:null,filters:{},seg:{},dirty:false,loadedOnce:false};
 var LS_KEY="sywc-items-v1";
 
+/* ---------- icons ---------- */
+function svg(d){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+d+'</svg>'}
+var IC={
+  x:svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  check:svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  bolt:svg('<path d="M13 2.5L5 13.5h6l-1 8 8-11h-6z"/>'),
+  chart:svg('<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>')
+};
 /* ---------- utils ---------- */
 function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
@@ -328,7 +354,7 @@ function toast(msg){var t=document.createElement("div");t.className="toast";t.te
 function quoteTotal(lines){return (lines||[]).reduce(function(s,l){return s+n(l.qty)*n(l.unit)},0)}
 
 /* ---------- storage ---------- */
-var inflight={},pending={};
+var inflight={},pending={},unconfirmed={},DELETED={};
 function persist(item){
   item.updatedAt=new Date().toISOString();
   if(!item.createdAt)item.createdAt=item.updatedAt;
@@ -336,19 +362,22 @@ function persist(item){
   scheduleRender();
   if(S.mode==="local"){saveLocal();return Promise.resolve()}
   if(S.mode!=="db")return Promise.resolve();
+  unconfirmed[item.id]=clone(item);
   if(inflight[item.id]){pending[item.id]=clone(item);return Promise.resolve()}
   inflight[item.id]=true;
+  var sent=unconfirmed[item.id];
   return S.col.doc(item.id).set(clone(item)).catch(function(e){
     toast(e&&e.code==="quota_exceeded"?"האחסון מלא. מחק פריטים ישנים או תמונות.":"השמירה נכשלה. בדוק חיבור ונסה שוב.");
   }).then(function(){
     inflight[item.id]=false;
     if(pending[item.id]){var p=pending[item.id];delete pending[item.id];persist(p)}
+    else if(unconfirmed[item.id]===sent)delete unconfirmed[item.id];
   });
 }
 function removeItem(id){
   delete S.items[id];scheduleRender();
   if(S.mode==="local"){saveLocal();return}
-  if(S.mode==="db")S.col.doc(id).delete().catch(function(){toast("המחיקה נכשלה")});
+  if(S.mode==="db"){unconfirmed[id]=DELETED;S.col.doc(id).delete().catch(function(){toast("המחיקה נכשלה")}).then(function(){if(unconfirmed[id]===DELETED)delete unconfirmed[id]})}
 }
 function saveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify(S.items))}catch(e){toast("אין מקום באחסון המכשיר")}}
 function loadLocal(){try{var r=localStorage.getItem(LS_KEY);S.items=r?JSON.parse(r):{}}catch(e){S.items={}}}
@@ -356,28 +385,36 @@ function loadLocal(){try{var r=localStorage.getItem(LS_KEY);S.items=r?JSON.parse
 function setMode(m){
   S.mode=m;var el=document.getElementById("mode");
   el.className="mode"+(m==="local"?" local":"");
-  el.textContent=m==="db"?"נשמר בענן של הדף":m==="local"?"שמירה במכשיר בלבד":"טוען…";
+  el.textContent=m==="db"?(S.storeError?"החיבור נותק":S.slow?"טוען לאט…":S.loadedOnce?"נשמר בענן של הדף":"טוען…"):m==="local"?"שמירה במכשיר בלבד":"טוען…";
 }
 
+// Storage is chosen once per visit. After the cloud store connects, the page never falls back to
+// device storage (that split data between the two and lost edits); a slow store only shows a note.
+var storageDecided=false;
 function start(){
-  var timer=setTimeout(function(){if(!S.loadedOnce){goLocal("לא ניתן להגיע לאחסון כרגע. עובדים במצב שמירה במכשיר.")}},12000);
   var use=window.claude&&window.claude.use;
-  if(!use){clearTimeout(timer);goLocal();return}
+  if(!use){goLocal();return}
+  // the runtime answers use() within ~10s; if it never does, work on the device
+  var noRuntime=setTimeout(function(){if(!storageDecided)goLocal("לא ניתן להגיע לאחסון כרגע. עובדים במצב שמירה במכשיר.")},20000);
   Promise.all([use("db"),use("assets").catch(function(){return null})]).then(function(r){
+    clearTimeout(noRuntime);
+    if(storageDecided)return;
     var db=r[0];S.assets=r[1]||null;
-    if(!db){clearTimeout(timer);goLocal();return}
+    if(!db){goLocal();return}
+    storageDecided=true;
     S.db=db;S.col=db.collection("items");setMode("db");
+    var slow=setTimeout(function(){if(!S.loadedOnce){S.slow=true;setMode("db");scheduleRender()}},10000);
     S.col.onSnapshot(function(snap){
       var next={};snap.docs.forEach(function(d){next[d.id]=d.data()});
-      // keep local edits whose write is still pending
-      Object.keys(pending).forEach(function(k){next[k]=pending[k]});
+      // keep this page's own edits that the store has not confirmed yet
+      Object.keys(unconfirmed).forEach(function(k){if(unconfirmed[k]===DELETED)delete next[k];else next[k]=unconfirmed[k]});
       S.items=next;
-      if(!snap.metadata.fromCache){S.loadedOnce=true;clearTimeout(timer)}
+      if(!snap.metadata.fromCache){S.loadedOnce=true;S.slow=false;clearTimeout(slow);setMode("db")}
       scheduleRender();
-    },function(e){clearTimeout(timer);if(!S.loadedOnce)goLocal("האחסון לא זמין. עובדים במצב שמירה במכשיר.");else toast("החיבור לאחסון נותק. רענן את הדף.")});
-  }).catch(function(){clearTimeout(timer);goLocal()});
+    },function(e){clearTimeout(slow);S.storeError=true;setMode("db");scheduleRender();toast("החיבור לאחסון נותק. רענן את הדף כדי לראות שינויים.")});
+  }).catch(function(){clearTimeout(noRuntime);goLocal()});
 }
-function goLocal(msg){if(S.mode==="local")return;S.loadedOnce=true;loadLocal();setMode("local");if(msg)toast(msg);render()}
+function goLocal(msg){if(storageDecided)return;storageDecided=true;S.loadedOnce=true;loadLocal();setMode("local");if(msg)toast(msg);render()}
 
 /* render scheduling: never re-render under the user's typing */
 var renderQueued=false;
@@ -470,6 +507,7 @@ function render(){
   else if(/^q-/.test(r))html=vQuote(r.slice(2));
   else if(/^j-/.test(r))html=vJob(r.slice(2));
   else html=vHome();
+  if(S.mode==="db"&&!S.loadedOnce)html='<div class="banner">'+(S.slow?"החיבור איטי והנתונים עוד נטענים. מה שתשמור עכשיו יישמר בענן.":"טוען את הנתונים מהענן…")+'</div>'+html;
   if(S.mode==="local")html='<div class="banner">הנתונים נשמרים רק בדפדפן הזה. כדי שיישמרו בענן ויהיו זמינים גם במכשירים אחרים, פתח את הדף כשאתה מחובר לחשבון Claude.</div>'+html;
   app.innerHTML='<div class="stack">'+html+'</div>';
 }
@@ -498,27 +536,26 @@ function vHome(){
   return ''+
   '<div class="row between"><div><h1>שלום, מה עושים היום?</h1><div class="muted small">'+d.toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+'</div></div></div>'+
   '<button class="btn pri big-new" data-act="new-job">+ עבודה חדשה</button>'+
-  '<a class="btn big-new" href="#fastcam">⚡ הצעה מהירה למצלמות</a>'+
+  '<a class="btn big-new" href="#fastcam">'+IC.bolt+' הצעה מהירה למצלמות</a>'+
   (alerts.length?'<div class="alerts">'+alerts.join("")+'</div>':"")+
-  '<div class="tiles">'+
+  '<div class="sec"><div class="sec-h"><h2>עבודות קרובות</h2><a class="btn sm" href="#jobs">הכול</a></div>'+
+    (upcoming.length?'<div class="list">'+upcoming.map(jobItem).join("")+'</div>':'<div class="empty">אין עבודות פתוחות. לחץ "עבודה חדשה" כדי להוסיף.</div>')+
+  '</div>'+
+  '<div class="tiles compact">'+
     tile(tasks.length,"משימות פתוחות","#jobs")+
     tile(calls.length,"קריאות שירות","#jobs")+
     tile(faults.length,"תקלות פתוחות","#jobs",faults.length>0)+
     tile(quotes.length,"הצעות מחיר פתוחות","#quotes")+
     tile(projects.length,"פרויקטים פעילים","#projects")+
     tile(miss.length,"ציוד חסר / לא ידוע","#missing",miss.length>0)+
-    tile('<span class="num">'+money(ft.inc)+'</span>',"הכנסות החודש","#finance")+
-    tile('<span class="num">'+money(ft.exp)+'</span>',"הוצאות החודש","#finance")+
+    tile('<span class="num">'+money(ft.inc-ft.exp)+'</span>',"נטו החודש","#finance")+
     tile(all("supplier").length,"ספקים","#suppliers")+
-    tile(all("compare").filter(function(c){return c.status!=="הוחלט"}).length,"השוואות ספקים פתוחות","#compare")+
+    tile(all("compare").filter(function(c){return !c.status||c.status==="פתוחה"}).length,"השוואות ספקים פתוחות","#compare")+
   '</div>'+
   '<div class="sec"><div class="sec-h"><h2>פרויקטים קבועים</h2></div><div class="grid2">'+
     projShortcut("server","חדר שרתים","Dell R220 · TP-Link 24 · VLAN · VPN · Wi‑Fi 7 · 5G")+
     projShortcut("farm","חוות הסוסים בגיאה","משימות, ציוד ושלבי חשמלאי מוסמך")+
-  '</div></div>'+
-  '<div class="sec"><div class="sec-h"><h2>עבודות קרובות</h2><a class="btn sm" href="#jobs">הכול</a></div>'+
-    (upcoming.length?'<div class="list">'+upcoming.map(jobItem).join("")+'</div>':'<div class="empty">אין עבודות פתוחות. לחץ "עבודה חדשה" כדי להוסיף.</div>')+
-  '</div>';
+  '</div></div>';
 }
 function findTpl(t){return all("project").filter(function(p){return p.template===t})[0]}
 function projShortcut(t,name,sub){
@@ -585,25 +622,25 @@ function checklistSec(it,title,opt){
   (ck.length?'<div class="bar"><i style="width:'+pr.pct+'%"></i></div>':"")+
   '<div class="ck">'+ck.map(function(c){
     return '<div class="ck-row'+(c.done?" done":"")+'">'+
-      '<button class="ck-box" data-act="ck-toggle" data-id="'+esc(it.id)+'" data-c="'+esc(c.id)+'" aria-label="'+(c.done?"בטל סימון":"סמן כבוצע")+'" aria-pressed="'+!!c.done+'">'+(c.done?"✓":"")+'</button>'+
+      '<button class="ck-box" data-act="ck-toggle" data-id="'+esc(it.id)+'" data-c="'+esc(c.id)+'" aria-label="'+(c.done?"בטל סימון":"סמן כבוצע")+'" aria-pressed="'+!!c.done+'">'+(c.done?IC.check:"")+'</button>'+
       '<span class="txt">'+esc(c.text)+(c.elec?' <span class="pill warn elec">חשמלאי מוסמך</span>':"")+(c.done&&c.doneAt?' <span class="small muted num">'+fmtDate(c.doneAt)+'</span>':"")+'</span>'+
-      (opt.elec?'<button class="icon-btn" data-act="ck-elec" data-id="'+esc(it.id)+'" data-c="'+esc(c.id)+'" title="סמן/בטל: דורש חשמלאי מוסמך" aria-label="דורש חשמלאי מוסמך">⚡</button>':"")+
-      '<button class="icon-btn" data-act="ck-del" data-id="'+esc(it.id)+'" data-c="'+esc(c.id)+'" aria-label="מחק שלב">✕</button>'+
+      (opt.elec?'<button class="icon-btn" data-act="ck-elec" data-id="'+esc(it.id)+'" data-c="'+esc(c.id)+'" title="סמן/בטל: דורש חשמלאי מוסמך" aria-label="דורש חשמלאי מוסמך">'+IC.bolt+'</button>':"")+
+      '<button class="icon-btn" data-act="ck-del" data-id="'+esc(it.id)+'" data-c="'+esc(c.id)+'" aria-label="מחק שלב">'+IC.x+'</button>'+
     '</div>';
   }).join("")+'</div>'+
   '<form class="addline" data-act="ck-add" data-id="'+esc(it.id)+'"><input type="text" id="ck-new-'+esc(it.id)+'" name="t" placeholder="שלב חדש…" aria-label="שלב חדש"><button class="btn sm" type="submit">הוסף</button></form>'+
   '</div>';
 }
-function photoSrc(p){return p.url||(p.id?"/_blob/"+p.id:p.data)||""}
+function photoSrc(p){return p.id?(viewUrls[p.id]||"/_blob/"+p.id):(p.data||"")}
 function fileTile(p,i,delAttr){
-  var del=delAttr?'<button type="button" '+delAttr+' data-i="'+i+'" aria-label="הסר קובץ">✕</button>':"";
+  var del=delAttr?'<button type="button" '+delAttr+' data-i="'+i+'" aria-label="הסר קובץ">'+IC.x+'</button>':"";
   if(p.type==="pdf")return '<div class="ph"><a class="pdf-tile" href="'+esc(photoSrc(p))+'" target="_blank" rel="noopener"><b>PDF</b><span>'+esc(p.name||"קובץ")+'</span></a>'+del+'</div>';
   return '<div class="ph"><img src="'+esc(photoSrc(p))+'" alt="קובץ '+(i+1)+'" loading="lazy" onerror="this.style.opacity=.2">'+del+'</div>';
 }
 function photosSec(it){
   var ph=it.photos||[];
   return '<div class="sec"><div class="sec-h"><h2>תמונות</h2><span class="small muted num">'+ph.length+'</span></div><div class="photos">'+
-    ph.map(function(p,i){return'<div class="ph"><img src="'+esc(photoSrc(p))+'" alt="תמונה '+(i+1)+'" loading="lazy" onerror="this.style.opacity=.2"><button data-act="ph-del" data-id="'+esc(it.id)+'" data-i="'+i+'" aria-label="מחק תמונה">✕</button></div>'}).join("")+
+    ph.map(function(p,i){return'<div class="ph"><img src="'+esc(photoSrc(p))+'" alt="תמונה '+(i+1)+'" loading="lazy" onerror="this.style.opacity=.2"><button data-act="ph-del" data-id="'+esc(it.id)+'" data-i="'+i+'" aria-label="מחק תמונה">'+IC.x+'</button></div>'}).join("")+
     '<label class="ph-add">+ הוסף תמונה<input type="file" accept="image/*" multiple data-photo-for="'+esc(it.id)+'"></label>'+
   '</div></div>';
 }
@@ -611,7 +648,7 @@ function logSec(p){
   var lg=(p.log||[]).slice().reverse();
   return '<div class="sec"><h2>יומן והערות</h2>'+
   '<form class="addline" data-act="log-add" data-id="'+esc(p.id)+'"><input type="text" id="log-new-'+esc(p.id)+'" name="t" placeholder="מה נעשה היום / הערה…" aria-label="הערה חדשה"><button class="btn sm" type="submit">שמור</button></form>'+
-  (lg.length?'<div class="list">'+lg.map(function(l){return'<div class="card" style="padding:10px 12px"><div class="row between"><span class="small muted num">'+fmtDate(l.date)+'</span><button class="icon-btn" data-act="log-del" data-id="'+esc(p.id)+'" data-l="'+esc(l.id)+'" aria-label="מחק הערה">✕</button></div><div style="white-space:pre-wrap">'+esc(l.text)+'</div></div>'}).join("")+'</div>':'<div class="empty">אין הערות עדיין.</div>')+
+  (lg.length?'<div class="list">'+lg.map(function(l){return'<div class="card" style="padding:10px 12px"><div class="row between"><span class="small muted num">'+fmtDate(l.date)+'</span><button class="icon-btn" data-act="log-del" data-id="'+esc(p.id)+'" data-l="'+esc(l.id)+'" aria-label="מחק הערה">'+IC.x+'</button></div><div style="white-space:pre-wrap">'+esc(l.text)+'</div></div>'}).join("")+'</div>':'<div class="empty">אין הערות עדיין.</div>')+
   '</div>';
 }
 
@@ -642,7 +679,7 @@ function vQuote(id){
     '<input type="text" id="ql-d-'+esc(l.id)+'" value="'+esc(l.desc)+'" data-qline="'+esc(id)+'" data-l="'+esc(l.id)+'" data-f="desc" aria-label="תיאור">'+
     '<input type="number" inputmode="decimal" id="ql-q-'+esc(l.id)+'" value="'+esc(l.qty)+'" data-qline="'+esc(id)+'" data-l="'+esc(l.id)+'" data-f="qty" aria-label="כמות">'+
     '<input type="number" inputmode="decimal" id="ql-u-'+esc(l.id)+'" value="'+esc(l.unit)+'" data-qline="'+esc(id)+'" data-l="'+esc(l.id)+'" data-f="unit" aria-label="מחיר ליחידה">'+
-    '<button class="icon-btn" data-act="ql-del" data-id="'+esc(id)+'" data-l="'+esc(l.id)+'" aria-label="מחק שורה">✕</button></div>'}).join("")+
+    '<button class="icon-btn" data-act="ql-del" data-id="'+esc(id)+'" data-l="'+esc(l.id)+'" aria-label="מחק שורה">'+IC.x+'</button></div>'}).join("")+
   '<button class="btn sm" data-act="ql-add" data-id="'+esc(id)+'">+ שורה</button>'+
   '<div class="totals"><span class="small muted">לפני מע״מ <span class="num">'+money(t)+'</span></span><span class="small muted">מע״מ 18% <span class="num">'+money(t*VAT)+'</span></span><span class="g num">'+money(t*(1+VAT))+'</span></div>'+
   '<label class="f">הערות להצעה<textarea id="q-notes-'+esc(id)+'" data-qnotes="'+esc(id)+'">'+esc(q.notes||"")+'</textarea></label>'+
@@ -683,14 +720,18 @@ function vProject(id){
   var html=backLink("#projects","פרויקטים")+
   '<div class="row between"><div><h1>'+esc(p.name||"פרויקט")+'</h1><div class="small muted">'+[p.client,p.domain,p.address,p.area].filter(Boolean).map(esc).join(" · ")+'</div></div>'+statusPill(p.status)+'</div>'+
   '<div class="sec"><h3>סטטוס פרויקט</h3><div class="seg">'+PSTATUS.map(function(s){return'<button type="button" data-act="p-status" data-id="'+esc(id)+'" data-val="'+esc(s)+'" aria-pressed="'+(s===p.status)+'">'+esc(s)+'</button>'}).join("")+'</div></div>'+
+  '';
+  var hasDetails=[p.client,p.phone,p.address,p.area,p.startDate,p.dueDate,p.quoteId].some(Boolean);
+  var details=!hasDetails?'<div class="card details-empty"><span class="small muted">פרטי לקוח, כתובת ותאריכים עוד לא הוזנו.</span><button class="btn sm" data-act="edit-project" data-id="'+esc(id)+'">הוסף פרטים</button></div>':
   '<div class="card"><div class="kv">'+kvRo("לקוח",p.client)+kvRo("טלפון",p.phone)+kvRo("כתובת",p.address)+kvRo("אזור",p.area)+kvRo("תאריך התחלה",fmtDate(p.startDate))+kvRo("יעד סיום",fmtDate(p.dueDate))+
   (p.quoteId&&S.items[p.quoteId]?'<label>הצעת מחיר</label><div><a href="#q-'+esc(p.quoteId)+'">'+esc(S.items[p.quoteId].title||"הצעה")+'</a></div>':"")+
   '</div><div class="row" style="margin-top:10px"><button class="btn sm" data-act="edit-project" data-id="'+esc(id)+'">עריכת פרטים</button></div></div>';
   if(p.template==="farm"){
     var ew=(p.checklist||[]).filter(function(c){return c.elec&&!c.done});
-    html+='<div class="banner"><b>שלבים שממתינים לחשמלאי מוסמך: <span class="num">'+ew.length+'</span>.</b> שלב שמסומן ⚡ לא נחשב כבוצע עד שהחשמלאי המוסמך אישר אותו. לחץ ⚡ ליד שלב כדי לסמן או לבטל את הדרישה.</div>';
+    html+='<div class="banner"><b>שלבים שממתינים לחשמלאי מוסמך: <span class="num">'+ew.length+'</span>.</b> שלב שמסומן '+IC.bolt+' לא נחשב כבוצע עד שהחשמלאי המוסמך אישר אותו. לחץ '+IC.bolt+' ליד שלב כדי לסמן או לבטל את הדרישה.</div>';
   }
   html+=checklistSec(p,p.template==="farm"?"משימות ושלבי עבודה":"שלבי הפרויקט",{elec:true});
+  html+=details;
   html+=equipSec(p);
   if(p.template==="server"){html+=portsSec(p)+vlanSec(p)}
   if((p.specs||[]).length||p.template)html+=specsSec(p);
@@ -724,7 +765,7 @@ function vlanSec(p){
   (v.length?'<div class="tbl-wrap"><table><thead><tr><th>מזהה VLAN</th><th>שם</th><th>טווח כתובות</th><th>הערות</th><th></th></tr></thead><tbody>'+
    v.map(function(x){return'<tr>'+
     ['vid','name','subnet','notes'].map(function(f){return'<td><input type="text" id="vl-'+f+'-'+esc(x.id)+'" value="'+esc(x[f]||"")+'" data-vlan="'+esc(p.id)+'" data-v="'+esc(x.id)+'" data-f="'+f+'" aria-label="'+f+'"'+(f==="vid"||f==="subnet"?' dir="ltr"':"")+'></td>'}).join("")+
-    '<td><button class="icon-btn" data-act="vlan-del" data-id="'+esc(p.id)+'" data-v="'+esc(x.id)+'" aria-label="מחק VLAN">✕</button></td></tr>'}).join("")+
+    '<td><button class="icon-btn" data-act="vlan-del" data-id="'+esc(p.id)+'" data-v="'+esc(x.id)+'" aria-label="מחק VLAN">'+IC.x+'</button></td></tr>'}).join("")+
    '</tbody></table></div>':'<div class="empty">עוד לא הוגדרו VLAN. הוסף שורה לכל רשת (למשל: מצלמות, עובדים, אורחים).</div>')+
   '</div>';
 }
@@ -744,7 +785,7 @@ function vInstalls(){
   var quotes=all("quote").filter(function(q){return q.domain===seg});
   var projects=all("project").filter(function(p){return p.domain===seg});
   return '<h1>התקנות והצעות לפי תחום</h1>'+segBar("installs",INSTALL_DOMAINS,seg)+
-  (seg==="מצלמות"?'<a class="btn wide" href="#fastcam">⚡ הצעה מהירה למצלמות (מהמחירון שלך)</a>':"")+
+  (seg==="מצלמות"?'<a class="btn wide" href="#fastcam">'+IC.bolt+' הצעה מהירה למצלמות (מהמחירון שלך)</a>':"")+
   '<div class="row"><button class="btn pri" data-act="new-job" data-domain="'+esc(seg)+'" data-jtype="התקנה">+ התקנת '+esc(seg)+'</button><button class="btn" data-act="new-quote" data-domain="'+esc(seg)+'">+ הצעת מחיר ל'+esc(seg)+'</button></div>'+
   '<div class="sec"><h2>הצעות מחיר — '+esc(seg)+'</h2>'+(quotes.length?'<div class="list">'+quotes.map(quoteItem).join("")+'</div>':'<div class="empty">אין הצעות בתחום הזה.</div>')+'</div>'+
   '<div class="sec"><h2>פרויקטים — '+esc(seg)+'</h2>'+(projects.length?'<div class="list">'+projects.map(projectItem).join("")+'</div>':'<div class="empty">אין פרויקטים בתחום הזה.</div>')+'</div>'+
@@ -805,7 +846,7 @@ function vReminders(){
     '<div class="row"><button class="btn pri" data-act="rem-done" data-id="'+esc(r.id)+'">סיימתי'+(r.every==="חודשי"?" — קבע לחודש הבא":"")+'</button><button class="btn sm" data-act="edit-rem" data-id="'+esc(r.id)+'">עריכה</button><button class="btn sm bad" data-act="del" data-id="'+esc(r.id)+'" data-back="#reminders">מחיקה</button></div>'+
     ((r.history||[]).length?'<div class="small muted">היסטוריה: '+r.history.slice(-6).reverse().map(function(d){return'<span class="num">'+fmtDate(d)+'</span>'}).join(" · ")+'</div>':"")+
     '</div>'}).join(""):'<div class="empty">אין תזכורות.</div>')+
-  '<div class="sec"><h2>ממתין לחשמלאי מוסמך</h2><div class="small muted">שלבים שמסומנים ⚡ ועוד לא אושרו, ועבודות בסטטוס "ממתין לחשמלאי".</div>'+
+  '<div class="sec"><h2>ממתין לחשמלאי מוסמך</h2><div class="small muted">שלבים שמסומנים '+IC.bolt+' ועוד לא אושרו, ועבודות בסטטוס "ממתין לחשמלאי".</div>'+
   ((ew.length||ej.length)?'<div class="list">'+
     ew.map(function(x){var href=x.p.template?"#"+x.p.template:"#p-"+x.p.id;return'<button class="item" data-go="'+esc(href)+'"><div class="main"><span class="t">'+esc(x.c.text)+'</span><span class="meta"><span>'+esc(x.p.name)+'</span></span></div><div class="side"><span class="pill warn">ממתין</span></div></button>'}).join("")+
     ej.map(jobItem).join("")+'</div>':'<div class="empty">אין שלבים שממתינים לחשמלאי.</div>')+
@@ -901,7 +942,7 @@ function vCompares(){
   }).sort(function(a,b){return (b.updatedAt||"")<(a.updatedAt||"")?-1:1});
   return '<div class="row between"><h1>השוואת הצעות מספקים</h1><button class="btn pri" data-act="new-compare">+ השוואה חדשה</button></div>'+
   '<div class="small muted">פותחים השוואה אחת לכל קנייה (למשל "מצלמות לבית ספר"), ומוסיפים אליה את ההצעה של כל ספק. הדף מראה מה ההבדלים ואיזה ספק מתאים לעבודה שוטפת ואיזה לחירום.</div>'+
-  '<a class="btn wide" href="#supstats">📊 ניתוח ספקים לאורך השנה</a>'+
+  '<a class="btn wide" href="#supstats">'+IC.chart+' ניתוח ספקים לאורך השנה</a>'+
   '<div class="filters" data-fkey="cmp"><input class="q" type="search" id="f-cmp-q" placeholder="חיפוש השוואה…" value="'+esc(f.q||"")+'" data-filter="q">'+
     '<select id="f-cmp-supplier" data-filter="supplier" aria-label="ספק">'+opts(uniq(all("supplier").map(function(x){return x.name})),f.supplier,"כל הספקים")+'</select>'+
     '<select id="f-cmp-domain" data-filter="domain" aria-label="תחום">'+opts(DOMAINS,f.domain,"כל התחומים")+'</select>'+
@@ -1030,17 +1071,16 @@ function reqSec(c){
     '<label class="f">מתי ביקשתי<input type="datetime-local" id="rq-a-'+esc(r.id)+'" value="'+esc(r.askedAt||"")+'" data-req="'+esc(c.id)+'" data-r="'+esc(r.id)+'" data-f="askedAt"></label>'+
     '<label class="f">מתי ענה<input type="datetime-local" id="rq-b-'+esc(r.id)+'" value="'+esc(r.answeredAt||"")+'" data-req="'+esc(c.id)+'" data-r="'+esc(r.id)+'" data-f="answeredAt"></label>'+
     '<label class="f">הערה<input type="text" id="rq-n-'+esc(r.id)+'" value="'+esc(r.notes||"")+'" data-req="'+esc(c.id)+'" data-r="'+esc(r.id)+'" data-f="notes"></label></div>'+
-    '<div class="row between"><span class="small muted">'+esc(dur)+'</span><button class="icon-btn" data-act="req-del" data-id="'+esc(c.id)+'" data-r="'+esc(r.id)+'" aria-label="מחק פנייה">✕</button></div></div>'}).join("")+'</div>'
+    '<div class="row between"><span class="small muted">'+esc(dur)+'</span><button class="icon-btn" data-act="req-del" data-id="'+esc(c.id)+'" data-r="'+esc(r.id)+'" aria-label="מחק פנייה">'+IC.x+'</button></div></div>'}).join("")+'</div>'
   :'<div class="empty">עוד לא נרשמו פניות לספקים.</div>')+'</div>';
 }
 function reqForm(cid){
   var c=get(cid);if(!c)return;
   var body=datalists()+'<div class="grid2"><label class="f full">ספק<input type="text" name="supplier" id="fm-supplier" list="dl-sup"></label>'+
-    selField("מה קרה","status",REQ_ST,"ממתין לתשובה")+field("מתי ביקשתי","askedAt",nowLocal(),"datetime-local")+field("הערה","notes","","text","full")+'</div>';
+    selField("מה קרה","status",REQ_ST,"ממתין לתשובה")+field("מתי ביקשתי","askedAt",nowLocal(),"datetime-local")+field("מתי ענה (אם כבר ענה)","answeredAt","","datetime-local")+field("הערה","notes","","text","full")+'</div>';
   openSheet("פנייה לספק",body,function(form){
-    var r={id:uid(),supplier:fval(form,"supplier"),status:fval(form,"status"),askedAt:fval(form,"askedAt"),answeredAt:"",notes:fval(form,"notes")};
+    var r={id:uid(),supplier:fval(form,"supplier"),status:fval(form,"status"),askedAt:fval(form,"askedAt"),answeredAt:fval(form,"answeredAt"),notes:fval(form,"notes")};
     if(!r.supplier){toast("כתוב שם ספק");return}
-    if(r.status==="ענה"&&r.askedAt)r.answeredAt="";
     c.requests=(c.requests||[]).concat([r]);
     if(!supByName(r.supplier))persist({id:uid(),kind:"supplier",name:r.supplier,category:"",contact:"",phone:"",emergencyPhone:"",emergency:"לא ידוע",rating:"",payment:"",notes:""});
     persist(c);closeSheet();
@@ -1126,7 +1166,7 @@ function vFast(){
   var F=fastState(),st=fcSettings();
   var lost=all("quote").filter(function(q){return q.status==="הלקוח סגר עם אחר"});
   var lostTime=lost.filter(function(q){return q.lostReason==="לא הספקתי לתת מחיר בזמן"}).length;
-  return '<div class="row between"><h1>⚡ הצעה מהירה למצלמות</h1><button class="btn sm" data-act="fc-reset">התחל מחדש</button></div>'+
+  return '<div class="row between"><h1>'+IC.bolt+' הצעה מהירה למצלמות</h1><button class="btn sm" data-act="fc-reset">התחל מחדש</button></div>'+
   '<div class="small muted">ממלאים כמה מצלמות בכל בית, והמחיר מחושב מיד מהמחירון שלך, בלי לחכות לספקים. אפשר לשלוח ללקוח מחיר משוער עכשיו ולאשר מול הספק אחר כך.</div>'+
   (lost.length?'<div class="banner">עסקאות שהלכו למתחרה: <b class="num">'+lost.length+'</b>'+(lostTime?' · מתוכן <b class="num">'+lostTime+'</b> כי לא הספקת לתת מחיר בזמן':"")+'</div>':"")+
   '<div class="card stack"><h2>לקוח</h2><div class="grid2">'+
@@ -1138,14 +1178,14 @@ function vFast(){
       '<label class="f full">שם<input type="text" id="fcs-n-'+esc(s.id)+'" data-fcsite="'+i+'" data-f="name" value="'+esc(s.name)+'"></label>'+
       '<label class="f">כמה מצלמות<input type="number" inputmode="numeric" id="fcs-c-'+esc(s.id)+'" data-fcsite="'+i+'" data-f="cams" value="'+esc(s.cams)+'"></label>'+
       '<label class="f">מטר כבל (הערכה)<input type="number" inputmode="numeric" id="fcs-m-'+esc(s.id)+'" data-fcsite="'+i+'" data-f="cableM" value="'+esc(s.cableM)+'"></label></div>'+
-      '<div class="row between"><span class="small muted" id="fcs-h-'+i+'">'+(c?"צריך מקליט של "+nvrCh(c)+" ערוצים לפחות":"")+'</span>'+(F.sites.length>1?'<button class="icon-btn" data-act="fc-site-del" data-i="'+i+'" aria-label="מחק בית">✕</button>':"")+'</div></div>'}).join("")+
+      '<div class="row between"><span class="small muted" id="fcs-h-'+i+'">'+(c?"צריך מקליט של "+nvrCh(c)+" ערוצים לפחות":"")+'</span>'+(F.sites.length>1?'<button class="icon-btn" data-act="fc-site-del" data-i="'+i+'" aria-label="מחק בית">'+IC.x+'</button>':"")+'</div></div>'}).join("")+
   '</div>'+
   '<div class="card stack"><div class="sec-h"><h2>ציוד מהמחירון</h2><a class="btn sm" href="#prices">למחירון</a></div><div class="grid2">'+
     '<label class="f full">מצלמה<select id="fc-cam" data-fc="cam">'+priceOpts(F.cam,"מצלמות")+'</select></label>'+
     '<label class="f full">מקליט NVR (אחד לכל בית)<select id="fc-nvr" data-fc="nvr">'+priceOpts(F.nvr,"מקליטים (NVR)")+'</select></label>'+
     '<label class="f full">דיסק (אחד לכל בית)<select id="fc-hdd" data-fc="hdd">'+priceOpts(F.hdd,"דיסקים")+'</select></label>'+
     '<label class="f full">כבל רשת<select id="fc-cable" data-fc="cable">'+priceOpts(F.cable,"כבלים ואביזרים")+'</select></label></div>'+
-    '<h3>פריטים נוספים</h3>'+(F.extras||[]).map(function(x,i){return'<div class="addline"><select id="fcx-p-'+i+'" data-fcx="'+i+'" data-f="pid" aria-label="פריט">'+priceOpts(x.pid,"כבלים ואביזרים")+'</select><input type="number" inputmode="numeric" style="max-width:80px" id="fcx-q-'+i+'" data-fcx="'+i+'" data-f="qty" value="'+esc(x.qty)+'" aria-label="כמות"><button class="icon-btn" data-act="fc-extra-del" data-i="'+i+'" aria-label="מחק">✕</button></div>'}).join("")+
+    '<h3>פריטים נוספים</h3>'+(F.extras||[]).map(function(x,i){return'<div class="addline"><select id="fcx-p-'+i+'" data-fcx="'+i+'" data-f="pid" aria-label="פריט">'+priceOpts(x.pid,"כבלים ואביזרים")+'</select><input type="number" inputmode="numeric" style="max-width:80px" id="fcx-q-'+i+'" data-fcx="'+i+'" data-f="qty" value="'+esc(x.qty)+'" aria-label="כמות"><button class="icon-btn" data-act="fc-extra-del" data-i="'+i+'" aria-label="מחק">'+IC.x+'</button></div>'}).join("")+
     '<button class="btn sm" data-act="fc-extra-add">+ פריט נוסף</button></div>'+
   '<div class="card stack"><h2>המחירים שלי</h2><div class="small muted">נשמרים לפעם הבאה. ריק = עוד לא הוגדר.</div><div class="grid2">'+
     '<label class="f">רווח על ציוד (%)<input type="number" inputmode="decimal" id="fc-mk" data-fcset="markup" value="'+esc(st.markup||"")+'"></label>'+
@@ -1293,7 +1333,7 @@ function supStatsData(){
 function vSupStats(){
   var D=supStatsData(),f=D.f,L=D.list;
   var per=[["year","השנה"],["12m","12 חודשים"],["last","שנה שעברה"],["all","הכול"]];
-  var h='<h1>📊 ניתוח ספקים</h1>'+
+  var h='<h1>'+IC.chart+' ניתוח ספקים</h1>'+
   '<div class="seg" role="group">'+per.map(function(p){return'<button type="button" data-act="ss-period" data-val="'+p[0]+'" aria-pressed="'+(f.period===p[0])+'">'+p[1]+'</button>'}).join("")+'</div>'+
   '<div class="filters" data-fkey="ss">'+
     '<select id="f-ss-supplier" data-filter="supplier" aria-label="ספק">'+opts(uniq(all("supplier").map(function(s){return s.name})),f.supplier,"כל הספקים")+'</select>'+
@@ -1441,7 +1481,7 @@ function renderSheetLines(){
     '<input type="text" id="sl-d-'+esc(l.id)+'" data-sl="'+esc(l.id)+'" data-f="desc" value="'+esc(l.desc)+'" aria-label="תיאור">'+
     '<input type="number" inputmode="decimal" step="any" id="sl-q-'+esc(l.id)+'" data-sl="'+esc(l.id)+'" data-f="qty" value="'+esc(l.qty)+'" aria-label="כמות">'+
     '<input type="number" inputmode="decimal" step="any" id="sl-u-'+esc(l.id)+'" data-sl="'+esc(l.id)+'" data-f="unit" value="'+esc(l.unit)+'" aria-label="מחיר ליחידה">'+
-    '<button type="button" class="icon-btn" data-act="sl-del" data-l="'+esc(l.id)+'" aria-label="מחק שורה">✕</button></div>'}).join("");
+    '<button type="button" class="icon-btn" data-act="sl-del" data-l="'+esc(l.id)+'" aria-label="מחק שורה">'+IC.x+'</button></div>'}).join("");
 }
 function sqAI(){
   if(!sheetState)return;var form=document.getElementById("sheet-form");
@@ -1478,7 +1518,7 @@ function openSheet(title,body,onSave,opt){
   opt=opt||{};
   var root=document.getElementById("sheet-root");
   root.innerHTML='<div class="scrim" data-act="sheet-scrim"><form class="sheet" role="dialog" aria-modal="true" aria-label="'+esc(title)+'" id="sheet-form">'+
-    '<div class="sheet-h"><h2>'+esc(title)+'</h2><button type="button" class="icon-btn" data-act="sheet-close" aria-label="סגור">✕</button></div>'+
+    '<div class="sheet-h"><h2>'+esc(title)+'</h2><button type="button" class="icon-btn" data-act="sheet-close" aria-label="סגור">'+IC.x+'</button></div>'+
     body+
     '<div class="sheet-f">'+(opt.noSave?"":'<button class="btn pri" type="submit">'+esc(opt.saveLabel||"שמירה")+'</button>')+'<button class="btn" type="button" data-act="sheet-close">ביטול</button></div>'+
   '</form></div>';
@@ -1486,7 +1526,11 @@ function openSheet(title,body,onSave,opt){
   var f=root.querySelector("input,select,textarea");if(f&&!opt.noFocus)setTimeout(function(){try{f.focus({preventScroll:true})}catch(e){}},50);
   document.body.style.overflow="hidden";
 }
-function closeSheet(){document.getElementById("sheet-root").innerHTML="";sheetState=null;document.body.style.overflow="";if(S.dirty){S.dirty=false;render()}}
+function trackUpload(id){if(sheetState)(sheetState.newUploads=sheetState.newUploads||[]).push(id)}
+function dropAsset(id){if(id&&S.assets)S.assets.delete(id).catch(function(){})}
+function closeSheet(){
+  if(sheetState&&!sheetState.saved&&sheetState.newUploads)sheetState.newUploads.forEach(dropAsset);
+  document.getElementById("sheet-root").innerHTML="";sheetState=null;document.body.style.overflow="";if(S.dirty){S.dirty=false;render()}}
 function fval(form,name){var el=form.elements[name];return el?String(el.value).trim():""}
 function field(label,name,val,type,extra){
   type=type||"text";extra=extra||"";
@@ -1631,8 +1675,8 @@ function confirmSheet(msg,label,fn){
 }
 function menuSheet(){
   var b='<div class="menu-grid">'+
-    [["#fastcam","⚡ הצעה מהירה למצלמות"],["#supstats","📊 ניתוח ספקים"],["#prices","המחירון שלי"],["#compare","השוואת הצעות מספקים"],["#installs","התקנות: מצלמות, רשתות, אזעקות"],["#server","חדר שרתים"],["#farm","חוות הסוסים בגיאה"],["#reminders","תזכורות וחשמלאי"],["#missing","ציוד חסר"],["#finance","הכנסות והוצאות"],["#suppliers","ספקים"],["#jobs","עבודות ותקלות"]]
-    .map(function(x){return'<a class="btn" href="'+x[0]+'" data-act="sheet-close-nav">'+esc(x[1])+'</a>'}).join("")+'</div>'+'<div class="small muted">ההמלצה במסך השוואת הספקים מחושבת בדף עצמו. ניתוח עם Claude רץ רק כשלוחצים על הכפתור שלו.</div>';
+    [["#fastcam","הצעה מהירה למצלמות","bolt"],["#supstats","ניתוח ספקים","chart"],["#prices","המחירון שלי"],["#compare","השוואת הצעות מספקים"],["#installs","התקנות: מצלמות, רשתות, אזעקות"],["#server","חדר שרתים"],["#farm","חוות הסוסים בגיאה"],["#reminders","תזכורות וחשמלאי"],["#missing","ציוד חסר"],["#finance","הכנסות והוצאות"],["#suppliers","ספקים"],["#jobs","עבודות ותקלות"]]
+    .map(function(x){return'<a class="btn" href="'+x[0]+'" data-act="sheet-close-nav">'+(x[2]?IC[x[2]]:"")+esc(x[1])+'</a>'}).join("")+'</div>'+'<div class="small muted">ההמלצה במסך השוואת הספקים מחושבת בדף עצמו. ניתוח עם Claude רץ רק כשלוחצים על הכפתור שלו.</div>';
   openSheet("עוד",b,null,{noSave:true,noFocus:true});
 }
 
@@ -1652,11 +1696,11 @@ function handlePhotos(files,target){
   var chain=Promise.resolve(),added=[];
   files.forEach(function(file){chain=chain.then(function(){
     if(file.type==="application/pdf"){
-      if(S.mode==="db"&&S.assets)return S.assets.upload(file,{type:"application/pdf"}).then(function(up){added.push({id:up.id,url:up.url,name:file.name,type:"pdf",at:today()})}).catch(function(){toast("העלאת PDF נכשלה")});
+      if(S.mode==="db"&&S.assets)return S.assets.upload(file,{type:"application/pdf"}).then(function(up){viewUrls[up.id]=up.url;trackUpload(up.id);added.push({id:up.id,name:file.name,type:"pdf",at:today()})}).catch(function(){toast("העלאת PDF נכשלה")});
       toast("קובץ PDF נשמר רק כשהדף מחובר לענן. צלם מסך של ההצעה במקום.");return;
     }
     if(S.mode==="db"&&S.assets){
-      return compress(file,1600,0.82).then(function(r){return S.assets.upload(r.blob||file,{type:"image/jpeg"})}).then(function(up){added.push({id:up.id,url:up.url,name:file.name,at:today()})}).catch(function(){toast("העלאת תמונה נכשלה")});
+      return compress(file,1600,0.82).then(function(r){return S.assets.upload(r.blob||file,{type:"image/jpeg"})}).then(function(up){viewUrls[up.id]=up.url;trackUpload(up.id);added.push({id:up.id,name:file.name,at:today()})}).catch(function(){toast("העלאת תמונה נכשלה")});
     }
     return compress(file,520,0.6).then(function(r){var d=r.data||r.canvas.toDataURL("image/jpeg",0.6);added.push({data:d,name:file.name,at:today()})}).catch(function(){toast("לא ניתן לקרוא את התמונה")});
   })});
@@ -1715,7 +1759,7 @@ document.addEventListener("click",function(ev){
     case "ck-elec":mutate(id,function(it){it.checklist.forEach(function(c){if(c.id===t.getAttribute("data-c"))c.elec=!c.elec})});break;
     case "ck-del":var cid=t.getAttribute("data-c");confirmSheet("למחוק את השלב?","מחק",function(){mutate(id,function(it){it.checklist=it.checklist.filter(function(c){return c.id!==cid})})});break;
     case "ph-del":var pi=+t.getAttribute("data-i");confirmSheet("להסיר את התמונה?","הסר",function(){mutate(id,function(it){var ph=it.photos.splice(pi,1)[0];if(ph&&ph.id&&S.assets){S.assets.delete(ph.id).catch(function(){})}})});break;
-    case "sph-del":if(sheetState){sheetState.photos.splice(+t.getAttribute("data-i"),1);renderSheetPhotos()}break;
+    case "sph-del":if(sheetState){var gone=sheetState.photos.splice(+t.getAttribute("data-i"),1)[0];if(gone&&gone.id&&(sheetState.newUploads||[]).indexOf(gone.id)>=0)dropAsset(gone.id);renderSheetPhotos()}break;
     case "log-del":var lid=t.getAttribute("data-l");mutate(id,function(p){p.log=(p.log||[]).filter(function(l){return l.id!==lid})});break;
     case "eq-new":equipForm(id,null);break;
     case "eq-edit":equipForm(id,t.getAttribute("data-e"));break;
@@ -1765,7 +1809,7 @@ document.addEventListener("click",function(ev){
 });
 document.addEventListener("submit",function(ev){
   ev.preventDefault();var f=ev.target;
-  if(f.id==="sheet-form"){if(sheetState&&sheetState.onSave)sheetState.onSave(f);return}
+  if(f.id==="sheet-form"){if(sheetState&&sheetState.onSave){sheetState.saved=true;sheetState.onSave(f);if(sheetState)sheetState.saved=false}return}
   var a=f.getAttribute("data-act"),id=f.getAttribute("data-id");var v=(f.elements.t&&f.elements.t.value||"").trim();if(!v)return;
   if(a==="ck-add"){f.elements.t.blur();mutate(id,function(it){it.checklist=(it.checklist||[]).concat([{id:uid(),text:v,done:false,elec:false,doneAt:""}])})}
   if(a==="log-add"){f.elements.t.blur();mutate(id,function(p){p.log=(p.log||[]).concat([{id:uid(),date:today(),text:v}])})}
