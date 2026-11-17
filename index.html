@@ -414,6 +414,7 @@ function start(){
     },function(e){clearTimeout(slow);S.storeError=true;setMode("db");scheduleRender();toast("החיבור לאחסון נותק. רענן את הדף כדי לראות שינויים.")});
   }).catch(function(){clearTimeout(noRuntime);goLocal()});
 }
+function stillLoading(){return S.mode==="db"&&!S.loadedOnce}
 function goLocal(msg){if(storageDecided)return;storageDecided=true;S.loadedOnce=true;loadLocal();setMode("local");if(msg)toast(msg);render()}
 
 /* render scheduling: never re-render under the user's typing */
@@ -711,6 +712,7 @@ function vProjects(){
 }
 function vTemplate(t){
   var p=findTpl(t);
+  if(!p&&stillLoading())return backLink("#projects","פרויקטים")+'<div class="empty">הנתונים עוד נטענים…</div>';
   if(!p){var nm=t==="server"?"חדר השרתים":"חוות הסוסים בגיאה";
     return backLink("#projects","פרויקטים")+'<h1>'+esc(nm)+'</h1><div class="empty">הפרויקט עוד לא נוצר כאן.<br>ייווצר עם שלבים וציוד בסטטוס "לא ידוע", בלי להניח שמשהו נרכש או בוצע.</div><button class="btn pri" data-act="create-tpl" data-t="'+t+'">צור את הפרויקט</button>';}
   return vProject(p.id);
@@ -1526,7 +1528,7 @@ function openSheet(title,body,onSave,opt){
   var f=root.querySelector("input,select,textarea");if(f&&!opt.noFocus)setTimeout(function(){try{f.focus({preventScroll:true})}catch(e){}},50);
   document.body.style.overflow="hidden";
 }
-function trackUpload(id){if(sheetState)(sheetState.newUploads=sheetState.newUploads||[]).push(id)}
+function trackUpload(id,target){if(target!=="__sheet")return;if(sheetState)(sheetState.newUploads=sheetState.newUploads||[]).push(id);else dropAsset(id)}
 function dropAsset(id){if(id&&S.assets)S.assets.delete(id).catch(function(){})}
 function closeSheet(){
   if(sheetState&&!sheetState.saved&&sheetState.newUploads)sheetState.newUploads.forEach(dropAsset);
@@ -1696,11 +1698,11 @@ function handlePhotos(files,target){
   var chain=Promise.resolve(),added=[];
   files.forEach(function(file){chain=chain.then(function(){
     if(file.type==="application/pdf"){
-      if(S.mode==="db"&&S.assets)return S.assets.upload(file,{type:"application/pdf"}).then(function(up){viewUrls[up.id]=up.url;trackUpload(up.id);added.push({id:up.id,name:file.name,type:"pdf",at:today()})}).catch(function(){toast("העלאת PDF נכשלה")});
+      if(S.mode==="db"&&S.assets)return S.assets.upload(file,{type:"application/pdf"}).then(function(up){viewUrls[up.id]=up.url;trackUpload(up.id,target);added.push({id:up.id,name:file.name,type:"pdf",at:today()})}).catch(function(){toast("העלאת PDF נכשלה")});
       toast("קובץ PDF נשמר רק כשהדף מחובר לענן. צלם מסך של ההצעה במקום.");return;
     }
     if(S.mode==="db"&&S.assets){
-      return compress(file,1600,0.82).then(function(r){return S.assets.upload(r.blob||file,{type:"image/jpeg"})}).then(function(up){viewUrls[up.id]=up.url;trackUpload(up.id);added.push({id:up.id,name:file.name,at:today()})}).catch(function(){toast("העלאת תמונה נכשלה")});
+      return compress(file,1600,0.82).then(function(r){return S.assets.upload(r.blob||file,{type:"image/jpeg"})}).then(function(up){viewUrls[up.id]=up.url;trackUpload(up.id,target);added.push({id:up.id,name:file.name,at:today()})}).catch(function(){toast("העלאת תמונה נכשלה")});
     }
     return compress(file,520,0.6).then(function(r){var d=r.data||r.canvas.toDataURL("image/jpeg",0.6);added.push({data:d,name:file.name,at:today()})}).catch(function(){toast("לא ניתן לקרוא את התמונה")});
   })});
@@ -1714,6 +1716,7 @@ function handlePhotos(files,target){
 /* ---------- actions ---------- */
 function mutate(id,fn){var it=get(id);if(!it)return;fn(it);persist(it)}
 function createTpl(t){
+  if(stillLoading()){toast("הנתונים עוד נטענים. נסה שוב בעוד רגע.");return}
   var p=t==="server"?tplServer():tplFarm();
   if(S.items[p.id]){location.hash="#"+t;return}
   persist(p);
@@ -1818,6 +1821,7 @@ document.addEventListener("submit",function(ev){
 var filterTimer=null;
 document.addEventListener("input",function(ev){
   var t=ev.target;
+  if(t.hasAttribute("data-fcset")&&stillLoading())return;
   if(t.hasAttribute("data-fcset")){var st0=fcSettings();st0[t.getAttribute("data-fcset")]=t.value.trim();S.items[st0.id]=st0;updateFastSummary();return}
   if((t.hasAttribute("data-fc")||t.hasAttribute("data-fcsite")||t.hasAttribute("data-fcx"))&&t.tagName!=="SELECT"){fastFromInput(t);updateFastSummary();return}
   if(t.hasAttribute("data-filter")){var k=t.closest("[data-fkey]").getAttribute("data-fkey");S.filters[k]=S.filters[k]||{};S.filters[k][t.getAttribute("data-filter")]=t.value;if(k==="ss"&&(t.getAttribute("data-filter")==="from"||t.getAttribute("data-filter")==="to"))S.filters.ss.period="custom";
@@ -1837,6 +1841,7 @@ document.addEventListener("change",function(ev){
   if(t.hasAttribute("data-buy")){mutate(t.getAttribute("data-buy"),function(c){c.purchase=c.purchase||{};c.purchase[t.getAttribute("data-f")]=t.value.trim()});return}
   if(t.hasAttribute("data-qlost")){mutate(t.getAttribute("data-qlost"),function(q){q.lostReason=t.value});return}
   if(t.hasAttribute("data-req")){mutate(t.getAttribute("data-req"),function(c){(c.requests||[]).forEach(function(r){if(r.id===t.getAttribute("data-r")){r[t.getAttribute("data-f")]=t.value;if(t.getAttribute("data-f")==="status"&&t.value!=="ממתין לתשובה"&&!r.answeredAt&&r.askedAt)r.answeredAt=nowLocal()}})});return}
+  if(t.hasAttribute("data-fcset")&&stillLoading()){toast("הנתונים עוד נטענים. ההגדרה לא נשמרה.");return}
   if(t.hasAttribute("data-fcset")){var st=fcSettings();st[t.getAttribute("data-fcset")]=t.value.trim();persist(st);updateFastSummary();return}
   if(t.hasAttribute("data-fc")||t.hasAttribute("data-fcsite")||t.hasAttribute("data-fcx")){fastFromInput(t);if(t.tagName==="SELECT")render();return}
   if(t.hasAttribute("data-remdue")){mutate(t.getAttribute("data-remdue"),function(r){r.due=t.value});return}
