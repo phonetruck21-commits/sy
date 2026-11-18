@@ -79,6 +79,14 @@ export async function openCamera(o: OpenOptions): Promise<MediaStream> {
     frameRate: { ideal: o.fps },
   };
   const audio: MediaTrackConstraints | false = o.micId === null ? false : { deviceId: o.micId ? { exact: o.micId } : undefined, echoCancellation: true, noiseSuppression: true };
+  // Chrome/Edge expose motorised pan/tilt/zoom (UVC PTZ, e.g. EMEET PIXY) ONLY when the page asks for it
+  // when opening the camera. Cameras without PTZ simply ignore these constraints.
+  const ptz = { ...video, pan: true, tilt: true, zoom: true };
+  try {
+    return await navigator.mediaDevices.getUserMedia({ video: ptz, audio });
+  } catch {
+    /* browser/camera rejected the PTZ request -> open normally below */
+  }
   try {
     return await navigator.mediaDevices.getUserMedia({ video, audio });
   } catch (err) {
@@ -142,6 +150,20 @@ export function describeTrack(track: MediaStreamTrack) {
     actual: { width: settings.width, height: settings.height, fps: settings.frameRate ? Math.round(settings.frameRate) : undefined },
     controls,
   };
+}
+
+/** Pan/tilt/zoom capabilities of the track, if the camera reports motorised PTZ. */
+export function ptzCapabilities(track: MediaStreamTrack) {
+  const caps = (track.getCapabilities?.() ?? {}) as Record<string, unknown>;
+  const settings = track.getSettings() as Record<string, unknown>;
+  const range = (n: string) => {
+    const c = caps[n] as { min: number; max: number; step?: number } | undefined;
+    return c && typeof c.min === 'number' && c.max > c.min ? { ...c, value: (settings[n] as number) ?? c.min } : null;
+  };
+  const pan = range('pan');
+  const tilt = range('tilt');
+  const zoom = range('zoom');
+  return pan || tilt || zoom ? { pan, tilt, zoom } : null;
 }
 
 export async function applyControl(track: MediaStreamTrack, name: string, value: number | string): Promise<void> {

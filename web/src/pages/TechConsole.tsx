@@ -10,6 +10,7 @@ import { fmtDateTime, fmtDuration, workSeconds } from '../lib/format';
 import { Badge, Button, Card, DemoBadge, ErrorText, Field, Input, Modal, Select, StatusDot, Textarea } from '../components/ui';
 import { CustomerPicker, NewJobModal } from '../components/JobForm';
 import { ShareLinkPanel } from '../components/ShareLinkPanel';
+import { PtzPad } from '../components/PtzPad';
 import { useOnline } from '../components/Layout';
 
 interface StationSettings {
@@ -584,6 +585,7 @@ export default function TechConsole() {
                 <option value="none">ללא קול</option>
               </Select>
             </Field>
+            {stream && stream.getVideoTracks()[0] && <PtzPad key={stream.id} track={stream.getVideoTracks()[0]} onError={(m) => alert('warn', m)} />}
             {trackInfo && trackInfo.controls.length > 0 && stream && (
               <details className="rounded-xl border border-line p-2">
                 <summary className="cursor-pointer text-sm font-semibold">בקרות מצלמה נתמכות ({trackInfo.controls.length})</summary>
