@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקת מצלמה – S.Y LIVE SERVICE</title>
+<style>
+  :root { --bg:#f1f4f9; --panel:#fff; --ink:#0b1120; --muted:#5c6880; --line:#d6deeb; --navy:#0a1f44; --accent:#ffc629; --ok:#059669; --bad:#e11d48; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#050a16; --panel:#0d162a; --ink:#f0f4fc; --muted:#94a3c0; --line:#21304f; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 15px/1.5 "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--ink); }
+  header { background: var(--navy); color:#fff; padding: 12px 20px; font-weight: 800; letter-spacing: .5px; }
+  header span { color: var(--accent); }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: minmax(0,1fr) 380px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  video { width: 100%; aspect-ratio: 16/9; background:#000; border-radius: 10px; object-fit: contain; }
+  label { display:block; font-size: 13px; color: var(--muted); font-weight: 600; margin: 8px 0 4px; }
+  select, button { font: inherit; }
+  select { width: 100%; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  button { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; background: var(--navy); color: #fff; }
+  button.accent { background: var(--accent); color: #06142e; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .row { display:flex; gap:8px; flex-wrap: wrap; margin-top: 10px; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; }
+  td, th { border-bottom: 1px solid var(--line); padding: 5px 4px; text-align: start; }
+  .ok { color: var(--ok); font-weight: 700; } .bad { color: var(--bad); font-weight: 700; }
+  .pad { display:grid; grid-template-columns: repeat(3, 48px); gap: 6px; direction: ltr; justify-content: center; }
+  .pad button { padding: 0; height: 48px; font-size: 18px; }
+  pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: var(--bg); padding: 10px; border-radius: 10px; max-height: 320px; overflow: auto; direction: ltr; text-align: left; }
+  .note { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>S.Y <span>LIVE</span> SERVICE · בדיקת מצלמה</header>
+<main>
+  <div style="display:grid; gap:16px; min-width:0">
+    <section>
+      <video id="v" autoplay playsinline muted></video>
+      <div class="row">
+        <button class="accent" id="start">1. הפעל מצלמה</button>
+        <button id="testRes" disabled>2. בדוק רזולוציות</button>
+        <button id="copy" disabled>3. העתק דוח</button>
+      </div>
+      <p class="note" id="status">לחצו "הפעל מצלמה" ואשרו את בקשות ההרשאה (מצלמה, מיקרופון, ואם מופיע – "הזזת המצלמה").</p>
+    </section>
+    <section>
+      <h2>בדיקת רזולוציות</h2>
+      <table><thead><tr><th>מבוקש</th><th>התקבל בפועל</th><th>FPS</th><th>תוצאה</th></tr></thead><tbody id="resRows"><tr><td colspan="4" class="note">טרם נבדק</td></tr></tbody></table>
+    </section>
+    <section>
+      <h2>דוח מלא (להעתקה ושליחה)</h2>
+      <pre id="report">—</pre>
+    </section>
+  </div>
+  <div style="display:grid; gap:16px; align-content:start; min-width:0">
+    <section>
+      <h2>מכשירים</h2>
+      <label for="cam">מצלמה</label><select id="cam"></select>
+      <label for="mic">מיקרופון</label><select id="mic"></select>
+      <p class="note" id="actual"></p>
+    </section>
+    <section>
+      <h2>🕹️ PTZ – שליטה במנועים</h2>
+      <p id="ptzState" class="note">טרם נבדק</p>
+      <div class="pad" id="pad" hidden>
+        <span></span><button data-a="tilt" data-d="1">▲</button><span></span>
+        <button data-a="pan" data-d="-1">◀</button><button data-a="center" data-d="0">⦿</button><button data-a="pan" data-d="1">▶</button>
+        <button data-a="zoom" data-d="-1">－</button><button data-a="tilt" data-d="-1">▼</button><button data-a="zoom" data-d="1">＋</button>
+      </div>
+      <p class="note">אם החיצים מזיזים את המצלמה – ציינו אם הכיוון נכון. מומלץ לכבות מעקב AI ב-EMEET Studio ולסגור אותו.</p>
+    </section>
+    <section>
+      <h2>בקרות שהמצלמה מדווחת</h2>
+      <table><tbody id="caps"><tr><td class="note">טרם נבדק</td></tr></tbody></table>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const v = $('v');
+let stream = null;
+const report = { userAgent: navigator.userAgent, time: new Date().toISOString(), ptzPermission: null, cameras: [], mics: [], selected: null, capabilities: null, settings: null, resolutionTests: [], ptzMoves: [], errors: [] };
+
+function render() { $('report').textContent = JSON.stringify(report, null, 2); }
+function log(err) { report.errors.push(String(err && err.message || err)); render(); }
+
+async function listDevices() {
+  const all = await navigator.mediaDevices.enumerateDevices();
+  const cams = all.filter(d => d.kind === 'videoinput'), mics = all.filter(d => d.kind === 'audioinput');
+  report.cameras = cams.map(d => d.label || '(ללא שם)');
+  report.mics = mics.map(d => d.label || '(ללא שם)');
+  $('cam').innerHTML = cams.map(d => `<option value="${d.deviceId}">${d.label || 'מצלמה'}</option>`).join('');
+  $('mic').innerHTML = mics.map(d => `<option value="${d.deviceId}">${d.label || 'מיקרופון'}</option>`).join('');
+  const emeet = cams.find(d => /emeet|pixy/i.test(d.label));
+  if (emeet) $('cam').value = emeet.deviceId;
+}
+
+async function open(width = 1920, height = 1080, fps = 30) {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  const base = { deviceId: $('cam').value ? { exact: $('cam').value } : undefined, width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: fps } };
+  const audio = $('mic').value ? { deviceId: { exact: $('mic').value } } : true;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { ...base, pan: true, tilt: true, zoom: true }, audio });
+    report.ptzPermission = 'requested-ok';
+  } catch (e) {
+    report.ptzPermission = 'rejected: ' + e.name;
+    stream = await navigator.mediaDevices.getUserMedia({ video: base, audio }).catch(() => navigator.mediaDevices.getUserMedia({ video: base }));
+  }
+  v.srcObject = stream;
+  const track = stream.getVideoTracks()[0];
+  const s = track.getSettings();
+  report.selected = track.label;
+  report.capabilities = track.getCapabilities ? track.getCapabilities() : 'not supported';
+  report.settings = s;
+  $('actual').textContent = `בפועל: ${s.width}×${s.height} @ ${Math.round(s.frameRate || 0)}fps`;
+  showCaps(report.capabilities);
+  setupPtz(track);
+  render();
+  return track;
+}
+
+function showCaps(caps) {
+  const rows = Object.entries(caps || {}).filter(([k]) => !['deviceId', 'groupId'].includes(k)).map(([k, val]) => `<tr><td>${k}</td><td dir="ltr">${typeof val === 'object' ? JSON.stringify(val) : val}</td></tr>`);
+  $('caps').innerHTML = rows.join('') || '<tr><td class="note">לא דווחו בקרות</td></tr>';
+}
+
+function setupPtz(track) {
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  const has = ['pan', 'tilt', 'zoom'].filter(a => caps[a] && caps[a].max > caps[a].min);
+  if (!has.length) { $('ptzState').innerHTML = '<span class="bad">המצלמה לא חושפת PTZ דרך הדפדפן</span>'; $('pad').hidden = true; return; }
+  $('ptzState').innerHTML = `<span class="ok">נתמך: ${has.join(', ')}</span>`;
+  $('pad').hidden = false;
+  $('pad').querySelectorAll('button').forEach(b => {
+    const a = b.dataset.a; b.disabled = a !== 'center' && !has.includes(a);
+    b.onclick = async () => {
+      try {
+        const t = stream.getVideoTracks()[0], c = t.getCapabilities(), cur = t.getSettings();
+        const step = ax => Math.max(c[ax].step || 0, (c[ax].max - c[ax].min) / 20);
+        const set = {};
+        if (a === 'center') { if (c.pan) set.pan = Math.min(c.pan.max, Math.max(c.pan.min, 0)); if (c.tilt) set.tilt = Math.min(c.tilt.max, Math.max(c.tilt.min, 0)); }
+        else set[a] = Math.min(c[a].max, Math.max(c[a].min, cur[a] + Number(b.dataset.d) * step(a)));
+        await t.applyConstraints({ advanced: [set] });
+        report.ptzMoves.push({ request: set, after: Object.fromEntries(['pan', 'tilt', 'zoom'].map(k => [k, t.getSettings()[k]])) });
+        render();
+      } catch (e) { log('PTZ ' + a + ': ' + e.message); }
+    };
+  });
+}
+
+$('start').onclick = async () => {
+  try {
+    $('status').textContent = 'מבקש הרשאה...';
+    const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }).catch(() => navigator.mediaDevices.getUserMedia({ video: true }));
+    tmp.getTracks().forEach(t => t.stop());
+    await listDevices();
+    await open();
+    $('status').textContent = 'המצלמה פועלת. עכשיו "בדוק רזולוציות" ואחר כך "העתק דוח".';
+    $('testRes').disabled = false; $('copy').disabled = false;
+  } catch (e) { $('status').textContent = 'שגיאה: ' + e.message; log(e); }
+};
+$('cam').onchange = () => stream && open().catch(log);
+$('mic').onchange = () => stream && open().catch(log);
+
+$('testRes').onclick = async () => {
+  $('testRes').disabled = true;
+  const tests = [[3840, 2160, 30], [2560, 1440, 30], [1920, 1080, 60], [1920, 1080, 30], [1280, 720, 30]];
+  report.resolutionTests = [];
+  $('resRows').innerHTML = '';
+  for (const [w, h, f] of tests) {
+    try {
+      const t = await open(w, h, f);
+      await new Promise(r => setTimeout(r, 1500));
+      const s = t.getSettings();
+      const ok = s.width === w && s.height === h;
+      report.resolutionTests.push({ requested: `${w}x${h}@${f}`, got: `${s.width}x${s.height}@${Math.round(s.frameRate || 0)}`, videoSize: `${v.videoWidth}x${v.videoHeight}` });
+      $('resRows').insertAdjacentHTML('beforeend', `<tr><td>${w}×${h} @${f}</td><td>${s.width}×${s.height}</td><td>${Math.round(s.frameRate || 0)}</td><td class="${ok ? 'ok' : 'bad'}">${ok ? '✓' : '✗'}</td></tr>`);
+    } catch (e) { log(`${w}x${h}: ${e.message}`); }
+  }
+  await open();
+  render();
+  $('testRes').disabled = false;
+};
+
+$('copy').onclick = async () => {
+  const text = $('report').textContent;
+  try { await navigator.clipboard.writeText(text); $('copy').textContent = '✓ הועתק – הדביקו לי בצ׳אט'; }
+  catch { const r = document.createRange(); r.selectNodeContents($('report')); getSelection().removeAllRanges(); getSelection().addRange(r); $('copy').textContent = 'סמנתי את הדוח – Ctrl+C'; }
+};
+render();
+</script>
+</body>
+</html>
