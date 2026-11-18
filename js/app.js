@@ -601,7 +601,7 @@
   const camDir = new THREE.Vector3();
   function cameraFrame() {
     const cam = $('a-scene').camera;
-    cam.getWorldPosition(camPos);
+    $('#camera').object3D.getWorldPosition(camPos); // נקודת המבקר (גם כשהמצלמה מאחורי הדמות)
     cam.getWorldDirection(camDir);
     camDir.y = 0;
     if (camDir.lengthSq() < 1e-6) camDir.set(0, 0, -1);
@@ -826,6 +826,7 @@
     if (bar) bar.style.transform = `scaleX(${loaded / total})`;
     if (loaded >= total) {
       document.body.classList.add('store-ready');
+      setTimeout(() => document.body.dispatchEvent(new Event('store-built')), 300);
       setTimeout(() => Thumbs.makeAll(), 50);
     }
   }
@@ -891,6 +892,7 @@
     const small = p.display !== 'floor';
     if (!inVR()) {
       Hover.hide();
+      if (window.StoreSocial && window.StoreSocial.started) window.StoreSocial.snapFirst();
       if (!keepPlace && Sheet.id !== id) Inspect.start(entry);
       Sheet.open(id);
       document.body.classList.add('hint-done');
@@ -1621,8 +1623,12 @@
     });
     setupDragRotate(scene.canvas || scene);
 
+    const Amb = window.StoreFX.Ambience;
+    Amb.onChange((on) => { const b = $('#hud-sound'); b.setAttribute('aria-pressed', on); b.setAttribute('aria-label', on ? 'השתקת צלילי הרקע' : 'הפעלת צלילי הרקע'); b.textContent = on ? '🔊' : '🔇'; });
+    $('#hud-sound').addEventListener('click', () => Amb.toggle());
     const enter = (vr) => {
       Sound.unlock();
+      Amb.start();
       $('#intro').hidden = true;
       document.body.classList.add('in-store');
       if (vr) { scene.enterVR(); return; }

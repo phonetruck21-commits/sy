@@ -15,6 +15,72 @@
   const QUICK_FALLBACK = { hi: 'שלום! 👋', nice: 'איזה יופי!', join: 'רוצים לקנות ביחד?', look: 'בואו לראות את זה', pet: 'איזו חיה חמודה!', thanks: 'תודה!', bye: 'להתראות! 👋' };
   const EMOJI_FALLBACK = ['👋', '😀', '❤️', '👍', '🎉', '🐶', '🐱', '😂', '😮', '🛍️'];
 
+
+  /* ---------- תצוגה מקדימה של הדמות במסך הכניסה ---------- */
+  const Preview = {
+    renderer: null, scene: null, cam: null, group: null, av: null, pet: null, running: false, rotY: -0.35, drag: null,
+    init() {
+      const canvas = $('#pf-preview');
+      if (!canvas || !window.THREE) return;
+      try {
+        this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      } catch (e) { canvas.closest('figure').hidden = true; return; }
+      this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.scene = new THREE.Scene();
+      try { this.scene.environment = window.StoreEnv.studioEnvironment(this.renderer); } catch (e) { /* ignore */ }
+      this.scene.add(new THREE.HemisphereLight('#fff6e8', '#5a5048', 1.1));
+      const key = new THREE.DirectionalLight('#ffe7c4', 2.4); key.position.set(-2, 3, 3); this.scene.add(key);
+      const rim = new THREE.DirectionalLight('#9cc3ff', 1.4); rim.position.set(2, 2, -3); this.scene.add(rim);
+      // במה עגולה
+      const stage = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.9, 0.06, 48), new THREE.MeshStandardMaterial({ color: '#3a3631', roughness: 0.6 }));
+      stage.position.y = -0.03; this.scene.add(stage);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.008, 8, 64), new THREE.MeshBasicMaterial({ color: '#f3a712' }));
+      ring.rotation.x = Math.PI / 2; ring.position.y = 0.002; this.scene.add(ring);
+      this.cam = new THREE.PerspectiveCamera(28, 1, 0.1, 20);
+      this.group = new THREE.Group(); this.scene.add(this.group);
+      canvas.addEventListener('pointerdown', (e) => { this.drag = e.clientX; canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener('pointermove', (e) => { if (this.drag !== null) { this.rotY += (e.clientX - this.drag) * 0.01; this.drag = e.clientX; } });
+      canvas.addEventListener('pointerup', () => { this.drag = null; });
+      this.rebuild(true);
+      this.running = true;
+      const loop = () => { if (!this.running) return; this.frame(); requestAnimationFrame(loop); };
+      requestAnimationFrame(loop);
+    },
+    rebuild(wave) {
+      if (!this.group) return;
+      const look = Social.currentLook();
+      while (this.group.children.length) this.group.remove(this.group.children[0]);
+      this.av = C().person(look);
+      this.group.add(this.av.object);
+      this.pet = look.pet !== 'none' ? C().pet(look.pet, look.petColor) : null;
+      if (this.pet) { this.pet.object.position.set(0.45, 0, 0.45); this.pet.object.rotation.y = -0.6; this.group.add(this.pet.object); }
+      const H = look.kid ? 1.25 : 1.85;
+      this.cam.position.set(0, H * 0.62, H * 2.2 + 0.9);
+      this.cam.lookAt(0, H * 0.48, 0);
+      if (wave) this.av.play('wave');
+      this.last = performance.now();
+    },
+    frame() {
+      if (!this.running || !this.av) return;
+      const canvas = this.renderer.domElement;
+      const w = canvas.clientWidth, hh = canvas.clientHeight;
+      if (w && hh && (canvas.width !== Math.round(w * this.renderer.getPixelRatio()) || canvas.height !== Math.round(hh * this.renderer.getPixelRatio()))) {
+        this.renderer.setSize(w, hh, false); this.cam.aspect = w / hh; this.cam.updateProjectionMatrix();
+      }
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - (this.last || now)) / 1000);
+      this.last = now;
+      if (this.drag === null) this.rotY += dt * 0.25;
+      this.group.rotation.y = Math.sin(this.rotY) * 0.6;
+      this.av.update(dt, 0);
+      if (this.pet) this.pet.update(dt, 0);
+      this.renderer.render(this.scene, this.cam);
+    },
+    stop() { this.running = false; },
+  };
+
   const Social = {
     profile: null,
     ws: null,
@@ -36,21 +102,49 @@
     initForm() {
       let saved = {};
       try { saved = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch (e) { /* ignore */ }
-      const box = $('#pf-colors');
-      COLORS.forEach((c, i) => {
-        const l = h('label', 'color');
-        const r = h('input'); r.type = 'radio'; r.name = 'color'; r.value = c;
-        r.checked = saved.color ? saved.color === c : i === 1;
-        r.setAttribute('aria-label', `צבע ${i + 1}`);
-        const sw = h('span'); sw.style.background = c;
-        l.append(r, sw); box.append(l);
-      });
+      const ch = C();
+      const swatches = (box, name, list, current, labels) => {
+        box.innerHTML = '';
+        list.forEach((c, i) => {
+          const l = h('label', 'color');
+          const r = h('input'); r.type = 'radio'; r.name = name; r.value = c;
+          r.checked = current ? current === c : i === 0;
+          r.setAttribute('aria-label', labels ? labels[i] : `אפשרות ${i + 1}`);
+          const sw = h('span'); sw.style.background = c;
+          l.append(r, sw); box.append(l);
+        });
+        if (!box.querySelector('input:checked')) box.querySelector('input').checked = true;
+      };
+      swatches($('#pf-skin'), 'skin', ch.SKINS, saved.skin || ch.SKINS[2], ['בהיר מאוד', 'בהיר', 'שזוף', 'כהה', 'כהה מאוד']);
+      swatches($('#pf-hair'), 'hair', ch.HAIRS, saved.hair, ['שחור', 'חום', 'ג׳ינג׳י', 'בלונד', 'אפור']);
+      swatches($('#pf-colors'), 'color', COLORS, saved.color || COLORS[1]);
+      const setRadio = (name, v) => { const r = v && document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; };
+      setRadio('hairStyle', saved.hairStyle); setRadio('acc', saved.acc); setRadio('pet', saved.pet);
       if (saved.name) $('#pf-name').value = saved.name;
       if (saved.kid) document.querySelector('input[name="who"][value="kid"]').checked = true;
-      if (saved.pet) { const p = document.querySelector(`input[name="pet"][value="${saved.pet}"]`); if (p) p.checked = true; }
+      const syncPet = (keep) => {
+        const pet = document.querySelector('input[name="pet"]:checked').value;
+        const box = $('#pf-petcolor');
+        box.hidden = !PET_COLORS[pet];
+        if (PET_COLORS[pet]) swatches(box, 'petColor', PET_COLORS[pet], keep ? saved.petColor : null, pet === 'dog' ? ['זהוב', 'שחור', 'לבן', 'חום'] : ['אפור', 'לבן', 'ג׳ינג׳י', 'שחור']);
+      };
+      syncPet(true);
       const syncKid = () => { $('#pf-kid-note').hidden = !document.querySelector('input[name="who"][value="kid"]').checked; };
-      document.querySelectorAll('input[name="who"]').forEach((r) => r.addEventListener('change', syncKid));
       syncKid();
+      $('#profile').addEventListener('change', (e) => {
+        if (e.target.name === 'pet') syncPet(false);
+        if (e.target.name === 'who') syncKid();
+        Preview.rebuild(e.target.name !== 'pet' && e.target.name !== 'petColor');
+      });
+      Preview.init();
+    },
+    currentLook() {
+      const v = (name, def) => (document.querySelector(`input[name="${name}"]:checked`) || {}).value || def;
+      const pet = v('pet', 'none');
+      return {
+        kid: v('who', 'adult') === 'kid', color: v('color', COLORS[1]), skin: v('skin', '#e0ac69'), hair: v('hair', '#2b2018'),
+        hairStyle: v('hairStyle', 'short'), acc: v('acc', 'none'), pet, petColor: PET_COLORS[pet] ? v('petColor', PET_COLORS[pet][0]) : null,
+      };
     },
     readProfile(validate) {
       const name = ($('#pf-name').value || '').trim().slice(0, 16);
@@ -63,12 +157,9 @@
         err.textContent = 'נא לבחור כינוי (לפחות 2 תווים)';
         return null;
       }
-      const kid = document.querySelector('input[name="who"]:checked').value === 'kid';
-      const color = (document.querySelector('input[name="color"]:checked') || {}).value || COLORS[1];
-      const pet = document.querySelector('input[name="pet"]:checked').value;
-      const petColor = PET_COLORS[pet] ? PET_COLORS[pet][Math.floor(Math.random() * PET_COLORS[pet].length)] : null;
-      this.profile = { name, kid, color, pet, petColor, skin: '#e0ac69' };
+      this.profile = { name, ...this.currentLook() };
       try { localStorage.setItem(PROFILE_KEY, JSON.stringify(this.profile)); } catch (e) { /* ignore */ }
+      Preview.stop();
       return this.profile;
     },
 
@@ -77,26 +168,117 @@
       if (this.started) return;
       this.started = true;
       const root = $('#others').object3D;
-      // החיה שלי הולכת אחריי
       const p = this.profile;
+      // הדמות שלי – נראית במבט "לראות את עצמי"
+      this.myAv = C().person({ ...p });
+      root.add(this.myAv.object);
+      this.myLast = new THREE.Vector3();
+      // החיה שלי
       if (p.pet !== 'none') {
         const pet = C().pet(p.pet, p.petColor);
         root.add(pet.object);
-        const cam = new THREE.Vector3();
-        const dir = new THREE.Vector3();
-        // החיה הולכת לצידי ומעט לפניי, כך שרואים אותה בפינת המבט ולא מתחת לאף
+        const eye = new THREE.Vector3();
+        const fwd = new THREE.Vector3();
         this.myPet = C().follower(pet, (v) => {
-          const c = $('a-scene').camera;
-          c.getWorldPosition(cam);
-          c.getWorldDirection(dir); dir.y = 0;
-          if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
-          dir.normalize();
-          return v.set(cam.x + dir.x * 1.5 - dir.z * 0.85, $('#rig').object3D.position.y, cam.z + dir.z * 1.5 + dir.x * 0.85);
+          this.eye(eye, fwd);
+          const y = $('#rig').object3D.position.y;
+          // במבט מבחוץ: לצידי. במבט מהעיניים: קצת לפניי בצד, כדי שרואים אותה
+          if (this.viewNow === 'third') return v.set(eye.x - fwd.z * 0.6 - fwd.x * 0.2, y, eye.z + fwd.x * 0.6 - fwd.z * 0.2);
+          return v.set(eye.x + fwd.x * 1.5 - fwd.z * 0.85, y, eye.z + fwd.z * 1.5 + fwd.x * 0.85);
         }, { offset: 0.15 });
       }
+      this.view = V().inVR() ? 'first' : 'third';
+      this.viewNow = this.view;
+      this.boom = 0;
       this.setupUI();
+      this.setupMeBar();
       $('#chat').hidden = false;
       this.connect();
+    },
+
+    /* מיקום העיניים (נקודת המבקר) וכיוון ההליכה – בלי קשר למצלמה שמאחור */
+    eye(pos, fwd) {
+      const e = $('#camera').object3D;
+      e.getWorldPosition(pos);
+      if (fwd) {
+        e.getWorldDirection(fwd); // ‎+z של היישות = אחורה
+        fwd.negate(); fwd.y = 0;
+        if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1);
+        fwd.normalize();
+      }
+      return pos;
+    },
+
+    /* מבט מבחוץ: המצלמה מתרחקת מאחורי הדמות; מבט מהעיניים: המצלמה בתוך הראש */
+    setView(v) {
+      this.view = v;
+      const b = $('#me-view');
+      b.setAttribute('aria-pressed', v === 'third');
+      b.querySelector('span').textContent = v === 'third' ? 'מבט מהעיניים' : 'לראות את עצמי';
+    },
+    snapFirst() {
+      const cam = $('#camera').getObject3D('camera');
+      if (!cam) return;
+      this.boom = 0;
+      cam.position.set(0, 0, 0);
+      cam.updateMatrixWorld(true);
+    },
+    updateCamera(dt) {
+      const camEl = $('#camera');
+      const cam = camEl.getObject3D('camera');
+      if (!cam) return;
+      const Vs = V();
+      const busy = Vs.inVR() || Vs.Sheet.id || Vs.Inspect.lifted;
+      this.viewNow = busy ? 'first' : this.view;
+      const Tk = window.StoreTruck;
+      const eye = this.eye(new THREE.Vector3());
+      const inside = Tk.inInterior(eye.x, eye.z) || (Tk.inSteps(eye.x, eye.z) && eye.z < Tk.T.Z1 + 0.4);
+      // בתוך המשאית צפוף – מבט מהעיניים. בחוץ – רואים את עצמנו
+      if (inside) this.viewNow = 'first';
+      let want = this.viewNow === 'third' ? 2.7 : 0;
+      // לא לתת למצלמה לצאת דרך קירות המשאית
+      if (want) {
+        const e = camEl.object3D;
+        const test = new THREE.Vector3();
+        for (let d = want; d > 0.4; d -= 0.15) {
+          test.set(0, d * 0.2, d); e.localToWorld(test);
+          const obst = (window.StorePlaza && window.StorePlaza.obstacles) || [];
+          const ok = !(test.x > Tk.T.X0 - 0.3 && test.x < Tk.T.CAB_X1 + 0.2 && test.z > Tk.T.Z0 - 0.3 && test.z < Tk.T.Z1 + 0.2 && test.y < Tk.T.ROOF + 0.3)
+            && !obst.some(([ox, oz, r]) => Math.hypot(test.x - ox, test.z - oz) < r && test.y < 4.5);
+          want = d;
+          if (ok) break;
+        }
+      }
+      if (this.viewNow === 'first') this.boom = 0;
+      else this.boom += (want - this.boom) * Math.min(1, dt * 4);
+      cam.position.set(0, this.boom * 0.2 + (this.boom > 0.05 ? 0.15 : 0), this.boom);
+      // הדמות שלי
+      const av = this.myAv;
+      if (av) {
+        const show = this.viewNow === 'third' && this.boom > 0.6;
+        av.object.visible = show;
+        const fwd = new THREE.Vector3();
+        this.eye(eye, fwd);
+        const y = $('#rig').object3D.position.y;
+        const moved = Math.hypot(eye.x - this.myLast.x, eye.z - this.myLast.z) / Math.max(dt, 1e-3);
+        this.myLast.copy(eye);
+        av.object.position.set(eye.x, y, eye.z);
+        const want2 = Math.atan2(fwd.x, fwd.z);
+        const d = Math.atan2(Math.sin(want2 - av.object.rotation.y), Math.cos(want2 - av.object.rotation.y));
+        av.object.rotation.y += d * Math.min(1, dt * 10);
+        av.update(dt, Math.min(moved, 4));
+      }
+    },
+    act(a) {
+      if (this.myAv) this.myAv.play(a);
+      if (this.view !== 'third') this.setView('third');
+      this.send({ t: 'anim', a });
+    },
+    setupMeBar() {
+      $('#me-bar').hidden = false;
+      $('#me-view').addEventListener('click', () => this.setView(this.view === 'third' ? 'first' : 'third'));
+      document.querySelectorAll('#me-bar [data-act]').forEach((b) => b.addEventListener('click', () => this.act(b.dataset.act)));
+      this.setView(this.view);
     },
 
     connect() {
@@ -107,7 +289,7 @@
       ws.onopen = () => {
         this.retries = 0;
         const p = this.profile;
-        ws.send(JSON.stringify({ t: 'hello', name: p.name, kid: p.kid, pet: p.pet, look: { color: p.color, skin: p.skin } }));
+        ws.send(JSON.stringify({ t: 'hello', name: p.name, kid: p.kid, pet: p.pet, look: { color: p.color, skin: p.skin, hair: p.hair, hairStyle: p.hairStyle, acc: p.acc, petColor: p.petColor } }));
       };
       ws.onmessage = (ev) => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } this.handle(m); };
       ws.onclose = () => {
@@ -150,6 +332,7 @@
           break;
         case 'chat': this.pushChat(m); break;
         case 'emoji': this.emote(m.id, m.e); break;
+        case 'anim': { const p = this.players.get(m.id); if (p) p.av.play(m.a); break; }
         case 'group': this.onGroup(m); break;
         case 'invite': this.showInvite(m); break;
         case 'notice': V().toast(m.msg); break;
@@ -162,14 +345,14 @@
     addPlayer(info) {
       if (!info || (this.me && info.id === this.me.id) || this.players.has(info.id)) return;
       const root = $('#others').object3D;
-      const av = C().person({ color: info.look.color, skin: info.look.skin, kid: info.kid });
+      const av = C().person({ ...info.look, kid: info.kid });
       const group = new THREE.Group();
       group.add(av.object);
       group.position.fromArray(info.pos || [0, 0, 8]);
       root.add(group);
       const p = { info, av, group, target: group.position.clone(), targetRy: info.ry || 0, last: group.position.clone(), label: null, bubble: null, bubbleUntil: 0 };
       if (info.pet && info.pet !== 'none') {
-        const pet = C().pet(info.pet, PET_COLORS[info.pet][info.id % PET_COLORS[info.pet].length]);
+        const pet = C().pet(info.pet, info.look.petColor || PET_COLORS[info.pet][info.id % PET_COLORS[info.pet].length]);
         root.add(pet.object);
         p.pet = pet;
         p.petF = C().follower(pet, (v) => v.copy(group.position), { offset: 0.8 });
@@ -212,7 +395,8 @@
       s.userData.born = performance.now();
       p.group.add(s);
       (p.emotes = p.emotes || []).push(s);
-      if (e === '👋') p.waveUntil = performance.now() + 1500;
+      if (e === '👋') p.av.play('wave');
+      if (e === '🎉') p.av.play('jump');
     },
 
     tick(dt) {
@@ -226,7 +410,6 @@
         const d = Math.atan2(Math.sin(want - p.av.object.rotation.y), Math.cos(want - p.av.object.rotation.y));
         p.av.object.rotation.y += d * Math.min(1, dt * 8);
         p.av.update(dt, moved);
-        if (p.waveUntil && now < p.waveUntil) p.av.wave(now / 1000); else if (p.waveUntil) { p.av.unwave(); p.waveUntil = 0; }
         if (p.petF) p.petF.update(dt);
         if (p.bubble && now > p.bubbleUntil) { g.remove(p.bubble); p.bubble.userData.dispose(); p.bubble = null; }
         if (p.emotes) p.emotes = p.emotes.filter((s) => {
@@ -237,14 +420,14 @@
           return true;
         });
       });
+      this.updateCamera(dt);
       if (this.myPet) this.myPet.update(dt);
       // שליחת המיקום שלי
       this.sendTimer -= dt;
       if (this.online && this.sendTimer <= 0) {
         this.sendTimer = 0.12;
-        const cam = $('a-scene').camera;
-        const pos = new THREE.Vector3(); cam.getWorldPosition(pos);
-        const dir = new THREE.Vector3(); cam.getWorldDirection(dir);
+        const pos = new THREE.Vector3(); const dir = new THREE.Vector3();
+        this.eye(pos, dir);
         const y = $('#rig').object3D.position.y;
         const key = `${pos.x.toFixed(2)},${pos.z.toFixed(2)},${y.toFixed(2)},${Math.atan2(dir.x, dir.z).toFixed(2)}`;
         if (key !== this.lastSent) {

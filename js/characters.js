@@ -19,44 +19,193 @@
   };
   const shade = (hex, k) => '#' + new THREE.Color(hex).multiplyScalar(k).getHexString();
 
-  /* ---------- מבקר ---------- */
-  function person({ color = '#29335c', skin = '#e0ac69', kid = false, hair = '#2b2018', pants = '#2f3542' } = {}) {
+  /* ---------- מבקר ----------
+   * look: { color (חולצה), skin, hair (צבע), hairStyle: short|long|ponytail|curly, acc: none|cap|glasses, pants, kid }
+   */
+  const SKINS = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'];
+  const HAIRS = ['#2b2018', '#5a3a22', '#a8642c', '#d9b26a', '#9a9a9a'];
+  const HAIR_STYLES = ['short', 'long', 'ponytail', 'curly'];
+
+  function person(look = {}) {
+    const color = look.color || '#29335c';
+    const skin = look.skin || '#e0ac69';
+    const hairC = look.hair || '#2b2018';
+    const style = HAIR_STYLES.includes(look.hairStyle) ? look.hairStyle : 'short';
+    const kid = !!look.kid;
+    const pants = look.pants || shade(color, 0.32);
+    const M = {
+      skin: mat(skin, { roughness: 0.62 }),
+      top: mat(color, { roughness: 0.8 }),
+      topDark: mat(shade(color, 0.78), { roughness: 0.8 }),
+      pants: mat(pants, { roughness: 0.85 }),
+      shoe: mat('#f4f2ee', { roughness: 0.5 }),
+      sole: mat('#3a3a3a', { roughness: 0.8 }),
+      hair: mat(hairC, { roughness: 0.55 }),
+      white: mat('#ffffff', { roughness: 0.25 }),
+      iris: mat('#2b1d14', { roughness: 0.2 }),
+      lip: mat(shade(skin, 0.62), { roughness: 0.5 }),
+      cheek: new THREE.MeshBasicMaterial({ color: '#ff8a80', transparent: true, opacity: 0.28, depthWrite: false }),
+    };
     const root = new THREE.Group();
     const body = new THREE.Group();
     root.add(body);
-    const limb = (r, l, m) => { const pivot = new THREE.Group(); pivot.add(mesh(G.cap(r, l), m, 0, -l / 2 - r * 0.6, 0)); return pivot; };
 
-    const legs = [-1, 1].map((s) => { const l = limb(0.075, 0.62, mat(pants)); l.position.set(s * 0.1, 0.86, 0); body.add(l); return l; });
-    [-1, 1].forEach((s) => body.add(mesh(new THREE.BoxGeometry(0.12, 0.07, 0.24), mat('#f5f5f5'), s * 0.1, 0.035, 0.04)));
-    body.add(mesh(G.cap(0.2, 0.42), mat(color), 0, 1.15, 0));
-    const arms = [-1, 1].map((s) => { const a = limb(0.06, 0.48, mat(color)); a.position.set(s * 0.27, 1.38, 0); body.add(a); return a; });
-    arms.forEach((a) => a.add(mesh(G.sph(0.06), mat(skin), 0, -0.62, 0)));
-    const head = new THREE.Group();
-    head.position.set(0, 1.62, 0);
-    head.add(mesh(G.sph(0.17), mat(skin)));
-    const hairCap = mesh(new THREE.SphereGeometry(0.178, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(hair), 0, 0.02, -0.015);
-    hairCap.rotation.x = -0.25;
-    head.add(hairCap);
-    [-1, 1].forEach((s) => head.add(mesh(G.sph(0.022), mat('#1b1b1b'), s * 0.06, 0.02, 0.155)));
-    const smile = mesh(new THREE.TorusGeometry(0.04, 0.008, 6, 12, Math.PI), mat('#7a3b2e'), 0, -0.05, 0.155);
-    smile.rotation.z = Math.PI;
-    head.add(smile);
-    body.add(head);
-    if (kid) root.scale.setScalar(0.66);
+    // צל רך מתחת לרגליים
+    if (window.StoreEnv) { const sh = window.StoreEnv.shadowMesh(0.7, 0.55, 0.45); sh.position.y = 0.012; root.add(sh); }
 
-    let phase = Math.random() * 6;
+    /* רגליים: ירך -> ברך -> נעל */
+    const legs = [-1, 1].map((s) => {
+      const hip = new THREE.Group(); hip.position.set(s * 0.095, 0.9, 0);
+      hip.add(mesh(G.cyl(0.075, 0.062, 0.46), M.pants, 0, -0.23, 0));
+      const knee = new THREE.Group(); knee.position.y = -0.45; hip.add(knee);
+      knee.add(mesh(G.cyl(0.062, 0.05, 0.42), M.pants, 0, -0.21, 0));
+      const shoe = new THREE.Group(); shoe.position.set(0, -0.43, 0.03);
+      const toe = mesh(G.cap(0.055, 0.12), M.shoe, 0, 0, 0); toe.rotation.x = Math.PI / 2; toe.scale.set(1.05, 1, 0.75); shoe.add(toe);
+      shoe.add(mesh(new THREE.BoxGeometry(0.11, 0.025, 0.24), M.sole, 0, -0.04, 0));
+      knee.add(shoe);
+      body.add(hip);
+      return { hip, knee };
+    });
+
+    /* גוף: חולצה מעוצבת (פרופיל מסתובב) */
+    const prof = [[0.001, 0], [0.15, 0], [0.16, 0.05], [0.15, 0.18], [0.17, 0.34], [0.19, 0.46], [0.17, 0.53], [0.09, 0.57], [0.001, 0.58]]
+      .map(([x, y]) => new THREE.Vector2(x, y));
+    const torso = new THREE.Group(); torso.position.y = 0.86; body.add(torso);
+    const shirt = mesh(new THREE.LatheGeometry(prof, 28), M.top); shirt.scale.z = 0.72; torso.add(shirt);
+    const belt = mesh(G.cyl(0.152, 0.152, 0.06), M.pants, 0, 0.03, 0); belt.scale.z = 0.74; torso.add(belt); // חגורה
+    const hem = mesh(new THREE.TorusGeometry(0.155, 0.012, 6, 28), M.topDark, 0, 0.065, 0); hem.rotation.x = Math.PI / 2; hem.scale.y = 0.74; torso.add(hem);
+    torso.add(mesh(G.cyl(0.05, 0.055, 0.1), M.skin, 0, 0.6, 0)); // צוואר
+    const collar = mesh(new THREE.TorusGeometry(0.07, 0.014, 6, 20), M.topDark, 0, 0.57, 0); collar.rotation.x = Math.PI / 2; torso.add(collar);
+
+    /* ידיים: כתף (שרוול) -> מרפק -> אמה -> כף יד */
+    const arms = [-1, 1].map((s) => {
+      const sh = new THREE.Group(); sh.position.set(s * 0.2, 0.5, 0); torso.add(sh);
+      sh.add(mesh(G.sph(0.062), M.top, 0, 0, 0));
+      sh.add(mesh(G.cyl(0.058, 0.05, 0.26), M.top, 0, -0.13, 0));
+      const elbow = new THREE.Group(); elbow.position.y = -0.27; sh.add(elbow);
+      elbow.add(mesh(G.cyl(0.042, 0.036, 0.24), M.skin, 0, -0.12, 0));
+      const hand = mesh(G.sph(0.048), M.skin, 0, -0.27, 0.005); hand.scale.set(0.85, 1.1, 0.7); elbow.add(hand);
+      sh.rotation.z = s * 0.08;
+      return { sh, elbow, s };
+    });
+
+    /* ראש */
+    const head = new THREE.Group(); head.position.y = 0.72; torso.add(head);
+    const skull = mesh(G.sph(0.15), M.skin, 0, 0.13, 0); skull.scale.set(0.95, 1.08, 0.98); head.add(skull);
+    [-1, 1].forEach((s) => { const ear = mesh(G.sph(0.035), M.skin, s * 0.142, 0.12, -0.005); ear.scale.set(0.55, 1, 0.8); head.add(ear); });
+    const nose = mesh(G.sph(0.022), mat(shade(skin, 0.92)), 0, 0.105, 0.148); nose.scale.set(0.9, 1, 1.2); head.add(nose);
+    const eyes = [-1, 1].map((s) => {
+      const e = new THREE.Group(); e.position.set(s * 0.053, 0.14, 0.128);
+      const w = mesh(G.sph(0.026), M.white); w.scale.set(1, 1.15, 0.55); e.add(w);
+      e.add(mesh(G.sph(0.016), M.iris, 0, -0.002, 0.011));
+      e.add(mesh(G.sph(0.005), M.white, 0.006, 0.007, 0.024));
+      head.add(e);
+      const brow = mesh(new THREE.BoxGeometry(0.05, 0.011, 0.012), M.hair, s * 0.055, 0.19, 0.138); brow.rotation.z = -s * 0.1; head.add(brow);
+      const cheek = mesh(new THREE.CircleGeometry(0.022, 16), M.cheek, s * 0.085, 0.085, 0.132); cheek.rotation.y = s * 0.45; head.add(cheek);
+      return e;
+    });
+    const mouth = mesh(new THREE.TorusGeometry(0.03, 0.007, 6, 14, Math.PI), M.lip, 0, 0.068, 0.142); mouth.rotation.z = Math.PI; head.add(mouth);
+
+    /* שיער */
+    const capGeo = (r, cut) => new THREE.SphereGeometry(r, 24, 16, 0, Math.PI * 2, 0, Math.PI * cut);
+    const cap = mesh(capGeo(0.158, 0.5), M.hair, 0, 0.14, -0.008); cap.scale.set(0.98, 1.1, 1.02); cap.rotation.x = -0.32; head.add(cap);
+    const fringe = mesh(capGeo(0.16, 0.22), M.hair, 0, 0.16, 0.012); fringe.rotation.x = 0.55; fringe.scale.set(0.97, 1, 1); head.add(fringe);
+    if (style === 'long') {
+      const back = mesh(G.cap(0.12, 0.2), M.hair, 0, 0.02, -0.07); back.scale.set(1.15, 1, 0.6); head.add(back);
+      [-1, 1].forEach((s) => { const side = mesh(G.cap(0.045, 0.18), M.hair, s * 0.13, 0.04, 0.02); head.add(side); });
+    } else if (style === 'ponytail') {
+      head.add(mesh(G.sph(0.03), M.hair, 0, 0.2, -0.15));
+      const tail = mesh(G.cap(0.05, 0.16), M.hair, 0, 0.09, -0.19); tail.rotation.x = 0.35; head.add(tail);
+    } else if (style === 'curly') {
+      for (let i = 0; i < 26; i++) {
+        const a = (i / 26) * Math.PI * 2, rr = i % 2 ? 0.13 : 0.1, y = 0.2 + (i % 3) * 0.03;
+        const z = Math.sin(a) * rr;
+        if (z > 0.1 && y < 0.24) continue;
+        head.add(mesh(G.sph(0.05), M.hair, Math.cos(a) * rr, y, z - 0.02));
+      }
+    }
+
+    /* אביזרים */
+    if (look.acc === 'cap') {
+      const hat = mat(shade(color, 1.0), { roughness: 0.6 });
+      const crown = mesh(capGeo(0.165, 0.42), hat, 0, 0.16, -0.005); crown.scale.set(1, 0.95, 1.02); crown.rotation.x = -0.2; head.add(crown);
+      const brim = mesh(G.cyl(0.11, 0.11, 0.012), hat, 0, 0.215, 0.15); brim.scale.z = 0.75; brim.rotation.x = 0.12; head.add(brim);
+      head.add(mesh(G.sph(0.012), mat('#ffffff'), 0, 0.33, -0.01));
+    } else if (look.acc === 'glasses') {
+      const frame = mat('#1d1d1f', { roughness: 0.3, metalness: 0.3 });
+      [-1, 1].forEach((s) => head.add(mesh(new THREE.TorusGeometry(0.034, 0.005, 6, 20), frame, s * 0.053, 0.14, 0.152)));
+      head.add(mesh(new THREE.BoxGeometry(0.035, 0.006, 0.006), frame, 0, 0.145, 0.155));
+      [-1, 1].forEach((s) => { const arm = mesh(new THREE.BoxGeometry(0.006, 0.006, 0.13), frame, s * 0.088, 0.14, 0.09); arm.rotation.y = -s * 0.25; head.add(arm); });
+    }
+
+    root.traverse((o) => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
+    if (kid) { root.scale.setScalar(0.64); head.scale.setScalar(1.18); }
+
+    let phase = Math.random() * 6, blink = 1 + Math.random() * 3, clock = 0;
+    let act = null, actT = 0;
+    const DUR = { wave: 1.8, dance: 3.2, jump: 0.9 };
+    const lookAround = { t: 0, yaw: 0, target: 0 };
+
     return {
-      object: root, head, height: kid ? 1.85 * 0.66 : 1.85,
+      object: root, head, height: kid ? 1.78 * 0.64 * 1.05 : 1.78,
+      play(name) { if (DUR[name]) { act = name; actT = 0; } },
       update(dt, speed) {
+        clock += dt;
         const moving = speed > 0.08;
-        phase += dt * (moving ? 7 + speed * 2 : 1.4);
-        const sw = moving ? Math.sin(phase) * 0.55 : 0;
-        legs[0].rotation.x = sw; legs[1].rotation.x = -sw;
-        arms[0].rotation.x = -sw * 0.8; arms[1].rotation.x = sw * 0.8;
-        body.position.y = moving ? Math.abs(Math.sin(phase)) * 0.03 : Math.sin(phase) * 0.006;
+        phase += dt * (moving ? 6.5 + speed * 2 : 1.6);
+        const sw = moving ? Math.sin(phase) * 0.5 : 0;
+        legs.forEach((l, i) => {
+          const sgn = i ? -1 : 1;
+          l.hip.rotation.x = sw * sgn;
+          l.knee.rotation.x = moving ? Math.max(0, -Math.sin(phase * sgn + (i ? Math.PI : 0)) * 0.7) : 0;
+        });
+        arms.forEach((a, i) => {
+          const sgn = i ? 1 : -1;
+          a.sh.rotation.x = sw * sgn * 0.8;
+          a.sh.rotation.z = a.s * 0.08;
+          a.elbow.rotation.x = moving ? -0.35 : -0.12;
+        });
+        torso.rotation.set(0, moving ? Math.sin(phase) * 0.06 : 0, 0);
+        body.position.y = moving ? Math.abs(Math.sin(phase)) * 0.025 : 0;
+        torso.scale.y = 1 + (moving ? 0 : Math.sin(clock * 1.8) * 0.006); // נשימה
+        // מצמוץ
+        blink -= dt;
+        const closed = blink < 0.12;
+        eyes.forEach((e) => { e.scale.y = closed ? 0.1 : 1; });
+        if (blink < 0) blink = 2 + Math.random() * 3.5;
+        // מבט סביב בעמידה
+        lookAround.t -= dt;
+        if (lookAround.t < 0) { lookAround.t = 2 + Math.random() * 3; lookAround.target = moving ? 0 : (Math.random() - 0.5) * 0.9; }
+        lookAround.yaw += (lookAround.target - lookAround.yaw) * Math.min(1, dt * 3);
+        head.rotation.set(0, lookAround.yaw, 0);
+        // פעולות מיוחדות
+        if (act) {
+          actT += dt;
+          const k = actT / DUR[act];
+          const R = arms[1], L = arms[0];
+          if (act === 'wave') {
+            R.sh.rotation.z = R.s * 2.35; R.sh.rotation.x = 0; R.elbow.rotation.x = 0;
+            R.elbow.rotation.z = R.s * (0.35 + Math.sin(actT * 14) * 0.4);
+            head.rotation.z = -R.s * 0.08;
+          } else if (act === 'dance') {
+            const b = Math.sin(actT * 8);
+            R.sh.rotation.z = R.s * (2.3 + b * 0.35); L.sh.rotation.z = L.s * (2.3 - b * 0.35);
+            R.elbow.rotation.x = L.elbow.rotation.x = -0.6;
+            body.position.y = Math.abs(b) * 0.06;
+            torso.rotation.y = b * 0.35; torso.rotation.z = b * 0.08;
+            head.rotation.z = -b * 0.12;
+            legs[0].knee.rotation.x = Math.max(0, b) * 0.6; legs[1].knee.rotation.x = Math.max(0, -b) * 0.6;
+          } else if (act === 'jump') {
+            const j = Math.sin(Math.min(1, k) * Math.PI);
+            body.position.y = j * 0.45;
+            R.sh.rotation.z = R.s * 2.6 * j; L.sh.rotation.z = L.s * 2.6 * j;
+            legs.forEach((l) => { l.knee.rotation.x = j * 0.9; l.hip.rotation.x = -j * 0.4; });
+          }
+          if (k >= 1) { act = null; arms.forEach((a) => { a.elbow.rotation.z = 0; }); head.rotation.z = 0; torso.rotation.z = 0; }
+        }
       },
-      wave(t) { arms[1].rotation.z = -2.6 + Math.sin(t * 12) * 0.35; },
-      unwave() { arms[1].rotation.z = 0; },
+      wave() { if (act !== 'wave') this.play('wave'); },
+      unwave() {},
     };
   }
 
@@ -151,9 +300,9 @@
   }
 
   function pet(kind, color) {
-    if (kind === 'dog') return dog(color);
-    if (kind === 'cat') return cat(color);
-    return null;
+    const p = kind === 'dog' ? dog(color) : kind === 'cat' ? cat(color) : null;
+    if (p) p.object.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    return p;
   }
 
   /* ---------- תגית שם / בועת דיבור ---------- */
@@ -218,5 +367,5 @@
     };
   }
 
-  window.StoreCharacters = { person, dog, cat, pet, label, follower };
+  window.StoreCharacters = { person, dog, cat, pet, label, follower, SKINS, HAIRS, HAIR_STYLES };
 })();

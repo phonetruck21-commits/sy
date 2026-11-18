@@ -29,6 +29,11 @@
       <p class="intro-tagline brand-tagline">חנות סלולר ניידת</p>
       <p class="intro-lede">משאית החנות חונה ברחבה, ומסביבה גינת כלבים ופינת ילדים. בואו עם המשפחה והחיה שלכם, הכירו מבקרים אחרים, קנו ביחד בסל משותף וקבלו משלוח עד הבית.</p>
 
+      <div class="creator">
+      <figure class="preview" aria-label="תצוגה מקדימה של הדמות שלך">
+        <canvas id="pf-preview" width="520" height="640"></canvas>
+        <figcaption>ככה יראו אותך בחנות</figcaption>
+      </figure>
       <form id="profile" class="profile" novalidate>
         <div class="pf-row">
           <label for="pf-name">איך לקרוא לך?</label>
@@ -44,8 +49,30 @@
           <p class="pf-hint" id="pf-kid-note" hidden>במצב ילדים: שולחים לכולם רק משפטים מוכנים ואמוג׳י, ורואים הודעות חופשיות רק מהמשפחה והחברים בקבוצה.</p>
         </fieldset>
         <fieldset class="pf-row">
-          <legend>צבע הבגדים</legend>
+          <legend>גוון עור</legend>
+          <div class="pf-colors" id="pf-skin"></div>
+        </fieldset>
+        <fieldset class="pf-row">
+          <legend>תסרוקת</legend>
+          <div class="pf-choices">
+            <label class="chip"><input type="radio" name="hairStyle" value="short" checked><span>קצר</span></label>
+            <label class="chip"><input type="radio" name="hairStyle" value="long"><span>ארוך</span></label>
+            <label class="chip"><input type="radio" name="hairStyle" value="ponytail"><span>קוקו</span></label>
+            <label class="chip"><input type="radio" name="hairStyle" value="curly"><span>מתולתל</span></label>
+          </div>
+          <div class="pf-colors" id="pf-hair"></div>
+        </fieldset>
+        <fieldset class="pf-row">
+          <legend>צבע החולצה</legend>
           <div class="pf-colors" id="pf-colors"></div>
+        </fieldset>
+        <fieldset class="pf-row">
+          <legend>אביזר</legend>
+          <div class="pf-choices">
+            <label class="chip"><input type="radio" name="acc" value="none" checked><span>בלי</span></label>
+            <label class="chip"><input type="radio" name="acc" value="cap"><span>כובע</span></label>
+            <label class="chip"><input type="radio" name="acc" value="glasses"><span>משקפיים</span></label>
+          </div>
         </fieldset>
         <fieldset class="pf-row">
           <legend>חיית מחמד שתבוא איתך</legend>
@@ -54,12 +81,14 @@
             <label class="chip"><input type="radio" name="pet" value="cat"><span>חתול</span></label>
             <label class="chip"><input type="radio" name="pet" value="none"><span>בלי</span></label>
           </div>
+          <div class="pf-colors" id="pf-petcolor"></div>
         </fieldset>
         <div class="intro-actions">
           <button id="intro-vr" class="btn btn-primary" type="button" hidden>כניסה עם משקף VR</button>
           <button id="intro-enter" class="btn" type="submit">כניסה לחנות</button>
         </div>
       </form>
+      </div>
       <div class="intro-load" aria-live="polite">
         <div class="intro-track"><div id="intro-bar"></div></div>
         <p id="intro-progress">טוען את המוצרים…</p>
@@ -76,6 +105,7 @@
     <div class="hud-brand"><span class="brand-name">נובה</span><span class="brand-tagline">חנות סלולר ניידת</span></div>
     <div class="hud-actions">
     <button id="hud-people" type="button" aria-label="מבקרים וקבוצה"><span class="dot" id="live-dot"></span><span id="hud-people-label">מבקרים</span></button>
+    <button id="hud-sound" type="button" aria-label="צלילי רקע">🔊</button>
     <button id="hud-vr" type="button" hidden>כניסה ל-VR</button>
     <button id="hud-cart" type="button" aria-label="סל הקניות">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -85,6 +115,13 @@
     </button>
     </div>
   </header>
+  <!-- אני: מבט מבחוץ ופעולות -->
+  <div id="me-bar" role="toolbar" aria-label="הדמות שלי" hidden>
+    <button id="me-view" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7" fill="none" stroke="currentColor" stroke-width="1.7"/></svg><span>מבט מהעיניים</span></button>
+    <button type="button" data-act="wave"><b aria-hidden="true">👋</b><span>נפנוף</span></button>
+    <button type="button" data-act="dance"><b aria-hidden="true">💃</b><span>ריקוד</span></button>
+    <button type="button" data-act="jump"><b aria-hidden="true">🎉</b><span>קפיצה</span></button>
+  </div>
   <p id="hint">לחצו על מוצר כדי לבחון אותו מקרוב</p>
 
   <!-- ניווט בין אזורי החנות -->
@@ -204,6 +241,9 @@
   <a-scene
     store
     studio-environment
+    atmosphere
+    shadow="type: pcfsoft"
+    fog="type: linear; color: #e6d6c4; near: 28; far: 150"
     renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 0.95; foveationLevel: 1"
     cursor="rayOrigin: mouse; fuse: false"
     raycaster="objects: .clickable; far: 20; interval: 40"
@@ -211,8 +251,8 @@
     device-orientation-permission-ui="enabled: false"
     loading-screen="enabled: false">
 
-    <a-entity light="type: hemisphere; color: #dbe8ff; groundColor: #8f877b; intensity: 0.9"></a-entity>
-    <a-entity light="type: directional; color: #fff1dc; intensity: 2.2" position="4 9 6"></a-entity>
+    <a-entity light="type: hemisphere; color: #cfe0ff; groundColor: #a08670; intensity: 0.85"></a-entity>
+    <a-entity id="sun" light="type: directional; color: #ffd9a8; intensity: 2.6; castShadow: true; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowCameraLeft: -16; shadowCameraRight: 16; shadowCameraTop: 16; shadowCameraBottom: -16; shadowCameraNear: 1; shadowCameraFar: 70; shadowBias: -0.0004; shadowRadius: 3" position="17.5 11.5 20"></a-entity>
 
     <!-- המבקר: rig + מצלמה + בקרים -->
     <a-entity id="rig" position="0 0 8.2" thumbstick-move walker>

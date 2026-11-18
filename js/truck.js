@@ -93,11 +93,35 @@
         }
       });
     },
-    sky: () => canvasTex(16, 512, (ctx, W, H) => {
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, '#5b8fd1'); g.addColorStop(0.42, '#a9c8ea'); g.addColorStop(0.5, '#e8eef2'); g.addColorStop(0.52, '#c9c8c2'); g.addColorStop(1, '#8d8b86');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    }),
+    // שמיים של שעת אחר הצהריים: מעבר צבע, שמש ועננים רכים (מפה equirect על כדור)
+    sky: () => {
+      const r = rng(77);
+      return canvasTex(2048, 1024, (ctx, W, H) => {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, '#3f78c8'); g.addColorStop(0.3, '#7fa9dc'); g.addColorStop(0.44, '#d9d4cf');
+        g.addColorStop(0.5, '#f4d8b8'); g.addColorStop(0.52, '#d9c7b2'); g.addColorStop(1, '#8d8478');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        // השמש – באותו כיוון כמו האור הראשי
+        const [sx, sy] = Truck.sunUV(); const px = sx * W, py = sy * H;
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, H * 0.45);
+        glow.addColorStop(0, 'rgba(255,236,200,0.95)'); glow.addColorStop(0.08, 'rgba(255,214,160,0.55)'); glow.addColorStop(1, 'rgba(255,200,150,0)');
+        ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#fff7e6'; ctx.beginPath(); ctx.arc(px, py, H * 0.022, 0, Math.PI * 2); ctx.fill();
+        // עננים
+        for (let i = 0; i < 46; i++) {
+          const cx = r() * W, cy = H * (0.22 + r() * 0.24), w = W * (0.03 + r() * 0.06), hh = w * (0.18 + r() * 0.12);
+          const warm = Math.max(0, 1 - Math.abs(cx - px) / (W * 0.25));
+          for (let k = 0; k < 6; k++) {
+            const ox = (r() - 0.5) * w * 1.4, oy = (r() - 0.5) * hh;
+            const cg = ctx.createRadialGradient(cx + ox, cy + oy, 0, cx + ox, cy + oy, w * 0.6);
+            cg.addColorStop(0, `rgba(255,${235 - warm * 30},${225 - warm * 50},${0.42 - (cy / H - 0.22) * 0.6})`);
+            cg.addColorStop(1, 'rgba(255,240,230,0)');
+            ctx.fillStyle = cg;
+            ctx.beginPath(); ctx.ellipse(cx + ox, cy + oy, w * 0.6, hh, 0, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+      });
+    },
     facade: (seed, tint) => {
       const r = rng(seed);
       return canvasTex(256, 512, (ctx, W, H) => {
@@ -186,7 +210,8 @@
   /* ---------- סביבה ---------- */
   function buildWorld(g, M) {
     // שמיים
-    g.add(mesh(new THREE.SphereGeometry(180, 32, 16), new THREE.MeshBasicMaterial({ map: tex.sky(), side: THREE.BackSide, toneMapped: false, fog: false })));
+    const skyTex = tex.sky(); skyTex.wrapS = THREE.ClampToEdgeWrapping; skyTex.repeat.set(1, 1);
+    g.add(mesh(new THREE.SphereGeometry(180, 48, 24), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, toneMapped: false, fog: false })));
     // אספלט
     g.add(mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({ map: tex.asphalt(), roughness: 0.95 }), [0, 0, 0], [-Math.PI / 2, 0, 0]));
     // רחבה מרוצפת מול המשאית
@@ -438,8 +463,16 @@
     return s;
   }
 
+  const SUN = new THREE.Vector3(7, 4.6, 8).normalize(); // כיוון השמש (נמוכה, חמימה)
   const Truck = {
     T,
+    SUN,
+    sunUV() {
+      const phi = Math.atan2(SUN.z, -SUN.x);
+      const u = ((phi / (Math.PI * 2)) + 1) % 1;
+      const theta = Math.acos(SUN.y);
+      return [u, theta / Math.PI];
+    },
     build(cfg) {
       Truck.cfg = cfg;
       T.SHELVES = [F + 1.0, F + 1.48];

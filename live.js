@@ -129,9 +129,15 @@ function attach(server) {
       if (m.t === 'hello' && !p.ready) {
         p.name = clean(m.name, 16) || `אורח ${p.id}`;
         p.kid = !!m.kid;
+        const L = m.look || {};
+        const pickOne = (v, list, def) => (list.includes(v) ? v : def);
         p.look = {
-          color: COLORS.includes(m.look && m.look.color) ? m.look.color : COLORS[p.id % COLORS.length],
-          skin: ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'].includes(m.look && m.look.skin) ? m.look.skin : '#e0ac69',
+          color: pickOne(L.color, COLORS, COLORS[p.id % COLORS.length]),
+          skin: pickOne(L.skin, ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'], '#e0ac69'),
+          hair: pickOne(L.hair, ['#2b2018', '#5a3a22', '#a8642c', '#d9b26a', '#9a9a9a'], '#2b2018'),
+          hairStyle: pickOne(L.hairStyle, ['short', 'long', 'ponytail', 'curly'], 'short'),
+          acc: pickOne(L.acc, ['none', 'cap', 'glasses'], 'none'),
+          petColor: /^#[0-9a-f]{6}$/i.test(L.petColor || '') ? L.petColor : null,
         };
         p.pet = ['dog', 'cat', 'none'].includes(m.pet) ? m.pet : 'none';
         p.ready = true;
@@ -179,6 +185,11 @@ function attach(server) {
         case 'emoji': {
           if (!EMOJI.includes(m.e) || !rateOk(p)) return;
           broadcast({ t: 'emoji', id: p.id, e: m.e }, (o) => !o.muted.has(p.id));
+          break;
+        }
+        case 'anim': {
+          if (!['wave', 'dance', 'jump'].includes(m.a) || !rateOk(p)) return;
+          broadcast({ t: 'anim', id: p.id, a: m.a }, (o) => o.id !== p.id && !o.muted.has(p.id));
           break;
         }
         case 'mute': { const id = Number(m.id); if (players.has(id)) p.muted.add(id); break; }

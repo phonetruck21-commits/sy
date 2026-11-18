@@ -33,6 +33,68 @@
   };
   ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, () => Sound.unlock(), { passive: true }));
 
+  /* ---------- אווירה: רחש עיר רחוק, ציוצי ציפורים ומוזיקת בית קפה שקטה ---------- */
+  const AMB_KEY = 'vrstore-ambience';
+  const Ambience = {
+    on: (() => { try { return localStorage.getItem(AMB_KEY) !== 'off'; } catch (e) { return true; } })(),
+    started: false,
+    listeners: [],
+    start() {
+      Sound.unlock();
+      const ctx = Sound.ctx;
+      if (!ctx || this.started) { this.apply(); return; }
+      this.started = true;
+      this.master = ctx.createGain(); this.master.gain.value = 0; this.master.connect(ctx.destination);
+      // רחש עיר: רעש ורוד מסונן
+      const len = ctx.sampleRate * 3, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527; d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.11; }
+      const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520;
+      const ng = ctx.createGain(); ng.gain.value = 0.32;
+      src.connect(lp).connect(ng).connect(this.master); src.start();
+      // ציפורים
+      const chirp = () => {
+        if (this.on) {
+          const t = ctx.currentTime, n = 2 + Math.floor(Math.random() * 4), base = 2600 + Math.random() * 1600;
+          for (let i = 0; i < n; i++) {
+            const o = ctx.createOscillator(), g = ctx.createGain(), at = t + i * (0.09 + Math.random() * 0.05);
+            o.frequency.setValueAtTime(base, at); o.frequency.exponentialRampToValueAtTime(base * (1.2 + Math.random() * 0.4), at + 0.06);
+            g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.05, at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.08);
+            o.connect(g).connect(this.master); o.start(at); o.stop(at + 0.1);
+          }
+        }
+        setTimeout(chirp, 2500 + Math.random() * 6000);
+      };
+      setTimeout(chirp, 1500);
+      // מוזיקה: ארפג׳ו רך בסולם פנטטוני (כמו גיטרה ברקע)
+      const scale = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3];
+      const chords = [[0, 2, 4], [5, 7, 2], [3, 5, 0], [4, 6, 1]];
+      let step = 0;
+      const pluck = (f, at, vol) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(), lp2 = ctx.createBiquadFilter();
+        o.type = 'triangle'; o.frequency.value = f; lp2.type = 'lowpass'; lp2.frequency.value = 1800;
+        g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, at + 1.6);
+        o.connect(lp2).connect(g).connect(this.master); o.start(at); o.stop(at + 1.7);
+      };
+      setInterval(() => {
+        if (!this.on) return;
+        const t = ctx.currentTime + 0.05, c = chords[Math.floor(step / 8) % chords.length], beat = step % 8;
+        if (beat === 0) pluck(scale[c[0]] / 2, t, 0.05);
+        if (beat % 2 === 0 || Math.random() < 0.3) pluck(scale[c[(beat / 2 | 0) % 3]] * (beat > 4 ? 2 : 1), t, 0.025);
+        step++;
+      }, 330);
+      this.apply();
+    },
+    apply() {
+      if (this.master) this.master.gain.setTargetAtTime(this.on ? 0.9 : 0, Sound.ctx.currentTime, 0.6);
+      try { localStorage.setItem(AMB_KEY, this.on ? 'on' : 'off'); } catch (e) { /* ignore */ }
+      this.listeners.forEach((fn) => fn(this.on));
+    },
+    toggle() { this.on = !this.on; this.start(); this.apply(); },
+    onChange(fn) { this.listeners.push(fn); fn(this.on); },
+  };
+
   /* ---------- רטט ---------- */
   function pulse(handEl, intensity = 0.3, ms = 25) {
     try {
@@ -103,5 +165,5 @@
     },
   });
 
-  window.StoreFX = { Sound, pulse };
+  window.StoreFX = { Sound, pulse, Ambience };
 })();

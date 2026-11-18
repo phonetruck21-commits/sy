@@ -8,6 +8,7 @@
   const FONT = '"Heebo", "Segoe UI", Arial, sans-serif';
   const redrawers = [];
   const anims = [];
+  const OBST = []; // [x, z, רדיוס] – כדי שהמצלמה לא תעבור דרך עצים ופנסים
 
   function mesh(geo, mat, pos = [0, 0, 0], rot = [0, 0, 0]) {
     const m = new THREE.Mesh(geo, mat); m.position.set(...pos); m.rotation.set(...rot); return m;
@@ -166,7 +167,8 @@
 
   /* ---------- נקודת מפגש ---------- */
   function meetingSpot(g) {
-    post(g, 0, 10.6, 2.0, 1.9, 'נקודת מפגש', 'הכירו מבקרים, פתחו קבוצה וקנו ביחד', '#29335c', 0);
+    post(g, -3.3, 4.7, 2.0, 1.9, 'נקודת מפגש', 'הכירו מבקרים, פתחו קבוצה וקנו ביחד', '#29335c', 0.55);
+    OBST.push([-3.3, 4.7, 1.2]);
     // שרשרת נורות מהסוכך אל עמודים ברחבה
     const bulbMat = new THREE.MeshBasicMaterial({ color: '#ffe9b0', toneMapped: false });
     const wire = new THREE.MeshBasicMaterial({ color: '#222' });
@@ -184,6 +186,116 @@
     });
   }
 
+
+  /* ---------- עצים, פנסים, ערוגות ---------- */
+  function greenery(g) {
+    const trunkM = std('#6b4a32', { roughness: 0.9 });
+    const leaves = ['#5f8f3e', '#6f9e47', '#4f7d35', '#7aa851'].map((c) => std(c, { roughness: 0.85, flatShading: true }));
+    const r = ((seed) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646)(9);
+    const spots = [];
+    for (let x = -11, i = 0; x <= 11; x += 3.6, i++) spots.push([x + (r() - 0.5), 14.4 + r() * 0.8]);
+    [-12.8, 12.8].forEach((x) => { for (let z = 1.5; z <= 12; z += 3.4) spots.push([x + (r() - 0.5) * 0.6, z]); });
+    spots.forEach(([x, z]) => OBST.push([x, z, 1.2]));
+    spots.forEach(([x, z]) => {
+      const t = new THREE.Group();
+      const hgt = 1.6 + r() * 0.9;
+      t.add(mesh(new THREE.CylinderGeometry(0.09, 0.14, hgt, 8), trunkM, [0, hgt / 2, 0]));
+      const crown = new THREE.Group(); crown.position.y = hgt;
+      for (let k = 0; k < 4; k++) {
+        const ball = mesh(new THREE.IcosahedronGeometry(0.75 + r() * 0.45, 1), leaves[(k + Math.floor(r() * 4)) % 4], [(r() - 0.5) * 0.9, 0.35 + r() * 0.8, (r() - 0.5) * 0.9]);
+        crown.add(ball);
+      }
+      t.add(crown);
+      t.add(mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.08, 20), std('#7b6a58', { roughness: 1 }), [0, 0.04, 0])); // גומת עץ
+      t.position.set(x, 0, z);
+      g.add(t);
+      const ph = r() * 6;
+      anims.push((dt, time) => { crown.rotation.z = Math.sin(time * 0.7 + ph) * 0.025; crown.rotation.x = Math.cos(time * 0.55 + ph) * 0.02; });
+    });
+
+    // פנסי רחוב עם אור חם
+    const pole = std('#26272a', { metalness: 0.6, roughness: 0.4 });
+    const bulb = new THREE.MeshBasicMaterial({ color: '#ffe2a8', toneMapped: false });
+    const glowTex = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const ctx = c.getContext('2d');
+      const gr = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,220,160,0.9)'); gr.addColorStop(0.3, 'rgba(255,200,130,0.35)'); gr.addColorStop(1, 'rgba(255,200,130,0)');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, 128, 128);
+      return new THREE.CanvasTexture(c);
+    })();
+    [[-10.6, 11.2], [-5.4, 12.6], [5.4, 12.6], [10.6, 11.2]].forEach(([x, z]) => {
+      OBST.push([x, z, 0.5]);
+      g.add(mesh(new THREE.CylinderGeometry(0.05, 0.07, 3.2, 10), pole, [x, 1.6, z]));
+      g.add(mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.06, 16), pole, [x, 3.25, z]));
+      g.add(mesh(new THREE.SphereGeometry(0.13, 16, 12), bulb, [x, 3.12, z]));
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+      halo.scale.set(1.3, 1.3, 1); halo.position.set(x, 3.12, z); g.add(halo);
+      const pool = mesh(new THREE.PlaneGeometry(3, 3), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }), [x, 0.045, z], [-Math.PI / 2, 0, 0]);
+      g.add(pool);
+    });
+
+    // ערוגות פרחים משני צדי המדרגות
+    const petals = ['#ff7aa2', '#ffd166', '#f78c6b', '#ffffff', '#c792ea'].map((c) => std(c, { roughness: 0.6 }));
+    const soil = std('#4a3a2c', { roughness: 1 }), box2 = std('#efe9df', { roughness: 0.7 });
+    [[-4.6, 2.55], [4.6, 2.55]].forEach(([x, z]) => {
+      g.add(mesh(new THREE.BoxGeometry(1.2, 0.4, 0.6), box2, [x, 0.2, z]));
+      g.add(mesh(new THREE.BoxGeometry(1.1, 0.02, 0.5), soil, [x, 0.41, z]));
+      for (let i = 0; i < 26; i++) {
+        const fx = x + (r() - 0.5) * 1.0, fz = z + (r() - 0.5) * 0.42;
+        g.add(mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 4), leaves[0], [fx, 0.48, fz]));
+        g.add(mesh(new THREE.SphereGeometry(0.035, 8, 6), petals[i % petals.length], [fx, 0.56, fz]));
+      }
+    });
+  }
+
+  /* ---------- ציפורים בשמיים ---------- */
+  function birds(g) {
+    const m = new THREE.MeshBasicMaterial({ color: '#2c2f36', side: THREE.DoubleSide, fog: true });
+    for (let i = 0; i < 6; i++) {
+      const b = new THREE.Group();
+      const wing = (s) => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.12, 0, 0, -0.08, s * 0.42, 0, 0], 3));
+        const w = new THREE.Mesh(geo, m); b.add(w); return w;
+      };
+      const L = wing(1), R = wing(-1);
+      g.add(b);
+      const rad = 16 + i * 2.5, hgt = 13 + (i % 3) * 2.2, sp = 0.12 + (i % 2) * 0.05, ph = i * 1.1;
+      anims.push((dt, t) => {
+        const a = t * sp + ph;
+        b.position.set(Math.cos(a) * rad, hgt + Math.sin(t * 0.6 + i) * 0.6, 4 + Math.sin(a) * rad * 0.7);
+        b.rotation.y = -a;
+        const f = Math.sin(t * 9 + i) * 0.6;
+        L.rotation.z = f; R.rotation.z = -f;
+      });
+    }
+  }
+
+  /* ---------- מכונת בועות בפינת הילדים ---------- */
+  function bubbles(g) {
+    const base = new THREE.Group();
+    base.add(mesh(new THREE.BoxGeometry(0.4, 0.35, 0.3), std('#5bc0eb', { roughness: 0.4 }), [0, 0.24, 0]));
+    base.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.12, 12), std('#fde74c'), [0, 0.47, 0.05], [0.6, 0, 0]));
+    base.position.set(8.6, 0.06, 6.0); base.rotation.y = -0.6;
+    g.add(base);
+    const mat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0, metalness: 0, transmission: 0.95, thickness: 0.02, iridescence: 1, iridescenceIOR: 1.3, transparent: true, opacity: 0.55, depthWrite: false });
+    const list = [];
+    for (let i = 0; i < 22; i++) {
+      const s = mesh(new THREE.SphereGeometry(0.06 + Math.random() * 0.06, 16, 12), mat);
+      s.userData.t = Math.random() * 5;
+      g.add(s); list.push(s);
+    }
+    const origin = new THREE.Vector3(8.5, 0.6, 6.15);
+    anims.push((dt) => list.forEach((s, i) => {
+      s.userData.t += dt;
+      const t = s.userData.t % 5;
+      s.position.set(origin.x - t * 0.5 + Math.sin(t * 2 + i) * 0.25, origin.y + t * 0.55 + Math.sin(t * 3 + i) * 0.05, origin.z + t * 0.35 + Math.cos(t * 1.7 + i) * 0.25);
+      const k = t < 0.3 ? t / 0.3 : t > 4.6 ? (5 - t) / 0.4 : 1;
+      s.scale.setScalar(Math.max(0.01, k));
+    }));
+  }
+
   /* ---------- משפחות שמטיילות ברחבה (רקע בלבד) ---------- */
   function strollers(g) {
     const routes = [
@@ -191,8 +303,8 @@
       [[3, 6.5], [7.5, 10.6], [4, 11], [1.5, 8]],
     ];
     const families = [
-      { adult: { color: '#669bbc', skin: '#f1c27d', hair: '#4a3020' }, kid: { color: '#f3a712', skin: '#f1c27d', hair: '#4a3020' }, pet: ['dog', '#c49a6c'] },
-      { adult: { color: '#8e7dbe', skin: '#8d5524', hair: '#111' }, kid: { color: '#2a9d8f', skin: '#8d5524', hair: '#111' }, pet: ['cat', '#e8e2d6'] },
+      { adult: { color: '#669bbc', skin: '#f1c27d', hair: '#5a3a22', hairStyle: 'long', acc: 'glasses' }, kid: { color: '#f3a712', skin: '#f1c27d', hair: '#5a3a22', hairStyle: 'ponytail' }, pet: ['dog', '#c49a6c'] },
+      { adult: { color: '#8e7dbe', skin: '#8d5524', hair: '#2b2018', hairStyle: 'curly' }, kid: { color: '#2a9d8f', skin: '#8d5524', hair: '#2b2018', hairStyle: 'short', acc: 'cap' }, pet: ['cat', '#e8e2d6'] },
     ];
     families.forEach((f, i) => {
       const adult = C().person(f.adult), kid = C().person({ ...f.kid, kid: true });
@@ -226,7 +338,7 @@
   AFRAME.registerComponent('plaza', {
     init() {
       const g = new THREE.Group();
-      dogPark(g); kidsZone(g); meetingSpot(g); strollers(g);
+      dogPark(g); kidsZone(g); meetingSpot(g); greenery(g); birds(g); bubbles(g); strollers(g);
       this.el.setObject3D('mesh', g);
       this.t = 0;
     },
@@ -237,5 +349,33 @@
     },
   });
 
-  window.StorePlaza = { redraw: () => redrawers.forEach((fn) => fn()) };
+  /* צללים: רק בחוץ (בתוך המשאית התאורה פנימית). כבויים במשקף לטובת ביצועים */
+  AFRAME.registerComponent('atmosphere', {
+    init() {
+      const scene = this.el;
+      const apply = () => {
+        const T = window.StoreTruck && window.StoreTruck.T;
+        if (!T) return;
+        const p = new THREE.Vector3();
+        const roots = [document.querySelector('#store-root').object3D, document.querySelector('#plaza').object3D];
+        roots.forEach((root) => root.traverse((o) => {
+          if (!o.isMesh || o.material.transparent || (o.material.isMeshBasicMaterial && !o.material.map)) return;
+          o.getWorldPosition(p);
+          const foot = p.x > T.X0 - 0.2 && p.x < T.CAB_X1 + 0.2 && p.z > T.Z0 - 0.2 && p.z < T.Z1 + 0.2;
+          const loose = foot && p.y >= T.FLOOR - 0.05;
+          const strict = p.x > T.X0 + 0.2 && p.x < T.X1 - 0.2 && p.z > T.Z0 + 0.15 && p.z < T.Z1 - 0.15 && p.y > T.FLOOR + 0.02 && p.y < T.CEIL - 0.05;
+          o.receiveShadow = !loose && !o.material.isMeshBasicMaterial;
+          o.castShadow = !strict && !o.material.isMeshBasicMaterial;
+        }));
+      };
+      setTimeout(apply, 0);
+      document.body.addEventListener('store-built', apply);
+      const sun = () => document.querySelector('#sun');
+      scene.addEventListener('enter-vr', () => { const s2 = sun(); if (s2) s2.setAttribute('light', 'castShadow', false); });
+      scene.addEventListener('exit-vr', () => { const s2 = sun(); if (s2) s2.setAttribute('light', 'castShadow', true); });
+    },
+  });
+
+  window.StorePlaza = {
+    obstacles: OBST, redraw: () => redrawers.forEach((fn) => fn()) };
 })();
