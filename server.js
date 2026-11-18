@@ -71,7 +71,30 @@ function shippingFor(itemsTotal) {
   return cost;
 }
 
-function buildOrder(items) {
+/* פרטי משלוח עד הבית – נבדקים בשרת */
+const SLOTS = {
+  'tomorrow-am': 'מחר, 9:00–13:00',
+  'tomorrow-pm': 'מחר, 16:00–20:00',
+  'day2-am': 'בעוד יומיים, 9:00–13:00',
+  'day2-pm': 'בעוד יומיים, 16:00–20:00',
+};
+function buildDelivery(d) {
+  if (!d || typeof d !== 'object') throw httpError(400, 'חסרים פרטי משלוח');
+  const t = (v, max) => String(v || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
+  const out = {
+    name: t(d.name, 60), phone: t(d.phone, 20).replace(/[^\d+\-\s]/g, ''), city: t(d.city, 40),
+    street: t(d.street, 60), house: t(d.house, 10), apt: t(d.apt, 10), zip: t(d.zip, 10).replace(/\D/g, ''),
+    notes: t(d.notes, 140), slot: SLOTS[d.slot] ? d.slot : null,
+  };
+  if (out.name.length < 2) throw httpError(400, 'נא למלא שם מלא');
+  if (out.phone.replace(/\D/g, '').length < 9) throw httpError(400, 'נא למלא מספר טלפון תקין');
+  if (!out.city || !out.street || !out.house) throw httpError(400, 'נא למלא עיר, רחוב ומספר בית');
+  if (!out.slot) throw httpError(400, 'נא לבחור מועד משלוח');
+  out.slotLabel = SLOTS[out.slot];
+  return out;
+}
+
+function buildOrder(items, delivery) {
   if (!items || typeof items !== 'object' || Array.isArray(items)) throw httpError(400, 'סל לא תקין');
   // מפתח בסל: "מזהה-מוצר" או "מזהה-מוצר|צבע"
   const lines = Object.entries(items).map(([key, qty]) => {
@@ -108,6 +131,19 @@ function buildOrder(items) {
             shipping: { currency_code: CURRENCY, value: money(shipping) },
           },
         },
+        ...(delivery ? {
+          shipping: {
+            type: 'SHIPPING',
+            name: { full_name: delivery.name },
+            address: {
+              address_line_1: `${delivery.street} ${delivery.house}`.slice(0, 300),
+              ...(delivery.apt ? { address_line_2: `דירה ${delivery.apt}` } : {}),
+              admin_area_2: delivery.city,
+              ...(delivery.zip ? { postal_code: delivery.zip } : {}),
+              country_code: 'IL',
+            },
+          },
+        } : {}),
         items: lines.map((l) => ({
           name: (l.variant ? `${l.product.name} – ${l.variant.label}` : l.product.name).slice(0, 127),
           sku: (l.variant ? `${l.product.id}-${l.variant.id}` : l.product.id).slice(0, 127),
@@ -116,6 +152,8 @@ function buildOrder(items) {
           category: 'PHYSICAL_GOODS',
         })),
       }],
+      // הכתובת שהלקוח מילא אצלנו היא כתובת המשלוח (PayPal לא מבקש כתובת אחרת)
+      ...(delivery ? { payment_source: { paypal: { experience_context: { shipping_preference: 'SET_PROVIDED_ADDRESS', locale: 'he-IL', brand_name: STORE_CONFIG.name } } } } : {}),
     },
   };
 }
@@ -128,6 +166,10 @@ function saveOrder(record) {
 }
 
 /* ---------------- שרת ---------------- */
+
+// פרטי משלוח של הזמנות שעוד לא שולמו (נמחקים אחרי שעה)
+const pending = new Map();
+setInterval(() => { const old = Date.now() - 3600e3; pending.forEach((v, k) => { if (v.at < old) pending.delete(k); }); }, 600e3).unref();
 
 const app = express();
 app.use(express.json({ limit: '20kb' }));
@@ -147,12 +189,14 @@ app.get('/api/config', (req, res) => {
 // יצירת הזמנה ב-PayPal
 app.post('/api/orders', async (req, res, next) => {
   try {
-    const order = buildOrder(req.body && req.body.items);
+    const delivery = buildDelivery(req.body && req.body.delivery);
+    const order = buildOrder(req.body && req.body.items, delivery);
     const r = await paypal('POST', '/v2/checkout/orders', order.body);
     if (!r.ok) {
       console.error('PayPal create order failed', r.status, JSON.stringify(r.json));
       throw httpError(502, 'יצירת ההזמנה ב-PayPal נכשלה');
     }
+    pending.set(r.json.id, { delivery, group: String((req.body && req.body.group) || '').slice(0, 8) || null, at: Date.now() });
     res.json({ id: r.json.id });
   } catch (e) { next(e); }
 });
@@ -176,12 +220,17 @@ app.post('/api/orders/:id/capture', async (req, res, next) => {
       captureId: capture.id,
       amount: capture.amount,
     };
+    const extra = pending.get(id) || {};
+    pending.delete(id);
+    if (extra.delivery) result.delivery = { slotLabel: extra.delivery.slotLabel, city: extra.delivery.city };
     if (result.status === 'COMPLETED') {
       saveOrder({
         time: new Date().toISOString(),
         ...result,
         payer: r.json.payer && { name: r.json.payer.name, email: r.json.payer.email_address },
         shipping: unit.shipping,
+        delivery: extra.delivery,
+        group: extra.group,
         items: unit.items,
       });
       console.log(`✓ Order paid: ${result.orderId} ${capture.amount && capture.amount.value} ${CURRENCY}`);
@@ -197,10 +246,12 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const server = require('http').createServer(app);
+  require('./live.js').attach(server); // מבקרים, צ'אט וקבוצות בזמן אמת
+  server.listen(PORT, () => {
     console.log(`חנות VR רצה: http://localhost:${PORT}  (PayPal: ${PAYPAL_ENV})`);
     if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) console.warn('⚠ חסרים פרטי PayPal ב-.env – התשלום לא יעבוד');
   });
 }
 
-module.exports = { app, buildOrder, shippingFor };
+module.exports = { app, buildOrder, buildDelivery, shippingFor };

@@ -209,14 +209,14 @@
       g.add(b);
     }
     // ספסלים ועציצי בטון על הרחבה
-    [[-7.2, 7.5], [7.2, 7.5]].forEach(([x, z]) => {
+    [[-2.9, 9.7], [2.9, 9.7]].forEach(([x, z]) => {
       g.add(box(1.8, 0.06, 0.45, M.oak, x, 0.46, z));
       g.add(box(0.08, 0.43, 0.4, M.steel, x - 0.75, 0.215, z));
       g.add(box(0.08, 0.43, 0.4, M.steel, x + 0.75, 0.215, z));
     });
     const planterMat = new THREE.MeshStandardMaterial({ color: '#bdb8b0', roughness: 0.85 });
     const leaf = new THREE.MeshStandardMaterial({ color: '#4c6b3c', roughness: 0.8 });
-    [[-5.2, 4.3], [5.2, 4.3]].forEach(([x, z]) => {
+    [[-4.5, 3.6], [4.5, 3.6]].forEach(([x, z]) => {
       g.add(box(1.0, 0.55, 1.0, planterMat, x, 0.275, z));
       const rr = rng(Math.round(x * 10 + 99));
       for (let i = 0; i < 9; i++) {
@@ -499,7 +499,9 @@
     redraw() { redrawers.forEach((fn) => fn()); },
     /* נקודות עצירה לניווט: מיקום המבקר, כיוון מבט וזווית */
     VIEWS: [
-      { id: 'outside', label: 'מבחוץ', x: 0, z: 8.2, yaw: 0, pitch: 0.03 },
+      { id: 'outside', label: 'הרחבה', x: 0, z: 8.2, yaw: 0, pitch: 0.03 },
+      { id: 'dogpark', label: 'גינת כלבים', x: -3.2, z: 10.3, yaw: 0.72, pitch: -0.12 },
+      { id: 'kids', label: 'פינת ילדים', x: 3.2, z: 10.3, yaw: -0.72, pitch: -0.12 },
       { id: 'phones', label: 'טלפונים', x: -0.25, z: 1.3, yaw: 0, pitch: -0.55 },
       { id: 'devices', label: 'טאבלט ושעון', x: -2.0, z: 1.3, yaw: 0, pitch: -0.55 },
       { id: 'accessories', label: 'אביזרים', x: -0.65, z: -0.48, yaw: 0, pitch: -0.12 },

@@ -34,7 +34,21 @@
       Object.keys(this.items).forEach((k) => { if (!this.resolve(k)) delete this.items[k]; });
     },
     save() {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items)); } catch (e) { /* מצב פרטי */ }
+      if (!this.adapter) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items)); } catch (e) { /* מצב פרטי */ } }
+      this.listeners.forEach((fn) => fn());
+    },
+    /* סל משותף לקבוצה: השרת מחזיק את הסל, וכל חברי הקבוצה רואים אותו */
+    adapter: null,
+    by: {},
+    useShared(adapter) {
+      if (adapter && !this.adapter) this.personal = { ...this.items };
+      if (!adapter && this.adapter) { this.items = this.personal || {}; this.by = {}; }
+      this.adapter = adapter;
+      this.save();
+    },
+    applyShared(cart) {
+      this.items = {}; this.by = {};
+      Object.entries(cart || {}).forEach(([k, v]) => { if (this.resolve(k)) { this.items[k] = v.qty; this.by[k] = v.by || []; } });
       this.listeners.forEach((fn) => fn());
     },
     key(p, variantId) { return variantId ? `${p.id}|${variantId}` : p.id; },
@@ -46,9 +60,19 @@
       if (vid && !variant) return null;
       return { product, variant };
     },
-    add(p, variantId, qty = 1) { const k = this.key(p, variantId); this.items[k] = Math.min(99, (this.items[k] || 0) + qty); this.save(); },
-    setQty(key, qty) { if (qty <= 0) delete this.items[key]; else this.items[key] = Math.min(99, qty); this.save(); },
-    clear() { this.items = {}; this.save(); },
+    add(p, variantId, qty = 1) {
+      const k = this.key(p, variantId);
+      if (this.adapter) { this.adapter.add(k, qty); return; }
+      this.items[k] = Math.min(99, (this.items[k] || 0) + qty); this.save();
+    },
+    setQty(key, qty) {
+      if (this.adapter) { this.adapter.set(key, Math.max(0, qty)); return; }
+      if (qty <= 0) delete this.items[key]; else this.items[key] = Math.min(99, qty); this.save();
+    },
+    clear(paid) {
+      if (this.adapter) { this.adapter.clear(paid); return; }
+      this.items = {}; this.save();
+    },
     lines() {
       return Object.entries(this.items).map(([key, qty]) => {
         const r = this.resolve(key);
@@ -82,6 +106,66 @@
     if (!res.ok) throw Object.assign(new Error(json.error || `HTTP ${res.status}`), { issue: json.issue });
     return json;
   }
+
+  /* ------------------------------------------------------------------ *
+   *  משלוח עד הבית: טופס כתובת ומועד                                    *
+   * ------------------------------------------------------------------ */
+  const DELIVERY_KEY = 'vrstore-delivery-v1';
+  const Delivery = {
+    data: null,
+    FIELDS: ['name', 'phone', 'city', 'street', 'house', 'apt', 'zip', 'notes'],
+    fill() {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(DELIVERY_KEY)) || {}; } catch (e) { /* ignore */ }
+      this.FIELDS.forEach((f) => { const el = $(`#dl-${f}`); if (el && !el.value && saved[f]) el.value = saved[f]; });
+      if (saved.slot) { const r = document.querySelector(`input[name="dl-slot"][value="${saved.slot}"]`); if (r) r.checked = true; }
+    },
+    read() {
+      const d = {};
+      this.FIELDS.forEach((f) => { d[f] = ($(`#dl-${f}`).value || '').trim(); });
+      const slot = document.querySelector('input[name="dl-slot"]:checked');
+      d.slot = slot ? slot.value : '';
+      return d;
+    },
+    validate(d) {
+      const errs = [];
+      if (d.name.length < 2) errs.push(['name', 'נא למלא שם מלא']);
+      if (d.phone.replace(/\D/g, '').length < 9) errs.push(['phone', 'נא למלא מספר טלפון תקין']);
+      if (!d.city) errs.push(['city', 'נא למלא עיר']);
+      if (!d.street) errs.push(['street', 'נא למלא רחוב']);
+      if (!d.house) errs.push(['house', 'נא למלא מספר בית']);
+      if (!d.slot) errs.push(['slot', 'נא לבחור מועד משלוח']);
+      return errs;
+    },
+    submit(e) {
+      e.preventDefault();
+      const d = this.read();
+      document.querySelectorAll('#co-delivery .field-err').forEach((x) => { x.textContent = ''; });
+      document.querySelectorAll('#co-delivery [aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+      const errs = this.validate(d);
+      if (errs.length) {
+        errs.forEach(([f, msg]) => {
+          const err = $(`#err-${f}`); if (err) err.textContent = msg;
+          const el = $(`#dl-${f}`); if (el) el.setAttribute('aria-invalid', 'true');
+        });
+        const first = $(`#dl-${errs[0][0]}`) || document.querySelector('input[name="dl-slot"]');
+        if (first) first.focus();
+        return;
+      }
+      this.data = d;
+      try { localStorage.setItem(DELIVERY_KEY, JSON.stringify(d)); } catch (err) { /* ignore */ }
+      Checkout.pay();
+    },
+    slotLabel() {
+      const r = this.data && document.querySelector(`input[name="dl-slot"][value="${this.data.slot}"]`);
+      return r ? r.closest('label').querySelector('b').textContent + ', ' + r.closest('label').querySelector('span').textContent : '';
+    },
+    summary() {
+      const d = this.data;
+      if (!d) return '';
+      return `${d.name} · ${d.street} ${d.house}${d.apt ? `, דירה ${d.apt}` : ''}, ${d.city}`;
+    },
+  };
 
   const Checkout = {
     sdk: null,
@@ -127,13 +211,28 @@
       $('#co-summary').hidden = false;
       $('#co-done').hidden = true;
       $('#paypal-buttons').innerHTML = '';
+      $('#co-pay').hidden = true;
+      $('#co-delivery').hidden = false;
+      $('#co-shared').hidden = !Cart.adapter;
+      if (Cart.adapter) $('#co-shared').textContent = `סל משותף של קבוצה ${Cart.adapter.code()} – התשלום על כל הסל, והמשלוח לכתובת שתמלאו כאן.`;
+      Delivery.fill();
       $('#checkout').hidden = false;
+      this.status('');
+      setTimeout(() => { const f = $('#dl-name'); if (f && !f.value) f.focus(); }, 50);
+    },
+
+    /* אחרי שמילאו כתובת: מציגים את כפתורי PayPal */
+    pay() {
+      $('#co-delivery').hidden = true;
+      $('#co-pay').hidden = false;
+      $('#co-address').textContent = Delivery.summary();
+      $('#paypal-buttons').innerHTML = '';
       this.status('טוען את PayPal…');
       this.loadPayPal().then((paypal) => {
         this.status('');
         return paypal.Buttons({
           style: { layout: 'vertical', shape: 'rect', label: 'pay', color: 'black' },
-          createOrder: () => api('api/orders', { items: Cart.items }).then((d) => d.id),
+          createOrder: () => api('api/orders', { items: Cart.items, delivery: Delivery.data, group: Cart.adapter ? Cart.adapter.code() : null }).then((d) => d.id),
           onApprove: (data, actions) => {
             this.status('מאשר את התשלום…');
             return api(`api/orders/${data.orderID}/capture`, {})
@@ -152,9 +251,11 @@
     },
     success(r) {
       const total = Cart.grandTotal();
-      Cart.clear();
+      Cart.clear(true);
       $('#co-summary').hidden = true;
       $('#co-done').hidden = false;
+      $('#co-eta').textContent = (r.delivery && r.delivery.slotLabel) || Delivery.slotLabel();
+      $('#co-dest').textContent = Delivery.summary();
       $('#co-order').textContent = r.captureId || r.orderId;
       $('#co-amount').textContent = fmt(r.amount ? r.amount.value : total);
       $('#co-back-vr').hidden = !this.returnToVR;
@@ -1387,7 +1488,8 @@
       el.innerHTML = '';
       const x = h('button', 'drawer-x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'סגירה');
       x.addEventListener('click', () => this.close());
-      el.append(x, h('h2', '', 'סל הקניות'));
+      el.append(x, h('h2', '', Cart.adapter ? 'הסל המשותף' : 'סל הקניות'));
+      if (Cart.adapter) el.append(h('p', 'shared-note', `קבוצה ${Cart.adapter.code()} · כל חברי הקבוצה רואים את הסל ומוסיפים אליו`));
       const lines = Cart.lines();
       if (!lines.length) {
         el.append(h('p', 'empty', 'הסל ריק. בחרו מוצר מהתצוגה או מהקטלוג.'));
@@ -1403,6 +1505,7 @@
         const info = h('div', 'info');
         info.append(h('p', 'name', l.product.name));
         if (l.variant) info.append(h('p', 'sub', l.variant.label));
+        if (Cart.adapter && Cart.by[l.key] && Cart.by[l.key].length) info.append(h('p', 'by', `נוסף ע״י ${Cart.by[l.key].join(', ')}`));
         const row = h('div', 'row');
         const st = h('div', 'stepper small');
         const plus = h('button', '', '+'); plus.type = 'button'; plus.setAttribute('aria-label', 'יותר');
@@ -1496,6 +1599,8 @@
     $('#co-close').addEventListener('click', () => Checkout.close());
     $('#co-close-done').addEventListener('click', () => Checkout.close());
     $('#co-back-vr').addEventListener('click', () => Checkout.backToVR());
+    $('#co-delivery').addEventListener('submit', (e) => Delivery.submit(e));
+    $('#co-edit-address').addEventListener('click', () => { $('#co-pay').hidden = true; $('#co-delivery').hidden = false; $('#paypal-buttons').innerHTML = ''; Checkout.status(''); });
 
     // סרגל האזורים
     const zones = $('#zones-list');
@@ -1524,8 +1629,10 @@
       // נכנסים לחנות: הליכה אוטומטית מהרחבה, במעלה המדרגות, אל שולחן הטלפונים
       setTimeout(() => Nav.go('phones', { walk: true, speed: 1.9 }), 350);
     };
-    $('#intro-enter').addEventListener('click', () => enter(false));
-    $('#intro-vr').addEventListener('click', () => enter(true));
+    // טופס הפרופיל במסך הכניסה: שם, דמות וחיית מחמד
+    const S = window.StoreSocial;
+    $('#profile').addEventListener('submit', (e) => { e.preventDefault(); if (S.readProfile(true)) { S.start(); enter(false); } });
+    $('#intro-vr').addEventListener('click', () => { if (S.readProfile(true)) { S.start(); enter(true); } });
     if (navigator.xr && navigator.xr.isSessionSupported) {
       navigator.xr.isSessionSupported('immersive-vr').then((ok) => { $('#intro-vr').hidden = !ok; $('#hud-vr').hidden = !ok; }).catch(() => {});
     }
@@ -1578,5 +1685,5 @@
     },
   });
 
-  window.VRStore = { Cart, Panel, Checkout, Products, openProduct, openCart, confirmOrder, Inspect, addToCart, Nav, Sheet, CartDrawer, Catalog };
+  window.VRStore = { Cart, Panel, Checkout, Products, openProduct, openCart, confirmOrder, Inspect, addToCart, Nav, Sheet, CartDrawer, Catalog, Layout, toast, fmt, UI, FONT, entity, inVR, Delivery };
 })();
