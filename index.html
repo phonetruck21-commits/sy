@@ -16,6 +16,7 @@
   <script src="js/truck.js"></script>
   <script src="js/fx.js"></script>
   <script src="js/characters.js"></script>
+  <script src="js/city.js"></script>
   <script src="js/plaza.js"></script>
   <script src="js/app.js"></script>
   <script src="js/social.js"></script>
@@ -240,19 +241,18 @@
 
   <a-scene
     store
-    studio-environment
     atmosphere
     shadow="type: pcfsoft"
-    fog="type: linear; color: #e6d6c4; near: 28; far: 150"
-    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 0.95; foveationLevel: 1"
+    fog="type: linear; color: #c8c9c8; near: 35; far: 190"
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 1.0; foveationLevel: 1"
     cursor="rayOrigin: mouse; fuse: false"
     raycaster="objects: .clickable; far: 20; interval: 40"
     xr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
     loading-screen="enabled: false">
 
-    <a-entity light="type: hemisphere; color: #cfe0ff; groundColor: #a08670; intensity: 0.85"></a-entity>
-    <a-entity id="sun" light="type: directional; color: #ffd9a8; intensity: 2.6; castShadow: true; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowCameraLeft: -16; shadowCameraRight: 16; shadowCameraTop: 16; shadowCameraBottom: -16; shadowCameraNear: 1; shadowCameraFar: 70; shadowBias: -0.0004; shadowRadius: 3" position="17.5 11.5 20"></a-entity>
+    <a-entity light="type: hemisphere; color: #bcd2ee; groundColor: #8a7c6c; intensity: 0.7"></a-entity>
+    <a-entity id="sun" light="type: directional; color: #ffe2bd; intensity: 3.2; castShadow: true; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowCameraLeft: -22; shadowCameraRight: 22; shadowCameraTop: 22; shadowCameraBottom: -22; shadowCameraNear: 1; shadowCameraFar: 90; shadowBias: -0.0004; shadowRadius: 2" position="22.9 10.7 16.2"></a-entity>
 
     <!-- המבקר: rig + מצלמה + בקרים -->
     <a-entity id="rig" position="0 0 8.2" thumbstick-move walker>

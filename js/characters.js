@@ -34,8 +34,8 @@
     const kid = !!look.kid;
     const pants = look.pants || shade(color, 0.32);
     const M = {
-      skin: mat(skin, { roughness: 0.62 }),
-      top: mat(color, { roughness: 0.8 }),
+      skin: new THREE.MeshPhysicalMaterial({ color: skin, roughness: 0.55, sheen: 0.4, sheenColor: new THREE.Color('#ffd0c0'), sheenRoughness: 0.6 }),
+      top: new THREE.MeshPhysicalMaterial({ color, roughness: 0.85, sheen: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.4), sheenRoughness: 0.8 }),
       topDark: mat(shade(color, 0.78), { roughness: 0.8 }),
       pants: mat(pants, { roughness: 0.85 }),
       shoe: mat('#f4f2ee', { roughness: 0.5 }),
@@ -91,20 +91,20 @@
 
     /* ראש */
     const head = new THREE.Group(); head.position.y = 0.72; torso.add(head);
-    const skull = mesh(G.sph(0.15), M.skin, 0, 0.13, 0); skull.scale.set(0.95, 1.08, 0.98); head.add(skull);
+    const skull = mesh(G.sph(0.135), M.skin, 0, 0.13, 0); skull.scale.set(0.9, 1.16, 1.0);
+    const jaw = mesh(G.sph(0.1), M.skin, 0, 0.06, 0.03); jaw.scale.set(0.95, 0.8, 1.0); head.add(jaw); head.add(skull);
     [-1, 1].forEach((s) => { const ear = mesh(G.sph(0.035), M.skin, s * 0.142, 0.12, -0.005); ear.scale.set(0.55, 1, 0.8); head.add(ear); });
-    const nose = mesh(G.sph(0.022), mat(shade(skin, 0.92)), 0, 0.105, 0.148); nose.scale.set(0.9, 1, 1.2); head.add(nose);
+    const nose = mesh(G.sph(0.018), mat(shade(skin, 0.95)), 0, 0.105, 0.128); nose.scale.set(0.75, 1.3, 1.1); head.add(nose);
     const eyes = [-1, 1].map((s) => {
-      const e = new THREE.Group(); e.position.set(s * 0.053, 0.14, 0.128);
-      const w = mesh(G.sph(0.026), M.white); w.scale.set(1, 1.15, 0.55); e.add(w);
-      e.add(mesh(G.sph(0.016), M.iris, 0, -0.002, 0.011));
-      e.add(mesh(G.sph(0.005), M.white, 0.006, 0.007, 0.024));
+      const e = new THREE.Group(); e.position.set(s * 0.045, 0.135, 0.126);
+      const w = mesh(G.sph(0.016), M.white); w.scale.set(1.25, 0.8, 0.5); e.add(w);
+      e.add(mesh(G.sph(0.0085), M.iris, 0, 0, 0.006));
+      const lid = mesh(G.sph(0.018), M.skin, 0, 0.006, -0.002); lid.scale.set(1.3, 0.55, 0.6); e.add(lid);
       head.add(e);
-      const brow = mesh(new THREE.BoxGeometry(0.05, 0.011, 0.012), M.hair, s * 0.055, 0.19, 0.138); brow.rotation.z = -s * 0.1; head.add(brow);
-      const cheek = mesh(new THREE.CircleGeometry(0.022, 16), M.cheek, s * 0.085, 0.085, 0.132); cheek.rotation.y = s * 0.45; head.add(cheek);
+      const brow = mesh(new THREE.BoxGeometry(0.042, 0.008, 0.01), M.hair, s * 0.046, 0.163, 0.134); brow.rotation.z = -s * 0.06; head.add(brow);
       return e;
     });
-    const mouth = mesh(new THREE.TorusGeometry(0.03, 0.007, 6, 14, Math.PI), M.lip, 0, 0.068, 0.142); mouth.rotation.z = Math.PI; head.add(mouth);
+    const mouth = mesh(new THREE.TorusGeometry(0.022, 0.005, 6, 14, Math.PI * 0.8), M.lip, 0, 0.066, 0.131); mouth.rotation.z = Math.PI * 1.1; head.add(mouth);
 
     /* שיער */
     const capGeo = (r, cut) => new THREE.SphereGeometry(r, 24, 16, 0, Math.PI * 2, 0, Math.PI * cut);
@@ -139,7 +139,7 @@
     }
 
     root.traverse((o) => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
-    if (kid) { root.scale.setScalar(0.64); head.scale.setScalar(1.18); }
+    if (kid) { root.scale.setScalar(0.64); head.scale.setScalar(1.1); }
 
     let phase = Math.random() * 6, blink = 1 + Math.random() * 3, clock = 0;
     let act = null, actT = 0;

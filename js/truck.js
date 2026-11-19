@@ -208,48 +208,8 @@
   }
 
   /* ---------- סביבה ---------- */
-  function buildWorld(g, M) {
-    // שמיים
-    const skyTex = tex.sky(); skyTex.wrapS = THREE.ClampToEdgeWrapping; skyTex.repeat.set(1, 1);
-    g.add(mesh(new THREE.SphereGeometry(180, 48, 24), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, toneMapped: false, fog: false })));
-    // אספלט
-    g.add(mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({ map: tex.asphalt(), roughness: 0.95 }), [0, 0, 0], [-Math.PI / 2, 0, 0]));
-    // רחבה מרוצפת מול המשאית
-    g.add(mesh(new THREE.BoxGeometry(22, 0.04, 9), new THREE.MeshStandardMaterial({ map: tex.pavers(), roughness: 0.85 }), [0, 0.02, 6.4]));
-    g.add(mesh(new THREE.BoxGeometry(22.2, 0.13, 0.25), new THREE.MeshStandardMaterial({ color: '#b5b2ab', roughness: 0.8 }), [0, 0.065, 11]));
-    // סימוני חניה
-    const line = new THREE.MeshStandardMaterial({ color: '#e8e6df', roughness: 0.8 });
-    for (let i = -3; i <= 3; i++) g.add(mesh(new THREE.PlaneGeometry(0.12, 5), line, [i * 2.8, 0.006, -6.5], [-Math.PI / 2, 0, 0]));
-    // בניינים ברקע
-    const r = rng(23);
-    for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2 + 0.2;
-      const dist = 48 + r() * 18;
-      const w = 10 + r() * 12, h = 12 + r() * 26, d = 10 + r() * 8;
-      const tint = ['#c9c4bb', '#b8bcc0', '#d6d0c6', '#a9aeb3'][i % 4];
-      const mat = new THREE.MeshStandardMaterial({ map: tex.facade(i + 2, tint), roughness: 0.9 });
-      mat.map.repeat.set(Math.round(w / 6), Math.round(h / 10));
-      const b = mesh(new THREE.BoxGeometry(w, h, d), mat, [Math.cos(a) * dist, h / 2, Math.sin(a) * dist]);
-      b.rotation.y = -a;
-      g.add(b);
-    }
-    // ספסלים ועציצי בטון על הרחבה
-    [[-2.9, 9.7], [2.9, 9.7]].forEach(([x, z]) => {
-      g.add(box(1.8, 0.06, 0.45, M.oak, x, 0.46, z));
-      g.add(box(0.08, 0.43, 0.4, M.steel, x - 0.75, 0.215, z));
-      g.add(box(0.08, 0.43, 0.4, M.steel, x + 0.75, 0.215, z));
-    });
-    const planterMat = new THREE.MeshStandardMaterial({ color: '#bdb8b0', roughness: 0.85 });
-    const leaf = new THREE.MeshStandardMaterial({ color: '#4c6b3c', roughness: 0.8 });
-    [[-4.5, 3.6], [4.5, 3.6]].forEach(([x, z]) => {
-      g.add(box(1.0, 0.55, 1.0, planterMat, x, 0.275, z));
-      const rr = rng(Math.round(x * 10 + 99));
-      for (let i = 0; i < 9; i++) {
-        const s = mesh(new THREE.IcosahedronGeometry(0.22 + rr() * 0.12, 1), leaf, [x + (rr() - 0.5) * 0.6, 0.72 + rr() * 0.25, z + (rr() - 0.5) * 0.6]);
-        g.add(s);
-      }
-    });
-  }
+  /* הסביבה (שמיים, קרקע, שכונה) נבנית ב-js/city.js */
+  function buildWorld() {}
 
   /* ---------- המשאית מבחוץ ---------- */
   function buildTruck(g, M, cfg) {
@@ -463,7 +423,7 @@
     return s;
   }
 
-  const SUN = new THREE.Vector3(7, 4.6, 8).normalize(); // כיוון השמש (נמוכה, חמימה)
+  const SUN = new THREE.Vector3(0.763, 0.358, 0.539).normalize(); // כיוון השמש בתמונת השמיים האמיתית
   const Truck = {
     T,
     SUN,

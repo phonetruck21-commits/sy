@@ -49,7 +49,8 @@
   function dogPark(g) {
     const x0 = -9.6, x1 = -4.6, z0 = 4.4, z1 = 9.4;
     const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-    const grass = std('#6f9c4b', { roughness: 0.95 });
+    const gt = (f, srgb) => { const t = new THREE.TextureLoader().load(`assets/textures/leafy-grass-${f}.webp`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); if (srgb && 'colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace; return t; };
+    const grass = new THREE.MeshStandardMaterial({ map: gt('diff', true), normalMap: gt('nor'), roughnessMap: gt('rough'), roughness: 1 });
     g.add(mesh(new THREE.BoxGeometry(x1 - x0, 0.06, z1 - z0), grass, [cx, 0.03, cz]));
     // גדר נמוכה
     const rail = std('#f2efe8'), postM = std('#2b2c2f', { metalness: 0.5 });
@@ -112,7 +113,7 @@
     // רצפת גומי צבעונית
     const c = document.createElement('canvas'); c.width = c.height = 512;
     const ctx = c.getContext('2d');
-    const cols = ['#5bc0eb', '#fde74c', '#9bc53d', '#fa7921', '#e55934'];
+    const cols = ['#b0634a', '#3f7f7a', '#c9a46a', '#8a8f63', '#a85a4a']; // גומי EPDM בגוונים טבעיים
     for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { ctx.fillStyle = cols[(i + j * 2) % cols.length]; ctx.fillRect(i * 64, j * 64, 64, 64); }
     const tex = new THREE.CanvasTexture(c); if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
     g.add(mesh(new THREE.BoxGeometry(x1 - x0, 0.06, z1 - z0), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 }), [cx, 0.03, cz]));
@@ -338,7 +339,8 @@
   AFRAME.registerComponent('plaza', {
     init() {
       const g = new THREE.Group();
-      dogPark(g); kidsZone(g); meetingSpot(g); greenery(g); birds(g); bubbles(g); strollers(g);
+      if (window.StoreCity) { window.StoreCity.build(g, this.el.sceneEl); OBST.push(...window.StoreCity.obstacles); }
+      dogPark(g); kidsZone(g); meetingSpot(g); birds(g); bubbles(g); strollers(g);
       this.el.setObject3D('mesh', g);
       this.t = 0;
     },
@@ -346,6 +348,7 @@
       const s = Math.min(dt, 50) / 1000;
       this.t += s;
       anims.forEach((fn) => fn(s, this.t));
+      if (window.StoreCity) window.StoreCity.tick(s, this.t);
     },
   });
 
