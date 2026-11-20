@@ -239,6 +239,29 @@ app.post('/api/orders/:id/capture', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// מוכר/ת AI – משמש גם את האתר וגם את אפליקציית Unreal
+const seller = require('./seller.js');
+const sellerHits = new Map(); // הגבלת קצב פשוטה לכל כתובת IP
+app.post('/api/seller', async (req, res, next) => {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+      throw httpError(503, 'המוכר/ת עדיין לא מחובר/ת – בעלי החנות צריכים להגדיר ANTHROPIC_API_KEY בשרת');
+    }
+    const ip = req.ip || 'x';
+    const now = Date.now();
+    const hits = (sellerHits.get(ip) || []).filter((t) => now - t < 60000);
+    if (hits.length >= 12) throw httpError(429, 'רגע, הרבה שאלות ברצף 🙂 נסו שוב בעוד דקה');
+    hits.push(now); sellerHits.set(ip, hits);
+    const out = await seller.ask(req.body && req.body.messages, { kid: !!(req.body && req.body.kid) });
+    res.json(out);
+  } catch (e) {
+    if (e instanceof seller.Anthropic.RateLimitError) return next(httpError(429, 'המוכר/ת עסוק/ה כרגע, נסו שוב בעוד רגע'));
+    if (e instanceof seller.Anthropic.APIError) { console.error('Seller API error', e.status, e.message); return next(httpError(502, 'המוכר/ת לא זמין/ה כרגע')); }
+    next(e);
+  }
+});
+setInterval(() => { const old = Date.now() - 60000; sellerHits.forEach((v, k) => { if (!v.some((t) => t > old)) sellerHits.delete(k); }); }, 60000).unref();
+
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   const status = err.status || 500;
   if (status >= 500) console.error(err);

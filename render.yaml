@@ -17,3 +17,5 @@ services:
         sync: false           # Render יבקש להדביק את הערך בזמן ההקמה
       - key: PAYPAL_CLIENT_SECRET
         sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
