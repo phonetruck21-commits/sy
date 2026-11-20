@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: 241 244 249;
+  --panel: 255 255 255;
+  --line: 214 222 235;
+  --ink: 11 17 32;
+  --muted: 92 104 128;
+  color-scheme: light;
+}
+.dark {
+  --surface: 5 10 22;
+  --panel: 13 22 42;
+  --line: 33 48 79;
+  --ink: 240 244 252;
+  --muted: 148 163 192;
+  color-scheme: dark;
+}
+html, body, #root { height: 100%; }
+body { font-family: theme('fontFamily.sans'); -webkit-tap-highlight-color: transparent; }
+video { background: #000; }
+.demo-badge { @apply inline-flex items-center rounded bg-accent/20 px-1.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-accent; }
+@keyframes pulse-dot { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+.pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }

@@ -1,0 +1,59 @@
+# LOCAL DEVELOPMENT variant of deploy/mediamtx.yml (listens on localhost for API/signalling).
+# Run: mediamtx deploy/mediamtx.local.yml   (secret must match MEDIAMTX_HOOK_SECRET in server/.env)
+# MediaMTX configuration for S.Y LIVE SERVICE
+# Role: WebRTC relay (SFU-like). Technician publishes via WHIP, customers play via WHEP.
+# No transcoding -> negligible CPU; the bottleneck is upload bandwidth of the server.
+# Secrets/host-specific values are injected with environment variables (MTX_*), see docker-compose.yml.
+
+logLevel: info
+logDestinations: [stdout]
+
+# Every publish/read is authorised by the S.Y API (short-lived per-path JWT + business rules).
+authMethod: http
+# Overridden by env MTX_AUTHHTTPADDRESS=http://api:8080/internal/mediamtx/auth?secret=<MEDIAMTX_HOOK_SECRET>
+authHTTPAddress: http://127.0.0.1:8080/internal/mediamtx/auth?secret=dev-hook-secret-123456
+authHTTPExclude:
+  # control API + metrics are bound to the internal network only (never published)
+  - action: api
+  - action: metrics
+
+api: yes
+apiAddress: 127.0.0.1:9997
+metrics: no
+pprof: no
+playback: no
+
+# Only WebRTC is enabled for the MVP. RTSP will be enabled later for IP cameras (ONVIF/RTSP pull).
+rtsp: no
+rtmp: no
+hls: no
+srt: no
+moq: no
+
+webrtc: yes
+# Signalling (WHIP/WHEP over HTTP) - internal only, reached through the S.Y API proxy.
+webrtcAddress: 127.0.0.1:8889
+webrtcEncryption: no
+webrtcAllowOrigins: []
+# Media ports - must be reachable from the internet (UDP preferred, TCP fallback for strict networks)
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189
+webrtcIPsFromInterfaces: yes
+# Public IP / hostname of the server so remote peers get a reachable ICE candidate.
+# Overridden by env MTX_WEBRTCADDITIONALHOSTS=live.example.co.il
+webrtcAdditionalHosts: []
+webrtcICEServers2: []
+webrtcHandshakeTimeout: 10s
+webrtcTrackGatherTimeout: 2s
+
+pathDefaults:
+  source: publisher
+  # Hard upper bound per stream; the plan limit (lower) is enforced by the API auth hook
+  maxReaders: 20
+  # A reconnecting technician replaces its own stale session (the token is bound to the path)
+  overridePublisher: yes
+  record: no
+
+paths:
+  # Only random per-job paths are accepted (j_ + 10-40 alphanumerics). Anything else is rejected.
+  "~^j_[A-Za-z0-9]{10,40}$": {}

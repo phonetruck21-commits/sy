@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+desktop/src-tauri/target
+e2e/test-results
+docs/screenshots
+.git
+.env
+data
+**/dist-desktop

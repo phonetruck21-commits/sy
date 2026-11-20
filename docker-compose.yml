@@ -1,0 +1,98 @@
+# S.Y LIVE SERVICE – pilot / production stack
+#   docker compose up -d            (after copying .env.example -> .env and filling it)
+# Public ports: 80/443 (HTTPS via Caddy) and 8189 UDP+TCP (WebRTC media).
+# Everything else (Postgres, API, MediaMTX API/signalling) stays on the internal network.
+name: sy-live
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sylive
+      POSTGRES_USER: sylive
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sylive -d sylive"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { memory: 1g }
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://sylive:${POSTGRES_PASSWORD}@db:5432/sylive
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET in .env}
+      MEDIAMTX_HOOK_SECRET: ${MEDIAMTX_HOOK_SECRET:?set MEDIAMTX_HOOK_SECRET in .env}
+      MEDIAMTX_WEBRTC_URL: http://mediamtx:8889
+      MEDIAMTX_API_URL: http://mediamtx:9997
+      PUBLIC_BASE_URL: https://${SY_DOMAIN:?set SY_DOMAIN in .env}
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
+      ICE_SERVERS: ${ICE_SERVERS:-[]}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-1024}
+      TRUST_PROXY: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - media-data:/data/media
+    deploy:
+      resources:
+        limits: { memory: 1g }
+
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.3
+    restart: unless-stopped
+    command: ["/mediamtx.yml"]
+    environment:
+      MTX_AUTHHTTPADDRESS: http://api:8080/internal/mediamtx/auth?secret=${MEDIAMTX_HOOK_SECRET}
+      # Public IP or DNS name of this server, so remote peers get a reachable ICE candidate
+      MTX_WEBRTCADDITIONALHOSTS: ${PUBLIC_HOST:-${SY_DOMAIN}}
+    volumes:
+      - ./deploy/mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      - "8189:8189/udp"
+      - "8189:8189/tcp"
+    deploy:
+      resources:
+        limits: { memory: 512m }
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      SY_DOMAIN: ${SY_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # Optional TURN relay for viewers behind very strict networks:  docker compose --profile turn up -d
+  coturn:
+    image: coturn/coturn:4.7
+    profiles: ["turn"]
+    restart: unless-stopped
+    network_mode: host
+    command: >
+      -n --listening-port=3478 --fingerprint --use-auth-secret
+      --static-auth-secret=${TURN_SECRET:-change-me} --realm=${SY_DOMAIN}
+      --min-port=49160 --max-port=49200 --no-cli --no-tlsv1 --no-tlsv1_1
+
+volumes:
+  db-data:
+  media-data:
+  caddy-data:
+  caddy-config:

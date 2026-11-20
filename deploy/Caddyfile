@@ -1,0 +1,20 @@
+# HTTPS termination with automatic Let's Encrypt certificates.
+# Requires a DNS name pointing to this server and ports 80/443 reachable from the internet.
+# For a LAN-only pilot without a domain, replace the site address with ":443" and add "tls internal"
+# (browsers will show a certificate warning until the internal CA is trusted).
+{
+	email {$ACME_EMAIL}
+}
+
+{$SY_DOMAIN} {
+	encode gzip
+	# The MediaMTX auth hook is for the internal network only
+	@internal path /internal/*
+	respond @internal 404
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	reverse_proxy api:8080
+}

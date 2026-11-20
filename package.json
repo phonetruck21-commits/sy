@@ -1,0 +1,25 @@
+{
+  "name": "sy-live-service",
+  "private": true,
+  "version": "0.1.0",
+  "description": "S.Y LIVE SERVICE - Smart Service Monitoring & AI Documentation Platform",
+  "workspaces": [
+    "server",
+    "web",
+    "e2e",
+    "desktop"
+  ],
+  "scripts": {
+    "build": "npm run build -w web && npm run build -w server",
+    "test": "npm run test -w server",
+    "test:e2e": "npm run test -w e2e",
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w web",
+    "desktop:dev": "npm run dev -w desktop",
+    "desktop:build": "npm run build -w desktop"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
