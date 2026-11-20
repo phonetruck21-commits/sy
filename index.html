@@ -20,6 +20,7 @@
   <script src="js/plaza.js"></script>
   <script src="js/app.js"></script>
   <script src="js/social.js"></script>
+  <script src="js/play.js"></script>
 </head>
 <body>
   <!-- מסך פתיחה -->
@@ -105,6 +106,7 @@
   <header id="hud">
     <div class="hud-brand"><span class="brand-name">נובה</span><span class="brand-tagline">חנות סלולר ניידת</span></div>
     <div class="hud-actions">
+    <button id="hud-hunt" type="button" aria-label="חיפוש אוצרות"><span aria-hidden="true">🏆</span> <span id="hunt-count">0/5</span></button>
     <button id="hud-people" type="button" aria-label="מבקרים וקבוצה"><span class="dot" id="live-dot"></span><span id="hud-people-label">מבקרים</span></button>
     <button id="hud-sound" type="button" aria-label="צלילי רקע">🔊</button>
     <button id="hud-vr" type="button" hidden>כניסה ל-VR</button>
@@ -122,12 +124,14 @@
     <button type="button" data-act="wave"><b aria-hidden="true">👋</b><span>נפנוף</span></button>
     <button type="button" data-act="dance"><b aria-hidden="true">💃</b><span>ריקוד</span></button>
     <button type="button" data-act="jump"><b aria-hidden="true">🎉</b><span>קפיצה</span></button>
+    <button type="button" id="me-ball"><b aria-hidden="true">🎾</b><span>כדור לכלב</span></button>
   </div>
   <p id="hint">לחצו על מוצר כדי לבחון אותו מקרוב</p>
 
   <!-- ניווט בין אזורי החנות -->
   <nav id="zones" aria-label="אזורים בחנות">
     <div id="zones-list"></div>
+    <button id="zones-seller" type="button">שאלו את המוכרת</button>
     <button id="zones-catalog" type="button">כל המוצרים</button>
   </nav>
 
@@ -145,6 +149,40 @@
     </div>
   </div>
   <div id="dom-toast" role="status" aria-live="polite"></div>
+
+  <!-- חיפוש אוצרות -->
+  <div id="hunt-help" class="hunt-card" hidden>
+    <h2>חיפוש אוצרות</h2>
+    <p>חמישה טלפונים מוזהבים מוסתרים ברחבה: בגינת הכלבים, בפינת הילדים, ליד הדקלים ועוד. לחצו על כל אחד שתמצאו. מי שמוצא את כולם מקבל 10% הנחה על כל הקנייה.</p>
+  </div>
+  <div id="hunt-done" class="hunt-card done" role="dialog" aria-labelledby="hunt-done-title" hidden>
+    <h2 id="hunt-done-title">מצאת את כל האוצרות! 🏆</h2>
+    <p>קיבלת קופון <b dir="ltr">NOVA10</b> – 10% הנחה על כל הקנייה. הוא כבר מופעל בסל שלך.</p>
+    <button type="button" class="btn-buy">איזה כיף, להמשיך</button>
+  </div>
+
+  <!-- המוכרת -->
+  <aside id="seller" class="drawer" role="dialog" aria-labelledby="seller-title" hidden>
+    <button class="drawer-x" type="button" aria-label="סגירה">×</button>
+    <p class="eyebrow">מוכרת בחנות</p>
+    <h2 id="seller-title">נועה</h2>
+    <ol id="seller-log" aria-live="polite"></ol>
+    <div id="seller-quick" class="phrase-row">
+      <button type="button">איזה טלפון הכי טוב לצילום?</button>
+      <button type="button">מה ההבדל בין X Pro ל-X?</button>
+      <button type="button">מה מתאים עד 1,500 ₪?</button>
+      <button type="button">איזה אביזרים כדאי?</button>
+    </div>
+    <form id="seller-form" autocomplete="off">
+      <button type="button" id="seller-mic" aria-label="לדבר עם המוכרת">🎤</button>
+      <input id="seller-input" type="text" maxlength="300" placeholder="שאלו את נועה…" aria-label="שאלה למוכרת">
+      <button type="submit">שליחה</button>
+    </form>
+    <label class="seller-speak"><input type="checkbox" id="seller-speak"> להקריא את התשובות בקול</label>
+  </aside>
+
+  <!-- ג'ויסטיק להליכה בנייד -->
+  <div id="joystick" aria-hidden="true"><i></i></div>
 
   <!-- צ'אט -->
   <section id="chat" aria-label="צ׳אט" hidden>
@@ -269,6 +307,7 @@
     <a-entity id="store-root"></a-entity>
     <a-entity id="plaza" plaza></a-entity>
     <a-entity id="others"></a-entity>
+    <a-entity id="play" play></a-entity>
     <a-entity id="hover" visible="false" face-camera></a-entity>
     <a-entity id="panel" visible="false"></a-entity>
   </a-scene>

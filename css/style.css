@@ -736,3 +736,55 @@ body.sheet-open #me-bar { display: none; }
 /* מסך הכניסה: כותרת קטנה יותר כדי שיוצר הדמות ייראה מיד */
 #intro h1.brand-name { font-size: clamp(52px, 9vw, 88px); }
 #intro .intro-lede { margin: 14px 0 18px; }
+
+.totals .save dd, .totals .save dt { color: var(--sale); }
+
+/* ---------- נסו את המכשיר ---------- */
+.try { margin: 0 0 16px; padding: 14px; border-radius: 12px; background: #f1efeb; }
+.try h3 { margin: 0 0 10px; font-size: 16px; }
+.try-row { display: flex; gap: 8px; }
+.try-btn { flex: 1; min-height: 42px; border: 1px solid var(--ink); border-radius: 10px; background: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+.try-btn.primary { background: var(--ink); color: var(--paper); }
+.try-btn:disabled { opacity: 0.35; cursor: default; }
+.try-hint, .try-sub { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.gallery img { width: 100%; aspect-ratio: 9 / 19; object-fit: cover; border-radius: 8px; }
+.flash { position: fixed; inset: 0; background: #fff; z-index: 300; pointer-events: none; animation: flash 0.35s ease-out forwards; }
+@keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
+
+/* ---------- המוכרת ---------- */
+#seller { z-index: 33; display: flex; flex-direction: column; }
+#seller-log { list-style: none; margin: 10px 0; padding: 0; flex: 1; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+#seller-log li { max-width: 88%; }
+#seller-log li p { margin: 0; padding: 10px 12px; border-radius: 14px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
+#seller-log li.assistant p { background: #f1efeb; }
+#seller-log li.user { align-self: flex-end; }
+#seller-log li.user p { background: var(--ink); color: var(--paper); }
+#seller-log li.typing p { color: var(--muted); }
+#seller-log li.error p { background: #f6e7e5; color: var(--sale); font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip-prod { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 10px 4px 6px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.chip-prod img { width: 30px; height: 30px; object-fit: contain; }
+.chip-prod:hover { border-color: var(--ink); }
+#seller-quick { margin-bottom: 8px; flex-wrap: wrap; }
+#seller-form { display: flex; gap: 6px; }
+#seller-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 15px; }
+#seller-form button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--ink); color: var(--paper); font: inherit; cursor: pointer; }
+#seller-mic { background: #f1efeb !important; color: var(--ink) !important; font-size: 18px; }
+#seller-mic.on { background: #e4572e !important; color: #fff !important; }
+.seller-speak { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+#zones-seller { background: #2fb36d !important; color: #fff !important; }
+
+/* ---------- חיפוש אוצרות ---------- */
+#hud-hunt { min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 2px; background: rgba(251, 250, 248, 0.92); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; font-variant-numeric: tabular-nums; }
+#hud-hunt.done { background: #e8b923; border-color: #e8b923; color: #1d1c1a; }
+.hunt-card { position: fixed; top: calc(76px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 45; width: min(380px, calc(100% - 32px)); box-sizing: border-box; padding: 18px; border-radius: 14px; background: var(--paper); color: var(--ink); box-shadow: 0 16px 40px rgba(0,0,0,0.25); }
+.hunt-card h2 { margin: 0 0 8px; font-size: 20px; }
+.hunt-card p { margin: 0 0 12px; font-size: 15px; line-height: 1.6; }
+.hunt-card.done { border: 2px solid #e8b923; }
+.hunt-card .btn-buy { width: 100%; }
+
+/* ---------- ג'ויסטיק (מסכי מגע בלבד) ---------- */
+#joystick { display: none; position: fixed; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); z-index: 16; width: 110px; height: 110px; border-radius: 50%; background: rgba(29, 28, 26, 0.25); border: 2px solid rgba(255, 255, 255, 0.6); touch-action: none; }
+#joystick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+@media (pointer: coarse) { body.in-store #joystick { display: block; } body.sheet-open #joystick { display: none; } }

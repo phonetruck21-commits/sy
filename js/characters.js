@@ -142,13 +142,14 @@
     if (kid) { root.scale.setScalar(0.64); head.scale.setScalar(1.1); }
 
     let phase = Math.random() * 6, blink = 1 + Math.random() * 3, clock = 0;
-    let act = null, actT = 0;
+    let act = null, actT = 0, pose = null;
     const DUR = { wave: 1.8, dance: 3.2, jump: 0.9 };
     const lookAround = { t: 0, yaw: 0, target: 0 };
 
     return {
       object: root, head, height: kid ? 1.78 * 0.64 * 1.05 : 1.78,
       play(name) { if (DUR[name]) { act = name; actT = 0; } },
+      setPose(p) { pose = p; },
       update(dt, speed) {
         clock += dt;
         const moving = speed > 0.08;
@@ -178,6 +179,12 @@
         if (lookAround.t < 0) { lookAround.t = 2 + Math.random() * 3; lookAround.target = moving ? 0 : (Math.random() - 0.5) * 0.9; }
         lookAround.yaw += (lookAround.target - lookAround.yaw) * Math.min(1, dt * 3);
         head.rotation.set(0, lookAround.yaw, 0);
+        // ישיבה (ספסל) או גלישה: ירכיים קדימה וברכיים כפופות
+        if (pose === 'sit' || pose === 'slide') {
+          legs.forEach((l) => { l.hip.rotation.x = -1.45; l.knee.rotation.x = pose === 'sit' ? 1.45 : 0.25; });
+          body.position.y = pose === 'sit' ? -0.42 : -0.4;
+          if (pose === 'slide') arms.forEach((a) => { a.sh.rotation.z = a.s * 1.2; });
+        }
         // פעולות מיוחדות
         if (act) {
           actT += dt;
@@ -204,6 +211,7 @@
           if (k >= 1) { act = null; arms.forEach((a) => { a.elbow.rotation.z = 0; }); head.rotation.z = 0; torso.rotation.z = 0; }
         }
       },
+      get pose() { return pose; },
       wave() { if (act !== 'wave') this.play('wave'); },
       unwave() {},
     };
@@ -347,14 +355,15 @@
     const offset = opts.offset || 0.75;
     return {
       update(dt) {
-        const t = getTarget(tmp);
+        const t = this.chase ? tmp.copy(this.chase) : getTarget(tmp);
         if (!t) return;
         if (!init) { pos.set(t.x + 0.6, t.y, t.z + 0.4); init = true; }
         const dx = t.x - pos.x, dz = t.z - pos.z;
         const dist = Math.hypot(dx, dz);
+        const off = this.chase ? 0.05 : offset;
         let speed = 0;
-        if (dist > offset) {
-          const step = Math.min(dist - offset, (dist > 3 ? 4.5 : 2.2) * dt);
+        if (dist > off) {
+          const step = Math.min(dist - off, (this.chase ? 5.5 : dist > 3 ? 4.5 : 2.2) * dt);
           pos.x += (dx / dist) * step; pos.z += (dz / dist) * step;
           speed = step / Math.max(dt, 1e-3);
           petObj.object.rotation.y = Math.atan2(dx, dz);
@@ -364,6 +373,7 @@
         petObj.update(dt, speed);
       },
       position: pos,
+      chase: null,
     };
   }
 

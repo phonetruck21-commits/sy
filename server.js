@@ -94,7 +94,9 @@ function buildDelivery(d) {
   return out;
 }
 
-function buildOrder(items, delivery) {
+const COUPONS = { NOVA10: 0.1 }; // קופון מחיפוש האוצרות בחנות
+
+function buildOrder(items, delivery, coupon) {
   if (!items || typeof items !== 'object' || Array.isArray(items)) throw httpError(400, 'סל לא תקין');
   // מפתח בסל: "מזהה-מוצר" או "מזהה-מוצר|צבע"
   const lines = Object.entries(items).map(([key, qty]) => {
@@ -113,8 +115,10 @@ function buildOrder(items, delivery) {
   if (lines.length > 50) throw httpError(400, 'יותר מדי פריטים בסל');
   if (!lines.length) throw httpError(400, 'הסל ריק');
   const itemsTotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+  const rate = COUPONS[String(coupon || '').toUpperCase()] || 0;
+  const discount = Math.round(itemsTotal * rate); // אותו עיגול כמו בדפדפן
   const shipping = shippingFor(itemsTotal);
-  const total = itemsTotal + shipping;
+  const total = itemsTotal - discount + shipping;
 
   return {
     lines,
@@ -129,6 +133,7 @@ function buildOrder(items, delivery) {
           breakdown: {
             item_total: { currency_code: CURRENCY, value: money(itemsTotal) },
             shipping: { currency_code: CURRENCY, value: money(shipping) },
+            ...(discount ? { discount: { currency_code: CURRENCY, value: money(discount) } } : {}),
           },
         },
         ...(delivery ? {
@@ -190,7 +195,7 @@ app.get('/api/config', (req, res) => {
 app.post('/api/orders', async (req, res, next) => {
   try {
     const delivery = buildDelivery(req.body && req.body.delivery);
-    const order = buildOrder(req.body && req.body.items, delivery);
+    const order = buildOrder(req.body && req.body.items, delivery, req.body && req.body.coupon);
     const r = await paypal('POST', '/v2/checkout/orders', order.body);
     if (!r.ok) {
       console.error('PayPal create order failed', r.status, JSON.stringify(r.json));

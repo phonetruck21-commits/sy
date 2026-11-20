@@ -89,7 +89,11 @@
       return cost;
     },
     toFreeShipping() { const free = Number(CFG.freeShippingOver) || 0; return free ? Math.max(0, free - this.total()) : 0; },
-    grandTotal() { return this.total() + this.shipping(); },
+    // קופון מחיפוש האוצרות: 10% הנחה על המוצרים (השרת מחשב אותו שוב)
+    coupon: (() => { try { return localStorage.getItem('vrstore-coupon') || null; } catch (e) { return null; } })(),
+    discount() { return this.coupon === 'NOVA10' ? Math.round(this.total() * 0.1) : 0; },
+    setCoupon(c) { this.coupon = c; try { localStorage.setItem('vrstore-coupon', c); } catch (e) { /* ignore */ } this.listeners.forEach((fn) => fn()); },
+    grandTotal() { return this.total() - this.discount() + this.shipping(); },
     onChange(fn) { this.listeners.push(fn); },
   };
 
@@ -205,6 +209,7 @@
         ul.appendChild(li);
       };
       lines.forEach((l) => row(l.product.name, fmt(l.subtotal), [l.variant && l.variant.label, `כמות ${l.qty}`].filter(Boolean).join(' · ')));
+      if (Cart.discount()) row(`קופון ${Cart.coupon}`, `−${fmt(Cart.discount())}`, '10% הנחה מחיפוש האוצרות', 'co-save');
       row('משלוח', Cart.shipping() ? fmt(Cart.shipping()) : 'חינם', '', 'co-ship');
       $('#co-total').innerHTML = '<span>סה״כ לתשלום</span><span></span>';
       $('#co-total').lastChild.textContent = fmt(Cart.grandTotal());
@@ -232,7 +237,7 @@
         this.status('');
         return paypal.Buttons({
           style: { layout: 'vertical', shape: 'rect', label: 'pay', color: 'black' },
-          createOrder: () => api('api/orders', { items: Cart.items, delivery: Delivery.data, group: Cart.adapter ? Cart.adapter.code() : null }).then((d) => d.id),
+          createOrder: () => api('api/orders', { items: Cart.items, delivery: Delivery.data, group: Cart.adapter ? Cart.adapter.code() : null, coupon: Cart.coupon }).then((d) => d.id),
           onApprove: (data, actions) => {
             this.status('מאשר את התשלום…');
             return api(`api/orders/${data.orderID}/capture`, {})
@@ -744,6 +749,7 @@
       if (p.device) {
         // דגם שנבנה בקוד (טלפון, שעון, אביזרים)
         this.device = window.StoreDevices.build(p);
+        this.entry.device = this.device;
         this.place(this.device.object);
         return;
       }
@@ -1081,8 +1087,8 @@
         camEl.object3D.getWorldPosition(this.cam);
       }
       this.last.set(this.cam.x, this.cam.z);
-      const target = Tk.floorAt(this.cam.x, this.cam.z);
-      const k = Math.min(1, dt / 120);
+      const target = this.rideY !== undefined && this.rideY !== null ? this.rideY : Tk.floorAt(this.cam.x, this.cam.z);
+      const k = this.rideY !== undefined && this.rideY !== null ? 1 : Math.min(1, dt / 120);
       this.y += (target - this.y) * k;
       if (Math.abs(target - this.y) < 0.002) this.y = target;
       rig.position.y = this.y;
@@ -1437,6 +1443,7 @@
       (p.details || []).forEach((d) => specs.append(h('li', '', d)));
       el.append(specs);
       el.append(h('p', 'sheet-hint', 'גררו את המוצר כדי לסובב אותו'));
+      if (window.StorePlay) window.StorePlay.onSheet(id, el);
       el.hidden = false;
       document.body.classList.add('sheet-open');
       setLook(false);
@@ -1446,6 +1453,7 @@
       this.id = null;
       $('#sheet').hidden = true;
       document.body.classList.remove('sheet-open');
+      if (window.StorePlay) window.StorePlay.onSheetClose();
       Inspect.end();
       Inspect.current = null;
       setLook(true);
@@ -1526,6 +1534,7 @@
       const sum = h('dl', 'totals');
       const add = (a, b, cls) => { const d = h('div', cls); d.append(h('dt', '', a), h('dd', '', b)); sum.append(d); };
       add('סכום ביניים', fmt(Cart.total()));
+      if (Cart.discount()) add(`קופון ${Cart.coupon} (10%)`, `−${fmt(Cart.discount())}`, 'save');
       add('משלוח', Cart.shipping() ? fmt(Cart.shipping()) : 'חינם');
       add('סה״כ', fmt(Cart.grandTotal()), 'grand');
       el.append(sum);

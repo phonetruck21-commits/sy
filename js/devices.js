@@ -190,6 +190,7 @@
 
     return {
       object: g,
+      screen, wallpaper: tex,
       setVariant(v) {
         const c = new THREE.Color(v.color);
         frameMat.color.copy(c).lerp(new THREE.Color('#ffffff'), 0.12);
