@@ -41,6 +41,7 @@ npm run dev -w server                        # http://localhost:8080
 - [תיעוד API](docs/API.md) (וגם Swagger חי בכתובת `/api/docs`)
 - [אבטחת מידע, פרטיות ונושאים לבדיקה משפטית](docs/SECURITY_PRIVACY.he.md)
 - [הערכת משאבים לשרת Dell R220](docs/SERVER_SIZING.he.md)
+- [הפעלת מצלמת EMEET PIXY](docs/EMEET_PIXY_SETUP.he.md)
 - [מגבלות ובעיות ידועות](docs/LIMITATIONS.he.md)
 - [מפת דרכים: שלבים 2 ו-3, מודול AI, אינטגרציית CRM](docs/ROADMAP.he.md)
 
