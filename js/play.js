@@ -127,7 +127,7 @@
     history: [], busy: false, speak: false, av: null,
     build(root) {
       const C = window.StoreCharacters;
-      this.av = C.person({ color: '#1f2125', skin: '#c68642', hair: '#2b2018', hairStyle: 'ponytail' });
+      this.av = C.person({ color: '#0b1222', skin: '#c68642', hair: '#2b2018', hairStyle: 'ponytail' });
       const g = this.av.object;
       g.position.set(5.45, 0.95, -0.25); g.rotation.y = -Math.PI / 2;
       root.object3D.add(g);
@@ -335,7 +335,7 @@
   };
 
   /* ================================================================ *
-   *  3ג. חיפוש אוצרות: 5 טלפונים מוזהבים -> קופון NOVA10                *
+   *  3ג. חיפוש אוצרות: 5 טלפונים מוזהבים -> קופון SY10                *
    * ================================================================ */
   const HUNT_KEY = 'vrstore-hunt-v1';
   const Hunt = {
@@ -379,13 +379,13 @@
       if (S().myAv) S().myAv.play('jump');
       this.update();
       if (this.found.length >= this.spots.length) {
-        V().Cart.setCoupon('NOVA10');
+        V().Cart.setCoupon('SY10');
         $('#hunt-done').hidden = false;
       } else toast(`מצאת טלפון מוזהב! ${this.found.length} מתוך ${this.spots.length}`);
     },
     update() {
       const n = this.found.length, all = this.spots.length;
-      $('#hunt-count').textContent = n >= all ? 'קופון NOVA10 פעיל' : `${n}/${all}`;
+      $('#hunt-count').textContent = n >= all ? 'קופון SY10 פעיל' : `${n}/${all}`;
       $('#hud-hunt').classList.toggle('done', n >= all);
     },
   };

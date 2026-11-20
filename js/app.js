@@ -91,7 +91,7 @@
     toFreeShipping() { const free = Number(CFG.freeShippingOver) || 0; return free ? Math.max(0, free - this.total()) : 0; },
     // קופון מחיפוש האוצרות: 10% הנחה על המוצרים (השרת מחשב אותו שוב)
     coupon: (() => { try { return localStorage.getItem('vrstore-coupon') || null; } catch (e) { return null; } })(),
-    discount() { return this.coupon === 'NOVA10' ? Math.round(this.total() * 0.1) : 0; },
+    discount() { return this.coupon === 'SY10' ? Math.round(this.total() * 0.1) : 0; },
     setCoupon(c) { this.coupon = c; try { localStorage.setItem('vrstore-coupon', c); } catch (e) { /* ignore */ } this.listeners.forEach((fn) => fn()); },
     grandTotal() { return this.total() - this.discount() + this.shipping(); },
     onChange(fn) { this.listeners.push(fn); },
@@ -1594,7 +1594,6 @@
    * ------------------------------------------------------------------ */
   function setupDOM(scene) {
     document.title = `${CFG.name} · ${CFG.tagline}`;
-    document.querySelectorAll('.brand-name').forEach((e) => { e.textContent = CFG.name; });
     document.querySelectorAll('.brand-tagline').forEach((e) => { e.textContent = CFG.tagline; });
 
     const hud = () => {

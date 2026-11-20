@@ -138,43 +138,66 @@
 
   /* מיתוג המשאית – מצויר מחדש כשהגופנים נטענים */
   function brandWrap(cfg, w, h) {
-    return canvasTex(Math.round(w * 200), Math.round(h * 200), (ctx, W, H) => {
-      ctx.fillStyle = '#1f2125'; ctx.fillRect(0, 0, W, H);
-      // קווי מתאר של טלפונים ברקע
-      ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = H * 0.01;
-      for (let i = 0; i < 6; i++) {
-        const pw = H * 0.32, ph = H * 0.66, x = W * 0.06 + i * pw * 1.25, y = H * 0.17 + (i % 2) * H * 0.04;
-        ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, pw, ph, pw * 0.16) : ctx.rect(x, y, pw, ph); ctx.stroke();
+    return canvasTex(Math.round(w * 220), Math.round(h * 220), (ctx, W, H) => {
+      const B = window.StoreBrand, Y = '#ffd21f', BL = '#1e6bff';
+      // רקע: שחור-כחול לילי עם הילה כחולה ופסי מהירות צהובים
+      const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0a1020'); bg.addColorStop(1, '#05070d');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      const glow = ctx.createRadialGradient(W * 0.84, H * 0.45, 0, W * 0.84, H * 0.45, H * 0.9);
+      glow.addColorStop(0, 'rgba(30,107,255,0.45)'); glow.addColorStop(1, 'rgba(30,107,255,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = Y;
+      for (let i = 0; i < 5; i++) {
+        const y = H * (0.2 + i * 0.075), len = W * (0.06 + (i % 3) * 0.03);
+        ctx.save(); ctx.transform(1, 0, -0.35, 1, 0, 0);
+        ctx.fillRect(W * 0.03 + y * 0.35, y, len, H * 0.022); ctx.restore();
       }
+      // פס תחתון צהוב-כחול
+      ctx.fillStyle = Y; ctx.fillRect(0, H * 0.88, W, H * 0.035);
+      ctx.fillStyle = BL; ctx.fillRect(0, H * 0.915, W, H * 0.012);
+      if (W < H * 2.4) { if (B) B.drawBadge(ctx, W / 2, H * 0.45, Math.min(W * 0.9, H * 0.8)); return; }
+      if (B) B.drawBadge(ctx, W - H * 0.52, H * 0.45, H * 0.82);
+      const R = W - H * 1.05;
+      if (B) B.drawWordmark(ctx, R, H * 0.33, H * 0.17, { align: 'right', font: FONT });
       ctx.direction = 'rtl'; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `700 ${H * 0.36}px ${FONT}`;
-      ctx.fillText(cfg.name, W * 0.93, H * 0.55);
-      ctx.fillStyle = '#c9ccd2';
-      ctx.font = `400 ${H * 0.085}px ${FONT}`;
-      ctx.fillText(cfg.tagline, W * 0.93, H * 0.7);
-      ctx.fillStyle = '#4c8dff';
-      ctx.fillRect(W * 0.93 - H * 0.6, H * 0.77, H * 0.6, H * 0.012);
+      ctx.fillStyle = '#ffffff'; ctx.font = `700 ${H * 0.085}px ${FONT}`;
+      ctx.fillText(cfg.tagline, R, H * 0.47);
+      ctx.fillStyle = Y; ctx.font = `700 ${H * 0.065}px ${FONT}`;
+      ctx.fillText(cfg.sub || '', R, H * 0.57);
+      ctx.fillStyle = '#c9d3e6'; ctx.font = `400 ${H * 0.05}px ${FONT}`;
+      ctx.fillText('טלפונים · מחשבים · אביזרים · מצלמות אבטחה · בית חכם', R, H * 0.67);
+      // טלפון ואתר
+      ctx.direction = 'ltr'; ctx.textAlign = 'right';
+      ctx.fillStyle = '#ffffff'; ctx.font = `800 ${H * 0.075}px ${FONT}`;
+      ctx.fillText((B ? B.PHONE : '') + '  ·  ' + (B ? B.SITE : ''), R, H * 0.8);
     }, { live: true });
   }
 
   function fascia(cfg, w, h) {
     return canvasTex(Math.round(w * 220), Math.round(h * 220), (ctx, W, H) => {
-      ctx.fillStyle = '#1f2125'; ctx.fillRect(0, 0, W, H);
-      ctx.direction = 'rtl'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `700 ${H * 0.56}px ${FONT}`;
-      const name = cfg.name;
-      ctx.fillText(name, W / 2, H * 0.52);
-      const nw = ctx.measureText(name).width;
-      ctx.fillStyle = '#c9ccd2';
-      ctx.font = `400 ${H * 0.26}px ${FONT}`;
-      ctx.textAlign = 'right';
-      ctx.fillText(cfg.tagline, W / 2 - nw / 2 - H * 0.5, H * 0.55);
+      const B = window.StoreBrand;
+      const bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0d1424'); bg.addColorStop(1, '#070a12');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#ffd21f'; ctx.fillRect(0, H * 0.94, W, H * 0.06);
+      let left = W / 2, right = W / 2;
+      if (B) {
+        const s = H * 0.78, wh = H * 0.4;
+        const tmp = document.createElement('canvas').getContext('2d');
+        const ww = B.drawWordmark(tmp, 0, 0, wh, { font: FONT });
+        const total = s + H * 0.22 + ww;
+        left = W / 2 - total / 2; right = W / 2 + total / 2;
+        B.drawMark(ctx, left, (H - s) / 2 - H * 0.02, s);
+        B.drawWordmark(ctx, left + s + H * 0.22, H * 0.64, wh, { font: FONT });
+      }
+      ctx.textBaseline = 'middle';
+      ctx.direction = 'rtl'; ctx.textAlign = 'right';
+      ctx.fillStyle = '#dfe6f3';
+      ctx.font = `500 ${H * 0.2}px ${FONT}`;
+      ctx.fillText(cfg.tagline, left - H * 0.45, H * 0.5);
       ctx.textAlign = 'left';
-      ctx.fillText('פתוח עכשיו', W / 2 + nw / 2 + H * 0.5, H * 0.55);
-      ctx.fillStyle = '#4c8dff';
-      ctx.beginPath(); ctx.arc(W / 2 + nw / 2 + H * 0.32, H * 0.53, H * 0.07, 0, Math.PI * 2); ctx.fill();
+      ctx.fillText('פתוח עכשיו', right + H * 0.5, H * 0.5);
+      ctx.fillStyle = '#ffd21f';
+      ctx.beginPath(); ctx.arc(right + H * 0.32, H * 0.49, H * 0.07, 0, Math.PI * 2); ctx.fill();
     }, { live: true });
   }
 
@@ -310,10 +333,9 @@
     for (let i = 0; i < 5; i++) cab.add(box(0.06, 0.02, 1.15, M.brushed, 2.63, 0.8 + i * 0.1, 0));
     cab.add(box(0.2, 0.25, cw + 0.1, M.chassis, 2.6, 0.25, 0));
     // לוגו על דלת הקבינה
-    const logo = canvasTex(400, 160, (ctx, Wd, Hd) => {
-      ctx.direction = 'rtl'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#ffffff'; ctx.font = `700 ${Hd * 0.6}px ${FONT}`;
-      ctx.fillText(cfg.name, Wd / 2, Hd / 2);
+    const logo = canvasTex(600, 240, (ctx, Wd, Hd) => {
+      const B = window.StoreBrand;
+      if (B) { B.drawMark(ctx, 0, Hd * 0.1, Hd * 0.8); B.drawWordmark(ctx, Hd * 0.92, Hd * 0.66, Hd * 0.34, { font: FONT }); }
     }, { live: true });
     cab.add(mesh(new THREE.PlaneGeometry(0.75, 0.3), new THREE.MeshBasicMaterial({ map: logo, transparent: true, toneMapped: false }), [1.25, 1.35, cw / 2 + 0.081]));
     cab.position.set(X1 + 0.05, 0.55, 0);
@@ -404,8 +426,8 @@
       const t = canvasTex(256, 256, (ctx, W, H) => {
         ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = fg; ctx.direction = 'rtl'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.font = `700 ${H * 0.2}px ${FONT}`;
-        ctx.fillText(Truck.cfg ? Truck.cfg.name : '', W / 2, H / 2);
+        ctx.font = `italic 900 ${H * 0.2}px ${FONT}`;
+        ctx.fillText('S.Y', W / 2, H / 2);
       }, { live: true });
       return new THREE.MeshStandardMaterial({ map: t, roughness: 0.55 });
     };

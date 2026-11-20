@@ -94,7 +94,7 @@ function buildDelivery(d) {
   return out;
 }
 
-const COUPONS = { NOVA10: 0.1 }; // קופון מחיפוש האוצרות בחנות
+const COUPONS = { SY10: 0.1 }; // קופון מחיפוש האוצרות בחנות
 
 function buildOrder(items, delivery, coupon) {
   if (!items || typeof items !== 'object' || Array.isArray(items)) throw httpError(400, 'סל לא תקין');

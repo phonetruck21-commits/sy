@@ -16,8 +16,9 @@
 
 (function (root) {
 const STORE_CONFIG = {
-  name: 'נובה',
-  tagline: 'חנות סלולר ניידת',
+  name: 'S.Y Phone Truck',
+  tagline: 'פתרונות טכנולוגיים חכמים',
+  sub: 'מעבדה ניידת וירטואלית',
   currency: '₪',
   currencyCode: 'ILS',    // קוד מטבע לסליקה ב-PayPal
   shippingCost: 29,       // דמי משלוח
@@ -36,7 +37,7 @@ const CATEGORIES = [
 const PRODUCTS = [
   {
     id: 'nova-x-pro', category: 'phones', display: 'table', device: 'phone',
-    name: 'נובה X Pro', price: 4290,
+    name: 'S.Y X Pro', price: 4290,
     dims: { w: 0.0772, h: 0.1631, d: 0.0083 }, cameras: 3, screen: ['#0f1b3d', '#6b4bb8'],
     description: 'מסגרת טיטניום, מסך 6.7 אינץ׳ 120Hz ומערכת שלוש מצלמות עם זום אופטי פי 5.',
     details: ['256GB', 'מצלמה ראשית 50MP', 'סוללה 5,000mAh', 'אחריות שנתיים'],
@@ -49,7 +50,7 @@ const PRODUCTS = [
   },
   {
     id: 'nova-x', category: 'phones', display: 'table', device: 'phone',
-    name: 'נובה X', price: 3290,
+    name: 'S.Y X', price: 3290,
     dims: { w: 0.0716, h: 0.1475, d: 0.0078 }, cameras: 2, screen: ['#103a3a', '#c97b4a'],
     description: 'מסך 6.1 אינץ׳ בהיר במיוחד, גוף אלומיניום וזכוכית מט, ומצלמה כפולה לצילום לילה.',
     details: ['128GB', 'מצלמה ראשית 48MP', 'טעינה מהירה 45W', 'אחריות שנתיים'],
@@ -62,7 +63,7 @@ const PRODUCTS = [
   },
   {
     id: 'nova-a5', category: 'phones', display: 'table', device: 'phone',
-    name: 'נובה A5', price: 1490, oldPrice: 1690,
+    name: 'S.Y A5', price: 1490, oldPrice: 1690,
     dims: { w: 0.0764, h: 0.1642, d: 0.0082 }, cameras: 2, screen: ['#2b1d4f', '#4fa3a5'],
     description: 'כל מה שצריך במחיר נגיש: מסך 6.5 אינץ׳, סוללה ליומיים ומצלמה של 50MP.',
     details: ['128GB', 'סוללה 5,000mAh', 'עמיד במים IP67', 'אחריות שנתיים'],
@@ -74,7 +75,7 @@ const PRODUCTS = [
   },
   {
     id: 'nova-tab', category: 'tablets', display: 'table', device: 'tablet',
-    name: 'נובה Tab 11', price: 2190,
+    name: 'S.Y Tab 11', price: 2190,
     dims: { w: 0.1785, h: 0.2565, d: 0.0062 }, cameras: 1, screen: ['#1c2c4c', '#d17d6e'],
     description: 'טאבלט 11 אינץ׳ קל ודק לעבודה, לימודים וצפייה, עם תמיכה בעט ובמקלדת.',
     details: ['128GB', 'מסך 11 אינץ׳ 90Hz', 'ארבעה רמקולים', 'אחריות שנתיים'],
@@ -85,7 +86,7 @@ const PRODUCTS = [
   },
   {
     id: 'nova-watch', category: 'wearables', display: 'table', device: 'watch',
-    name: 'נובה Watch 3', price: 1190,
+    name: 'S.Y Watch 3', price: 1190,
     description: 'שעון חכם עם מדידת דופק וחמצן, GPS מובנה ועד שלושה ימי סוללה.',
     details: ['מסך AMOLED', 'עמיד במים 5ATM', 'מתאים לאנדרואיד', 'רצועה ניתנת להחלפה'],
     variants: [
@@ -96,7 +97,7 @@ const PRODUCTS = [
   },
   {
     id: 'nova-buds', category: 'audio', display: 'shelf', device: 'buds',
-    name: 'אוזניות נובה Buds', price: 590,
+    name: 'אוזניות S.Y Buds', price: 590,
     description: 'אוזניות אלחוטיות עם סינון רעשים אקטיבי ועד 30 שעות האזנה עם הקופסה.',
     details: ['סינון רעשים אקטיבי', 'טעינה אלחוטית', 'עמידות IPX4'],
     variants: [
@@ -132,7 +133,7 @@ const PRODUCTS = [
     id: 'case-x-pro', category: 'cases', display: 'shelf', device: 'case',
     name: 'כיסוי סיליקון ל-X Pro', price: 99,
     description: 'כיסוי סיליקון רך עם בטנת מיקרופייבר ושוליים מוגבהים שמגינים על המסך והמצלמה.',
-    details: ['מתאים לנובה X Pro', 'תומך בטעינה אלחוטית'],
+    details: ['מתאים ל-S.Y X Pro', 'תומך בטעינה אלחוטית'],
     variants: [
       { id: 'clay', label: 'חימר', color: '#c07a5c' },
       { id: 'olive', label: 'זית', color: '#7c8160' },

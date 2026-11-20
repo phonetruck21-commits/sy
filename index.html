@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>נובה · חנות סלולר ניידת</title>
+  <title>S.Y Phone Truck · פתרונות טכנולוגיים חכמים</title>
+  <link rel="icon" href="assets/brand/favicon.png">
   <meta name="theme-color" content="#1d1c1a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,10 +12,12 @@
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-v1.6.0.min.js"></script>
   <script src="js/products.js"></script>
+  <script src="js/brand.js"></script>
   <script src="js/env.js"></script>
   <script src="js/devices.js"></script>
   <script src="js/truck.js"></script>
   <script src="js/fx.js"></script>
+  <script src="js/post.js"></script>
   <script src="js/characters.js"></script>
   <script src="js/city.js"></script>
   <script src="js/plaza.js"></script>
@@ -26,9 +29,11 @@
   <!-- מסך פתיחה -->
   <section id="intro" aria-labelledby="intro-title">
     <div class="intro-inner">
-      <p class="intro-eyebrow">חנות במציאות מדומה</p>
-      <h1 id="intro-title" class="brand-name">נובה</h1>
-      <p class="intro-tagline brand-tagline">חנות סלולר ניידת</p>
+      <div class="intro-logo" data-logo="300" data-kind="badge"></div>
+      <p class="intro-eyebrow">מעבדה ניידת וירטואלית</p>
+      <h1 id="intro-title" class="brand-name"><span class="y">S.Y</span> PHONE <span class="y">TRUCK</span></h1>
+      <p class="intro-tagline brand-tagline">פתרונות טכנולוגיים חכמים</p>
+      <p class="intro-contact"><a href="tel:0525466304">052-546-6304</a> · <a href="https://phonetruck.co.il" target="_blank" rel="noopener">phonetruck.co.il</a></p>
       <p class="intro-lede">משאית החנות חונה ברחבה, ומסביבה גינת כלבים ופינת ילדים. בואו עם המשפחה והחיה שלכם, הכירו מבקרים אחרים, קנו ביחד בסל משותף וקבלו משלוח עד הבית.</p>
 
       <div class="creator">
@@ -104,7 +109,7 @@
 
   <!-- סרגל עליון (מוסתר במשקף) -->
   <header id="hud">
-    <div class="hud-brand"><span class="brand-name">נובה</span><span class="brand-tagline">חנות סלולר ניידת</span></div>
+    <div class="hud-brand"><span class="hud-logo" data-logo="44"></span><span class="brand-name"><span class="y">S.Y</span> PHONE TRUCK</span><span class="brand-tagline">פתרונות טכנולוגיים חכמים</span></div>
     <div class="hud-actions">
     <button id="hud-hunt" type="button" aria-label="חיפוש אוצרות"><span aria-hidden="true">🏆</span> <span id="hunt-count">0/5</span></button>
     <button id="hud-people" type="button" aria-label="מבקרים וקבוצה"><span class="dot" id="live-dot"></span><span id="hud-people-label">מבקרים</span></button>
@@ -157,7 +162,7 @@
   </div>
   <div id="hunt-done" class="hunt-card done" role="dialog" aria-labelledby="hunt-done-title" hidden>
     <h2 id="hunt-done-title">מצאת את כל האוצרות! 🏆</h2>
-    <p>קיבלת קופון <b dir="ltr">NOVA10</b> – 10% הנחה על כל הקנייה. הוא כבר מופעל בסל שלך.</p>
+    <p>קיבלת קופון <b dir="ltr">SY10</b> – 10% הנחה על כל הקנייה. הוא כבר מופעל בסל שלך.</p>
     <button type="button" class="btn-buy">איזה כיף, להמשיך</button>
   </div>
 
@@ -280,6 +285,7 @@
   <a-scene
     store
     atmosphere
+    cinematic
     shadow="type: pcfsoft"
     fog="type: linear; color: #c8c9c8; near: 35; far: 190"
     renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 1.0; foveationLevel: 1"
@@ -290,7 +296,7 @@
     loading-screen="enabled: false">
 
     <a-entity light="type: hemisphere; color: #bcd2ee; groundColor: #8a7c6c; intensity: 0.7"></a-entity>
-    <a-entity id="sun" light="type: directional; color: #ffe2bd; intensity: 3.2; castShadow: true; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowCameraLeft: -22; shadowCameraRight: 22; shadowCameraTop: 22; shadowCameraBottom: -22; shadowCameraNear: 1; shadowCameraFar: 90; shadowBias: -0.0004; shadowRadius: 2" position="22.9 10.7 16.2"></a-entity>
+    <a-entity id="sun" light="type: directional; color: #ffe2bd; intensity: 3.2; castShadow: true; shadowMapWidth: 4096; shadowMapHeight: 4096; shadowCameraLeft: -22; shadowCameraRight: 22; shadowCameraTop: 22; shadowCameraBottom: -22; shadowCameraNear: 1; shadowCameraFar: 90; shadowBias: -0.0004; shadowRadius: 2" position="22.9 10.7 16.2"></a-entity>
 
     <!-- המבקר: rig + מצלמה + בקרים -->
     <a-entity id="rig" position="0 0 8.2" thumbstick-move walker>

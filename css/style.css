@@ -2,12 +2,14 @@
    פלטה: נייר חם, דיו כהה, אפור-חום עדין. ללא מעברי צבע וללא אימוג׳י. */
 :root {
   --paper: #fbfaf8;
-  --ink: #1d1c1a;
-  --muted: #6e6961;
-  --line: #e3ded6;
-  --night: #1d1c1a;
-  --night-ink: #f5f2ed;
-  --night-muted: #a8a197;
+  --ink: #0b1222;
+  --muted: #5d677a;
+  --line: #dfe3ea;
+  --night: #070b16;
+  --night-ink: #f4f6fb;
+  --night-muted: #9aa6bd;
+  --yellow: #ffd21f;
+  --blue: #1e6bff;
   --sale: #9b2f26;
   --serif: "Heebo", "Segoe UI", Arial, sans-serif;
   --sans: "Heebo", "Segoe UI", Arial, sans-serif;
@@ -45,8 +47,8 @@ button { font: inherit; }
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 .btn:hover { background: rgba(127, 120, 110, 0.12); }
-.btn-primary { background: var(--night-ink); color: var(--night); border-color: var(--night-ink); }
-.btn-primary:hover { background: #fff; }
+.btn-primary { background: var(--yellow); color: var(--ink); border-color: var(--yellow); font-weight: 700; }
+.btn-primary:hover { background: #ffe066; }
 
 /* ---------- מסך פתיחה ---------- */
 #intro {
@@ -115,9 +117,12 @@ button { font: inherit; }
   padding-right: max(20px, env(safe-area-inset-right, 0px));
   pointer-events: none;
 }
-.hud-brand { display: flex; align-items: baseline; gap: 12px; color: var(--ink); }
+.hud-brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.hud-logo { display: inline-flex; width: 44px; height: 44px; border-radius: 11px; overflow: hidden; box-shadow: 0 0 0 2px var(--yellow), 0 6px 18px rgba(7,11,22,.35); flex: none; }
+.hud-logo img { width: 100%; height: 100%; display: block; }
+.hud-brand .brand-name { direction: ltr; unicode-bidi: isolate; font-style: italic; font-weight: 900 !important; letter-spacing: -0.01em; }
 .hud-brand .brand-name { font-family: var(--serif); font-size: 26px; font-weight: 700; }
-.hud-brand .brand-tagline { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; }
+.hud-brand .brand-tagline { font-size: 13px; color: var(--muted); letter-spacing: 0.02em; }
 #hud-cart {
   pointer-events: auto;
   display: inline-flex;
@@ -308,8 +313,8 @@ body.in-store #zones { opacity: 1; pointer-events: auto; }
   white-space: nowrap;
 }
 #zones button:hover { background: rgba(29, 28, 26, 0.07); }
-#zones button[aria-current="true"] { background: var(--ink); color: var(--paper); }
-#zones-catalog { background: #4c8dff !important; color: #fff !important; }
+#zones button[aria-current="true"] { background: var(--yellow); color: var(--ink); font-weight: 700; }
+#zones-catalog { background: var(--blue) !important; color: #fff !important; }
 
 #hint {
   bottom: calc(84px + env(safe-area-inset-bottom, 0px));
@@ -414,7 +419,7 @@ body.sheet-open #hint, body.hint-done #hint { opacity: 0; }
 .ship { margin: 12px 0 8px; font-size: 13px; color: var(--muted); }
 .ship p { margin: 0 0 6px; }
 .ship .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
-.ship .bar i { display: block; height: 100%; background: #4c8dff; }
+.ship .bar i { display: block; height: 100%; background: var(--blue); }
 .empty { color: var(--muted); }
 
 /* ---------- קטלוג ---------- */
@@ -525,7 +530,7 @@ body.sheet-open #hint, body.hint-done #hint { opacity: 0; }
   font: inherit;
   font-size: 17px;
 }
-#pf-name:focus-visible { outline: 2px solid #4c8dff; outline-offset: 1px; }
+#pf-name:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
 #pf-name[aria-invalid="true"] { border-color: #e4572e; }
 .pf-hint { margin: 0; font-size: 13px; line-height: 1.6; color: #a8a197; }
 .pf-choices { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -533,13 +538,13 @@ body.sheet-open #hint, body.hint-done #hint { opacity: 0; }
 .chip input { position: absolute; opacity: 0; pointer-events: none; }
 .chip span { display: inline-flex; align-items: center; min-height: 42px; padding: 0 18px; border: 1px solid #4a4741; border-radius: 999px; font-size: 15px; }
 .chip input:checked + span { background: var(--night-ink); color: var(--night); border-color: var(--night-ink); }
-.chip input:focus-visible + span { outline: 2px solid #4c8dff; outline-offset: 2px; }
+.chip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
 .pf-colors { display: flex; flex-wrap: wrap; gap: 10px; }
 .pf-colors .color { position: relative; cursor: pointer; }
 .pf-colors input { position: absolute; opacity: 0; }
 .pf-colors span { display: block; width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--night); box-shadow: 0 0 0 1px #4a4741; }
 .pf-colors input:checked + span { box-shadow: 0 0 0 2px var(--night-ink); }
-.pf-colors input:focus-visible + span { outline: 2px solid #4c8dff; outline-offset: 3px; }
+.pf-colors input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 3px; }
 .field-err { margin: 4px 0 0; font-size: 13px; color: #e4572e; }
 .field-err:empty { display: none; }
 
@@ -581,7 +586,7 @@ body.sheet-open #hint, body.hint-done #hint { opacity: 0; }
 #chat-log { list-style: none; margin: 0; padding: 10px 12px; height: 170px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; }
 #chat-log li b { font-weight: 500; margin-inline-end: 6px; }
 #chat-log li.sys { color: var(--muted); font-size: 13px; }
-#chat-log li.mine b { color: #4c8dff; }
+#chat-log li.mine b { color: var(--blue); }
 .chat-quick { padding: 0 10px; display: grid; gap: 6px; }
 .emoji-row { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
 .emoji-row button { flex: none; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; font-size: 18px; cursor: pointer; }
@@ -639,7 +644,7 @@ body.sheet-open #hint, body.hint-done #hint { opacity: 0; }
 #invite-toast #invite-yes { background: var(--night-ink); color: var(--night); }
 
 .shared-note { margin: 0 0 6px; padding: 8px 10px; border-radius: 8px; background: #e8f0ff; color: #23407a; font-size: 13px; }
-.cart-lines .by { margin: -4px 0 8px; font-size: 12px; color: #4c8dff; }
+.cart-lines .by { margin: -4px 0 8px; font-size: 12px; color: var(--blue); }
 
 /* ---------- משלוח עד הבית ---------- */
 .co-shared { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #e8f0ff; color: #23407a; font-size: 14px; }
@@ -655,7 +660,7 @@ body.sheet-open #hint, body.hint-done #hint { opacity: 0; }
 .slots label { position: relative; display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
 .slots input { position: absolute; opacity: 0; }
 .slots label:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.slots label:has(input:focus-visible) { outline: 2px solid #4c8dff; outline-offset: 2px; }
+.slots label:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
 .slots b { font-weight: 500; }
 .slots span { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .btn-dark { width: 100%; margin-top: 12px; background: var(--ink); color: var(--paper); border-color: var(--ink); }
@@ -788,3 +793,18 @@ body.sheet-open #me-bar { display: none; }
 #joystick { display: none; position: fixed; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); z-index: 16; width: 110px; height: 110px; border-radius: 50%; background: rgba(29, 28, 26, 0.25); border: 2px solid rgba(255, 255, 255, 0.6); touch-action: none; }
 #joystick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 @media (pointer: coarse) { body.in-store #joystick { display: block; } body.sheet-open #joystick { display: none; } }
+
+/* ---------- מיתוג S.Y Phone Truck ---------- */
+#intro { background: radial-gradient(120% 80% at 50% 0%, #10224a 0%, var(--night) 60%); }
+.intro-logo { display: flex; justify-content: center; margin: 0 0 18px; }
+.intro-logo img { width: min(300px, 70vw); height: auto; filter: drop-shadow(0 0 28px rgba(30,107,255,.55)); }
+#intro h1.brand-name { direction: ltr; unicode-bidi: isolate; font-style: italic; font-weight: 900; font-size: clamp(40px, 8vw, 72px); letter-spacing: -0.01em; text-align: center; }
+#intro h1 .y, .hud-brand .y { color: var(--yellow); }
+.intro-tagline, .intro-eyebrow { text-align: center; }
+.intro-tagline { color: #fff; font-weight: 700; letter-spacing: 0; }
+.intro-sub { margin: 6px 0 0; text-align: center; color: var(--yellow); font-weight: 700; font-size: 16px; }
+.intro-contact { margin: 10px 0 0; text-align: center; color: var(--night-muted); font-size: 14px; direction: ltr; }
+.intro-contact a { color: inherit; }
+.hud-brand { pointer-events: auto; padding: 6px 14px 6px 6px; border-radius: 16px; background: rgba(7, 11, 22, 0.86); color: #fff; box-shadow: 0 8px 24px rgba(7,11,22,.3); backdrop-filter: blur(8px); }
+.hud-brand .brand-name { font-size: 20px !important; color: #fff; }
+.hud-brand .brand-tagline { color: #c7d0e0; }

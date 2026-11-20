@@ -17,6 +17,30 @@
     cyl: (r1, r2, h) => new THREE.CylinderGeometry(r1, r2, h, 14),
     cone: (r, h) => new THREE.ConeGeometry(r, h, 12),
   };
+  /* מפות נורמל של בד (סריגה לחולצה, אריג ג'ינס למכנסיים) – מצוירות פעם אחת */
+  const fabric = {};
+  function fabricNormal(kind) {
+    if (fabric[kind]) return fabric[kind];
+    const N = 256, c = document.createElement('canvas'); c.width = c.height = N;
+    const ctx = c.getContext('2d'), img = ctx.createImageData(N, N), d = img.data;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      let nx, ny;
+      if (kind === 'knit') { // לולאות סריגה
+        const u = (x % 8) / 8, v = (y % 6) / 6;
+        nx = Math.sin(u * Math.PI * 2) * 0.35 * (((y / 6) | 0) % 2 ? 1 : -1); ny = Math.cos(v * Math.PI * 2) * 0.25;
+      } else { // אריג אלכסוני
+        const t = ((x + y) % 6) / 6;
+        nx = Math.sin(t * Math.PI * 2) * 0.4; ny = nx * 0.6;
+      }
+      const n = (Math.random() - 0.5) * 0.12;
+      const i = (y * N + x) * 4;
+      d[i] = 128 + (nx + n) * 127; d[i + 1] = 128 + (ny + n) * 127; d[i + 2] = 255; d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(kind === 'knit' ? 6 : 5, kind === 'knit' ? 6 : 8);
+    return (fabric[kind] = t);
+  }
   const shade = (hex, k) => '#' + new THREE.Color(hex).multiplyScalar(k).getHexString();
 
   /* ---------- מבקר ----------
@@ -34,14 +58,14 @@
     const kid = !!look.kid;
     const pants = look.pants || shade(color, 0.32);
     const M = {
-      skin: new THREE.MeshPhysicalMaterial({ color: skin, roughness: 0.55, sheen: 0.4, sheenColor: new THREE.Color('#ffd0c0'), sheenRoughness: 0.6 }),
-      top: new THREE.MeshPhysicalMaterial({ color, roughness: 0.85, sheen: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.4), sheenRoughness: 0.8 }),
+      skin: new THREE.MeshPhysicalMaterial({ color: skin, roughness: 0.6, sheen: 0.5, sheenColor: new THREE.Color('#ffd0c0'), sheenRoughness: 0.6 }),
+      top: new THREE.MeshPhysicalMaterial({ color, roughness: 0.9, normalMap: fabricNormal('knit'), normalScale: new THREE.Vector2(0.45, 0.45), sheen: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.4), sheenRoughness: 0.8 }),
       topDark: mat(shade(color, 0.78), { roughness: 0.8 }),
-      pants: mat(pants, { roughness: 0.85 }),
+      pants: new THREE.MeshStandardMaterial({ color: pants, roughness: 0.88, normalMap: fabricNormal('denim'), normalScale: new THREE.Vector2(0.5, 0.5) }),
       shoe: mat('#f4f2ee', { roughness: 0.5 }),
       sole: mat('#3a3a3a', { roughness: 0.8 }),
-      hair: mat(hairC, { roughness: 0.55 }),
-      white: mat('#ffffff', { roughness: 0.25 }),
+      hair: new THREE.MeshPhysicalMaterial({ color: hairC, roughness: 0.5, sheen: 1, sheenColor: new THREE.Color(hairC).lerp(new THREE.Color('#ffffff'), 0.35), sheenRoughness: 0.35, normalMap: fabricNormal('denim'), normalScale: new THREE.Vector2(0.3, 0.3) }),
+      white: mat('#e9e4dc', { roughness: 0.2 }),
       iris: mat('#2b1d14', { roughness: 0.2 }),
       lip: mat(shade(skin, 0.62), { roughness: 0.5 }),
       cheek: new THREE.MeshBasicMaterial({ color: '#ff8a80', transparent: true, opacity: 0.28, depthWrite: false }),
@@ -56,9 +80,9 @@
     /* רגליים: ירך -> ברך -> נעל */
     const legs = [-1, 1].map((s) => {
       const hip = new THREE.Group(); hip.position.set(s * 0.095, 0.9, 0);
-      hip.add(mesh(G.cyl(0.075, 0.062, 0.46), M.pants, 0, -0.23, 0));
+      hip.add(mesh(G.cap(0.07, 0.36), M.pants, 0, -0.22, 0));
       const knee = new THREE.Group(); knee.position.y = -0.45; hip.add(knee);
-      knee.add(mesh(G.cyl(0.062, 0.05, 0.42), M.pants, 0, -0.21, 0));
+      knee.add(mesh(G.cap(0.056, 0.34), M.pants, 0, -0.2, 0));
       const shoe = new THREE.Group(); shoe.position.set(0, -0.43, 0.03);
       const toe = mesh(G.cap(0.055, 0.12), M.shoe, 0, 0, 0); toe.rotation.x = Math.PI / 2; toe.scale.set(1.05, 1, 0.75); shoe.add(toe);
       shoe.add(mesh(new THREE.BoxGeometry(0.11, 0.025, 0.24), M.sole, 0, -0.04, 0));
@@ -81,9 +105,9 @@
     const arms = [-1, 1].map((s) => {
       const sh = new THREE.Group(); sh.position.set(s * 0.2, 0.5, 0); torso.add(sh);
       sh.add(mesh(G.sph(0.062), M.top, 0, 0, 0));
-      sh.add(mesh(G.cyl(0.058, 0.05, 0.26), M.top, 0, -0.13, 0));
+      sh.add(mesh(G.cap(0.054, 0.18), M.top, 0, -0.13, 0));
       const elbow = new THREE.Group(); elbow.position.y = -0.27; sh.add(elbow);
-      elbow.add(mesh(G.cyl(0.042, 0.036, 0.24), M.skin, 0, -0.12, 0));
+      elbow.add(mesh(G.cap(0.037, 0.18), M.skin, 0, -0.12, 0));
       const hand = mesh(G.sph(0.048), M.skin, 0, -0.27, 0.005); hand.scale.set(0.85, 1.1, 0.7); elbow.add(hand);
       sh.rotation.z = s * 0.08;
       return { sh, elbow, s };
@@ -97,14 +121,14 @@
     const nose = mesh(G.sph(0.018), mat(shade(skin, 0.95)), 0, 0.105, 0.128); nose.scale.set(0.75, 1.3, 1.1); head.add(nose);
     const eyes = [-1, 1].map((s) => {
       const e = new THREE.Group(); e.position.set(s * 0.045, 0.135, 0.126);
-      const w = mesh(G.sph(0.016), M.white); w.scale.set(1.25, 0.8, 0.5); e.add(w);
-      e.add(mesh(G.sph(0.0085), M.iris, 0, 0, 0.006));
-      const lid = mesh(G.sph(0.018), M.skin, 0, 0.006, -0.002); lid.scale.set(1.3, 0.55, 0.6); e.add(lid);
+      const w = mesh(G.sph(0.012), M.white); w.scale.set(1.35, 0.55, 0.4); e.add(w);
+      e.add(mesh(G.sph(0.0068), M.iris, 0, 0, 0.004));
+      const lid = mesh(G.sph(0.0145), M.skin, 0, 0.005, -0.001); lid.scale.set(1.35, 0.5, 0.6); e.add(lid);
       head.add(e);
-      const brow = mesh(new THREE.BoxGeometry(0.042, 0.008, 0.01), M.hair, s * 0.046, 0.163, 0.134); brow.rotation.z = -s * 0.06; head.add(brow);
+      const brow = mesh(new THREE.BoxGeometry(0.04, 0.006, 0.008), M.hair, s * 0.046, 0.163, 0.134); brow.rotation.z = -s * 0.06; head.add(brow);
       return e;
     });
-    const mouth = mesh(new THREE.TorusGeometry(0.022, 0.005, 6, 14, Math.PI * 0.8), M.lip, 0, 0.066, 0.131); mouth.rotation.z = Math.PI * 1.1; head.add(mouth);
+    const mouth = mesh(G.sph(0.02), M.lip, 0, 0.068, 0.122); mouth.scale.set(1.15, 0.28, 0.45); head.add(mouth);
 
     /* שיער */
     const capGeo = (r, cut) => new THREE.SphereGeometry(r, 24, 16, 0, Math.PI * 2, 0, Math.PI * cut);
@@ -139,7 +163,7 @@
     }
 
     root.traverse((o) => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
-    if (kid) { root.scale.setScalar(0.64); head.scale.setScalar(1.1); }
+    if (kid) { root.scale.setScalar(0.64); head.scale.setScalar(1.05); } else head.scale.setScalar(0.9);
 
     let phase = Math.random() * 6, blink = 1 + Math.random() * 3, clock = 0;
     let act = null, actT = 0, pose = null;

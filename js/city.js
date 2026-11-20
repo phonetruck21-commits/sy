@@ -90,6 +90,83 @@
   const glass = () => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.06, metalness: 0.85 });
   const glassWarm = () => new THREE.MeshStandardMaterial({ color: '#c9b79a', roughness: 0.08, metalness: 0.55, emissive: '#ffcf8a', emissiveIntensity: 0.18 });
 
+
+  /* ---------- פנים חלונות: חדרים מצוירים מאחורי זכוכית מחזירה ---------- */
+  const winMats = [];
+  function interiorTex(kind, seed) {
+    const r = rng(seed);
+    const c = document.createElement('canvas'); c.width = 128; c.height = 160;
+    const x = c.getContext('2d'), W = 128, H = 160;
+    const warm = kind === 'lit';
+    // קיר אחורי עם עומק (תקרה כהה, רצפה)
+    const g = x.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, warm ? '#4a3a2a' : '#26303a'); g.addColorStop(0.45, warm ? '#d8b98a' : '#5d6873'); g.addColorStop(1, warm ? '#6b4f35' : '#2f353b');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    // קירות צד בפרספקטיבה
+    x.fillStyle = 'rgba(0,0,0,0.28)';
+    x.beginPath(); x.moveTo(0, 0); x.lineTo(22, 22); x.lineTo(22, H - 30); x.lineTo(0, H); x.fill();
+    x.beginPath(); x.moveTo(W, 0); x.lineTo(W - 22, 22); x.lineTo(W - 22, H - 30); x.lineTo(W, H); x.fill();
+    // רהיטים: מדף/ארון, מנורה, תמונה
+    x.fillStyle = warm ? 'rgba(60,40,25,0.8)' : 'rgba(20,24,28,0.7)';
+    x.fillRect(30 + r() * 30, 80, 34, 48);
+    if (r() > 0.4) { x.fillStyle = warm ? '#fff3cf' : '#9aa6b0'; x.fillRect(64 + r() * 20, 38, 16, 12); }
+    if (warm) { const lg = x.createRadialGradient(W / 2, 18, 2, W / 2, 18, 60); lg.addColorStop(0, 'rgba(255,230,170,0.9)'); lg.addColorStop(1, 'rgba(255,230,170,0)'); x.fillStyle = lg; x.fillRect(0, 0, W, H); }
+    if (kind === 'blinds') { // תריס
+      for (let y = 0; y < H * (0.4 + r() * 0.5); y += 7) { x.fillStyle = '#e8e3d8'; x.fillRect(0, y, W, 5); x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, y + 5, W, 1); }
+    }
+    if (kind === 'curtain' || warm) { // וילונות
+      const cc = ['#efe7da', '#c9d6e3', '#e8d2c0', '#d9d4cc'][Math.floor(r() * 4)];
+      [0, 1].forEach((side) => {
+        const cw = 24 + r() * 18;
+        for (let i = 0; i < cw; i += 4) { x.fillStyle = cc; x.globalAlpha = 0.85 + Math.sin(i) * 0.1; x.fillRect(side ? W - cw + i : i, 0, 3, H); }
+        x.globalAlpha = 1;
+      });
+    }
+    const t = new THREE.CanvasTexture(c);
+    if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  function windowMaterials() {
+    if (winMats.length) return winMats;
+    ['dark', 'blinds', 'curtain', 'lit', 'curtain', 'blinds'].forEach((k, i) => {
+      const t = interiorTex(k, 7 + i * 13);
+      winMats.push(new THREE.MeshPhysicalMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: k === 'lit' ? 0.55 : 0.12, roughness: 0.5, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.4 }));
+    });
+    return winMats;
+  }
+  function shopTex(seed) {
+    const r = rng(seed);
+    const c = document.createElement('canvas'); c.width = 512; c.height = 160;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 160); g.addColorStop(0, '#fff2d8'); g.addColorStop(1, '#8a6d50');
+    x.fillStyle = g; x.fillRect(0, 0, 512, 160);
+    for (let i = 0; i < 6; i++) { x.fillStyle = 'rgba(255,255,240,0.9)'; x.fillRect(30 + i * 85, 8, 40, 4); }
+    for (let s = 0; s < 3; s++) { // מדפים עם מוצרים
+      const y = 50 + s * 32;
+      x.fillStyle = '#5b4632'; x.fillRect(0, y + 18, 512, 4);
+      for (let i = 0; i < 40; i++) { x.fillStyle = `hsl(${r() * 360},${12 + r() * 22}%,${35 + r() * 30}%)`; const h = 8 + r() * 12; x.fillRect(i * 13 + r() * 4, y + 18 - h, 9, h); }
+    }
+    for (let i = 0; i < 3; i++) { // דמויות בתוך החנות
+      const px = 60 + r() * 400; x.fillStyle = 'rgba(40,32,28,0.75)';
+      x.beginPath(); x.arc(px, 70, 9, 0, 7); x.fill(); x.fillRect(px - 11, 80, 22, 60);
+    }
+    const t = new THREE.CanvasTexture(c);
+    if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshPhysicalMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: 0.45, roughness: 0.4, clearcoat: 1, clearcoatRoughness: 0.02 });
+  }
+  function curtainWallTex() {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 512;
+    const x = c.getContext('2d'); const r = rng(5);
+    x.fillStyle = '#5f6e7e'; x.fillRect(0, 0, 256, 512);
+    for (let j = 0; j < 32; j++) for (let i = 0; i < 8; i++) {
+      const v = r(); x.fillStyle = v > 0.9 ? '#e8dcc0' : `rgb(${80 + v * 60},${98 + v * 60},${118 + v * 60})`;
+      x.fillRect(i * 32 + 2, j * 16 + 2, 28, 12);
+    }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
   function neonSign(text, color, w, h) {
     const c = document.createElement('canvas'); c.width = Math.round(w * 220); c.height = Math.round(h * 220);
     const ctx = c.getContext('2d');
@@ -132,27 +209,70 @@
     b.add(mesh(new THREE.BoxGeometry(w + 0.1, 0.5, d + 0.1), trim, [0, H + 0.1, 0]));
     // סנפיר מרכזי בגג
     const fin = mesh(new THREE.BoxGeometry(0.5, 2.2, 0.6), trim, [w * (r() - 0.5) * 0.4, H + 1.2, d / 2 - 0.2]); fin.castShadow = true; b.add(fin);
-    // חלונות (מופעים)
+    // חלונות (מופעים): מסגרת, אדן, ופנים חדר מאחורי זכוכית – כמה גרסאות פנים
     const cols = Math.max(2, Math.floor(w / 2.2));
-    const gm = glass(), fm = new THREE.MeshStandardMaterial({ color: '#efece6', roughness: 0.5 });
-    const n = cols * (floors - 1);
-    const win = new THREE.InstancedMesh(new THREE.BoxGeometry(1.25, 1.55, 0.05), gm, n);
-    const frm = new THREE.InstancedMesh(new THREE.BoxGeometry(1.45, 1.75, 0.04), fm, n);
+    const fm = new THREE.MeshStandardMaterial({ color: '#efece6', roughness: 0.5 });
+    const dark = new THREE.MeshStandardMaterial({ color: '#3a3d42', roughness: 0.4, metalness: 0.6 });
+    const WM = windowMaterials();
+    const slots = [];
+    for (let f = 1; f < floors; f++) for (let c2 = 0; c2 < cols; c2++) slots.push([-w / 2 + (w / cols) * (c2 + 0.5), f * fh + fh * 0.48, f, c2]);
+    const byMat = WM.map(() => []);
+    slots.forEach((sl) => byMat[Math.floor(r() * WM.length)].push(sl));
     const m4 = new THREE.Matrix4();
+    byMat.forEach((list, mi) => {
+      if (!list.length) return;
+      const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.25, 1.55), WM[mi], list.length);
+      list.forEach(([wx, wy], k) => { m4.makeTranslation(wx, wy, d / 2 + 0.005); im.setMatrixAt(k, m4); });
+      b.add(im);
+    });
+    const n = slots.length;
+    // מסגרת: 4 פסים סביב כל חלון + אדן בולט + משקוף אמצעי
+    const bars = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), fm, n * 6);
     let k = 0;
-    for (let f = 1; f < floors; f++) for (let c2 = 0; c2 < cols; c2++) {
-      const wx = -w / 2 + (w / cols) * (c2 + 0.5), wy = f * fh + fh * 0.48;
-      m4.makeTranslation(wx, wy, d / 2 + 0.035); win.setMatrixAt(k, m4);
-      const v = r();
-      win.setColorAt(k, new THREE.Color(v > 0.85 ? '#d9c39a' : v > 0.6 ? '#9fb2c2' : '#b9c8d6'));
-      m4.makeTranslation(wx, wy, d / 2 + 0.01); frm.setMatrixAt(k, m4);
-      k++;
+    const put = (wx, wy, sx, sy, sz, zz) => { m4.makeScale(sx, sy, sz).setPosition(wx, wy, zz); bars.setMatrixAt(k++, m4); };
+    slots.forEach(([wx, wy]) => {
+      put(wx, wy + 0.82, 1.45, 0.1, 0.16, d / 2 + 0.06);
+      put(wx, wy - 0.84, 1.6, 0.08, 0.3, d / 2 + 0.13); // אדן
+      put(wx - 0.67, wy, 0.1, 1.6, 0.16, d / 2 + 0.06);
+      put(wx + 0.67, wy, 0.1, 1.6, 0.16, d / 2 + 0.06);
+      put(wx, wy, 0.04, 1.55, 0.05, d / 2 + 0.03);
+      put(wx, wy + 0.25, 1.25, 0.04, 0.05, d / 2 + 0.03);
+    });
+    bars.castShadow = true;
+    b.add(bars);
+    // מזגנים ומרפסות
+    const ac = new THREE.MeshStandardMaterial({ color: '#d9dadb', roughness: 0.55, metalness: 0.2 });
+    const balcony = r() > 0.45;
+    const balc = [];
+    const acs = [];
+    slots.forEach(([wx, wy, f, c2]) => {
+      if (r() > 0.78) acs.push([wx + 0.95 > w / 2 ? wx - 0.95 : wx + 0.95, wy - 0.55]);
+      if (balcony && c2 % 2 === 0) balc.push([wx, wy - 0.95]);
+    });
+    if (acs.length) {
+      const u = new THREE.InstancedMesh(new THREE.BoxGeometry(0.8, 0.5, 0.35), ac, acs.length);
+      const fan = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 16).rotateX(Math.PI / 2), dark, acs.length);
+      acs.forEach(([ax, ay], i) => { m4.makeTranslation(ax, ay, d / 2 + 0.18); u.setMatrixAt(i, m4); m4.makeTranslation(ax, ay, d / 2 + 0.36); fan.setMatrixAt(i, m4); });
+      u.castShadow = true; b.add(u, fan);
     }
-    b.add(frm, win);
-    // קומת קרקע: חזית ראווה, סוכך ושלט ניאון
-    const shop = mesh(new THREE.BoxGeometry(w * 0.8, 2.4, 0.06), r() > 0.4 ? glassWarm() : glass(), [0, 1.4, d / 2 + 0.03]);
+    if (balc.length) {
+      const bw = 2.0;
+      const slab = new THREE.InstancedMesh(new THREE.BoxGeometry(bw, 0.12, 0.9), fm, balc.length);
+      const rails = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), dark, balc.length * 12);
+      let q = 0;
+      balc.forEach(([bx, by], i) => {
+        m4.makeTranslation(bx, by, d / 2 + 0.45); slab.setMatrixAt(i, m4);
+        m4.makeScale(bw, 0.04, 0.04).setPosition(bx, by + 0.95, d / 2 + 0.88); rails.setMatrixAt(q++, m4);
+        for (let j = 0; j <= 10; j++) { m4.makeScale(0.025, 0.9, 0.025).setPosition(bx - bw / 2 + (bw / 10) * j, by + 0.5, d / 2 + 0.88); rails.setMatrixAt(q++, m4); }
+      });
+      slab.castShadow = rails.castShadow = true;
+      b.add(slab, rails);
+    }
+    // קומת קרקע: חלון ראווה עם פנים חנות, סוכך ושלט ניאון
+    const shop = mesh(new THREE.PlaneGeometry(w * 0.8, 2.4), shopTex(seed * 7 + 3), [0, 1.4, d / 2 + 0.03]);
     b.add(shop);
     b.add(mesh(new THREE.BoxGeometry(w * 0.82, 0.12, 0.1), new THREE.MeshStandardMaterial({ color: '#2b2c2f', metalness: 0.7, roughness: 0.4 }), [0, 2.65, d / 2 + 0.05]));
+    for (let i = 0; i <= 4; i++) b.add(mesh(new THREE.BoxGeometry(0.06, 2.4, 0.08), dark, [-w * 0.4 + (w * 0.8 / 4) * i, 1.4, d / 2 + 0.05]));
     if (r() > 0.3) {
       const aw = mesh(new THREE.BoxGeometry(w * 0.8, 0.05, 1.4), new THREE.MeshStandardMaterial({ map: awningTex(color, '#ffffff'), roughness: 0.85 }), [0, 2.95, d / 2 + 0.68], [0.28, 0, 0]);
       aw.castShadow = true; b.add(aw);
@@ -190,9 +310,11 @@
     // מאחורי החניה
     for (let i = 0; i < 5; i++) building(g, { x: -20 + i * 10, z: -22, ry: 0, w: 9, d: 9, floors: 3 + (i % 2) * 2, color: PASTELS[(i + 2) % PASTELS.length], seed: 60 + i });
     // מגדלי זכוכית רחוקים באובך
-    const towerMat = new THREE.MeshStandardMaterial({ color: '#7d8a99', roughness: 0.15, metalness: 0.75 });
+    const cw = curtainWallTex();
+    const towerMat = new THREE.MeshStandardMaterial({ map: cw, color: '#ffffff', roughness: 0.15, metalness: 0.55 });
     [[-60, -70, 70], [-25, -95, 95], [20, -85, 80], [70, -60, 60], [95, 10, 55], [-95, 30, 65]].forEach(([tx, tz, th]) => {
-      const t = mesh(new THREE.BoxGeometry(14, th, 14), towerMat, [tx, th / 2, tz]); g.add(t);
+      const tm = towerMat.clone(); tm.map = cw.clone(); tm.map.repeat.set(1, th / 40); tm.map.needsUpdate = true;
+      const t = mesh(new THREE.BoxGeometry(14, th, 14), tm, [tx, th / 2, tz]); g.add(t);
       for (let y = 4; y < th; y += 4) g.add(mesh(new THREE.BoxGeometry(14.3, 0.25, 14.3), new THREE.MeshStandardMaterial({ color: '#c9d0d8', roughness: 0.6 }), [tx, y, tz]));
     });
   }
