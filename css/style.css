@@ -314,7 +314,7 @@ body.in-store #zones { opacity: 1; pointer-events: auto; }
 }
 #zones button:hover { background: rgba(29, 28, 26, 0.07); }
 #zones button[aria-current="true"] { background: var(--yellow); color: var(--ink); font-weight: 700; }
-#zones-catalog { background: var(--blue) !important; color: #fff !important; }
+#zones-catalog { background: #1557d6 !important; color: #fff !important; }
 
 #hint {
   bottom: calc(84px + env(safe-area-inset-bottom, 0px));
@@ -778,7 +778,7 @@ body.sheet-open #me-bar { display: none; }
 #seller-mic { background: #f1efeb !important; color: var(--ink) !important; font-size: 18px; }
 #seller-mic.on { background: #e4572e !important; color: #fff !important; }
 .seller-speak { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
-#zones-seller { background: #2fb36d !important; color: #fff !important; }
+#zones-seller { background: var(--ink) !important; color: var(--yellow) !important; font-weight: 700; }
 
 /* ---------- חיפוש אוצרות ---------- */
 #hud-hunt { min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 2px; background: rgba(251, 250, 248, 0.92); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; font-variant-numeric: tabular-nums; }
@@ -808,3 +808,44 @@ body.sheet-open #me-bar { display: none; }
 .hud-brand { pointer-events: auto; padding: 6px 14px 6px 6px; border-radius: 16px; background: rgba(7, 11, 22, 0.86); color: #fff; box-shadow: 0 8px 24px rgba(7,11,22,.3); backdrop-filter: blur(8px); }
 .hud-brand .brand-name { font-size: 20px !important; color: #fff; }
 .hud-brand .brand-tagline { color: #c7d0e0; }
+
+/* ---------- בחירת דמות ---------- */
+.creator { display: block; }
+.avatar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.avatar-card { position: relative; display: flex; flex-direction: column; align-items: center; border-radius: 14px; background: linear-gradient(180deg, #16223d, #0c1426); border: 2px solid #233150; cursor: pointer; overflow: hidden; transition: border-color .15s ease, transform .15s ease; }
+.avatar-card:hover { transform: translateY(-2px); border-color: #3b5288; }
+.avatar-card input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.avatar-card img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+.avatar-cap { padding: 6px 4px 8px; font-size: 14px; font-weight: 500; color: var(--night-ink); }
+.avatar-card:has(input:checked) { border-color: var(--yellow); box-shadow: 0 0 0 2px var(--yellow), 0 8px 24px rgba(255,210,31,.18); }
+.avatar-card:has(input:focus-visible) { outline: 3px solid var(--blue); outline-offset: 2px; }
+@media (max-width: 480px) { .avatar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } .avatar-cap { font-size: 12px; } }
+
+/* ---------- נגישות ונוחות: יעדי לחיצה 44px, סרגל עליון קומפקטי בטלפון ---------- */
+#hud button, #zones button { min-height: 44px; white-space: nowrap; }
+#hud-sound { min-width: 44px; }
+@media (pointer: coarse) {
+  .chat-tabs button, #chat-toggle { min-height: 44px; min-width: 44px; }
+  #chat .emoji button, #chat .quick button { min-height: 44px; min-width: 44px; }
+}
+.intro-logo img { width: min(220px, 52vw); }
+@media (max-width: 640px) {
+  .hud-brand { padding: 4px; border-radius: 14px; }
+  .hud-brand .brand-name, .hud-brand .brand-tagline { display: none !important; }
+  .hud-logo { width: 40px; height: 40px; }
+  #intro h1.brand-name { font-size: clamp(32px, 10vw, 44px); }
+}
+
+/* ---------- כפתורי מסך אחידים: כהה שקוף עם הדגשה צהובה ---------- */
+#hud-cart, #hud-people, #hud-sound, #hud-hunt, #hud-vr, #me-bar button {
+  background: rgba(7, 11, 22, 0.82) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 12px !important; backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(7,11,22,.25);
+}
+#hud-cart:hover, #hud-people:hover, #hud-sound:hover, #hud-hunt:hover, #me-bar button:hover { border-color: var(--yellow) !important; }
+#me-bar button[aria-pressed="true"] { background: var(--yellow) !important; color: var(--ink) !important; }
+#hud-cart { font-weight: 700; }
+#hud-cart .count, #hud-cart b { color: var(--yellow); }
+.intro-lede { margin: 16px auto 22px; text-align: center; font-size: 16px; }
+.intro-actions { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(180deg, rgba(7,11,22,0), var(--night) 35%); z-index: 2; }
+.intro-actions .btn-primary { flex: 1; min-height: 54px; font-size: 18px; border-radius: 12px; }
+.intro-actions .btn { border-radius: 12px; }

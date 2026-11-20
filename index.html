@@ -19,6 +19,7 @@
   <script src="js/fx.js"></script>
   <script src="js/post.js"></script>
   <script src="js/characters.js"></script>
+  <script src="js/humans.js"></script>
   <script src="js/city.js"></script>
   <script src="js/plaza.js"></script>
   <script src="js/app.js"></script>
@@ -34,65 +35,31 @@
       <h1 id="intro-title" class="brand-name"><span class="y">S.Y</span> PHONE <span class="y">TRUCK</span></h1>
       <p class="intro-tagline brand-tagline">פתרונות טכנולוגיים חכמים</p>
       <p class="intro-contact"><a href="tel:0525466304">052-546-6304</a> · <a href="https://phonetruck.co.il" target="_blank" rel="noopener">phonetruck.co.il</a></p>
-      <p class="intro-lede">משאית החנות חונה ברחבה, ומסביבה גינת כלבים ופינת ילדים. בואו עם המשפחה והחיה שלכם, הכירו מבקרים אחרים, קנו ביחד בסל משותף וקבלו משלוח עד הבית.</p>
+      <p class="intro-lede">טלפונים ואביזרים במשאית שלנו ברחבה – מסתובבים, מנסים, שואלים את המוכרת וקונים עם משלוח עד הבית.</p>
 
       <div class="creator">
-      <figure class="preview" aria-label="תצוגה מקדימה של הדמות שלך">
-        <canvas id="pf-preview" width="520" height="640"></canvas>
-        <figcaption>ככה יראו אותך בחנות</figcaption>
-      </figure>
       <form id="profile" class="profile" novalidate>
-        <div class="pf-row">
-          <label for="pf-name">איך לקרוא לך?</label>
-          <input id="pf-name" name="name" type="text" maxlength="16" autocomplete="nickname" placeholder="כינוי, לא שם מלא" required>
-          <p class="pf-hint">זה השם שמבקרים אחרים יראו מעל הדמות שלך.</p>
-        </div>
         <fieldset class="pf-row">
-          <legend>מי נכנס/ת?</legend>
-          <div class="pf-choices">
-            <label class="chip"><input type="radio" name="who" value="adult" checked><span>מבוגר/ת</span></label>
-            <label class="chip"><input type="radio" name="who" value="kid"><span>ילד/ה</span></label>
-          </div>
+          <legend>בחרו את הדמות שלכם</legend>
+          <div class="avatar-grid" id="pf-avatars" role="radiogroup"></div>
           <p class="pf-hint" id="pf-kid-note" hidden>במצב ילדים: שולחים לכולם רק משפטים מוכנים ואמוג׳י, ורואים הודעות חופשיות רק מהמשפחה והחברים בקבוצה.</p>
         </fieldset>
-        <fieldset class="pf-row">
-          <legend>גוון עור</legend>
-          <div class="pf-colors" id="pf-skin"></div>
-        </fieldset>
-        <fieldset class="pf-row">
-          <legend>תסרוקת</legend>
-          <div class="pf-choices">
-            <label class="chip"><input type="radio" name="hairStyle" value="short" checked><span>קצר</span></label>
-            <label class="chip"><input type="radio" name="hairStyle" value="long"><span>ארוך</span></label>
-            <label class="chip"><input type="radio" name="hairStyle" value="ponytail"><span>קוקו</span></label>
-            <label class="chip"><input type="radio" name="hairStyle" value="curly"><span>מתולתל</span></label>
-          </div>
-          <div class="pf-colors" id="pf-hair"></div>
-        </fieldset>
-        <fieldset class="pf-row">
-          <legend>צבע החולצה</legend>
-          <div class="pf-colors" id="pf-colors"></div>
-        </fieldset>
-        <fieldset class="pf-row">
-          <legend>אביזר</legend>
-          <div class="pf-choices">
-            <label class="chip"><input type="radio" name="acc" value="none" checked><span>בלי</span></label>
-            <label class="chip"><input type="radio" name="acc" value="cap"><span>כובע</span></label>
-            <label class="chip"><input type="radio" name="acc" value="glasses"><span>משקפיים</span></label>
-          </div>
-        </fieldset>
+        <div class="pf-row">
+          <label for="pf-name">איך לקרוא לך?</label>
+          <input id="pf-name" name="name" type="text" maxlength="16" autocomplete="nickname" placeholder="כינוי (לא חובה)">
+          <p class="pf-hint">יופיע מעל הדמות שלך. אפשר להשאיר ריק.</p>
+        </div>
         <fieldset class="pf-row">
           <legend>חיית מחמד שתבוא איתך</legend>
           <div class="pf-choices">
-            <label class="chip"><input type="radio" name="pet" value="dog" checked><span>כלב</span></label>
-            <label class="chip"><input type="radio" name="pet" value="cat"><span>חתול</span></label>
+            <label class="chip"><input type="radio" name="pet" value="beagle" checked><span>ביגל</span></label>
+            <label class="chip"><input type="radio" name="pet" value="shepherd"><span>רועה גרמני</span></label>
             <label class="chip"><input type="radio" name="pet" value="none"><span>בלי</span></label>
           </div>
-          <div class="pf-colors" id="pf-petcolor"></div>
         </fieldset>
         <div class="intro-actions">
-          <button id="intro-vr" class="btn btn-primary" type="button" hidden>כניסה עם משקף VR</button>
-          <button id="intro-enter" class="btn" type="submit">כניסה לחנות</button>
+          <button id="intro-vr" class="btn" type="button" hidden>כניסה עם משקף VR</button>
+          <button id="intro-enter" class="btn btn-primary" type="submit">כניסה לחנות ←</button>
         </div>
       </form>
       </div>

@@ -127,12 +127,12 @@
     history: [], busy: false, speak: false, av: null,
     build(root) {
       const C = window.StoreCharacters;
-      this.av = C.person({ color: '#0b1222', skin: '#c68642', hair: '#2b2018', hairStyle: 'ponytail' });
+      this.av = C.person({ avatar: 'Business_Female_01' });
       const g = this.av.object;
       g.position.set(5.45, 0.95, -0.25); g.rotation.y = -Math.PI / 2;
       root.object3D.add(g);
       const tag = C.label('נועה · שאלו אותי', { size: 0.055, bg: 'rgba(76,141,255,0.95)' });
-      tag.position.y = this.av.height + 0.2; g.add(tag);
+      tag.position.y = this.av.height + 0.25; g.add(tag);
       // אזור לחיצה
       const hit = document.createElement('a-entity');
       hit.setAttribute('geometry', 'primitive: box; width: 0.7; height: 1.8; depth: 0.7');
@@ -145,7 +145,7 @@
     tick(dt) {
       if (!this.av) return;
       this.av.update(dt, 0);
-      if (this.talking > 0) { this.talking -= dt; this.av.head.rotation.x = Math.sin(performance.now() / 120) * 0.05; }
+      if (this.talking > 0) { this.talking -= dt; this.av.play('talk'); this.talking = 0; }
     },
     open() {
       if (V().inVR()) return this.openVR();

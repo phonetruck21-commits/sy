@@ -131,7 +131,9 @@ function attach(server) {
         p.kid = !!m.kid;
         const L = m.look || {};
         const pickOne = (v, list, def) => (list.includes(v) ? v : def);
+        const AVATARS = ['Female_Adult_01', 'Female_Adult_08', 'Female_Adult_17', 'Male_Adult_08', 'Male_Adult_09', 'Male_Adult_16', 'Female_Child_01', 'Male_Child_01'];
         p.look = {
+          avatar: pickOne(L.avatar, AVATARS, null),
           color: pickOne(L.color, COLORS, COLORS[p.id % COLORS.length]),
           skin: pickOne(L.skin, ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'], '#e0ac69'),
           hair: pickOne(L.hair, ['#2b2018', '#5a3a22', '#a8642c', '#d9b26a', '#9a9a9a'], '#2b2018'),

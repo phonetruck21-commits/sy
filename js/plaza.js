@@ -81,7 +81,7 @@
     // שני כלבים משחקים בכדור
     const ball = mesh(new THREE.SphereGeometry(0.06, 14, 10), std('#d7f542', { roughness: 0.6 }));
     g.add(ball);
-    const d1 = C().dog('#d8a35d'), d2 = C().dog('#2b2b2b');
+    const d1 = C().pet('dog', '#d8a35d'), d2 = C().pet('dog', '#2b2b2b');
     g.add(d1.object, d2.object);
     const p1 = new THREE.Vector2(cx - 1.2, cz), p2 = new THREE.Vector2(cx + 1.2, cz - 0.5);
     let tBall = 0, from = p1.clone(), to = p2.clone(), chaser = d2, waiter = d1;
@@ -304,11 +304,11 @@
       [[3, 6.5], [7.5, 10.6], [4, 11], [1.5, 8]],
     ];
     const families = [
-      { adult: { color: '#669bbc', skin: '#f1c27d', hair: '#5a3a22', hairStyle: 'long', acc: 'glasses' }, kid: { color: '#f3a712', skin: '#f1c27d', hair: '#5a3a22', hairStyle: 'ponytail' }, pet: ['dog', '#c49a6c'] },
-      { adult: { color: '#8e7dbe', skin: '#8d5524', hair: '#2b2018', hairStyle: 'curly' }, kid: { color: '#2a9d8f', skin: '#8d5524', hair: '#2b2018', hairStyle: 'short', acc: 'cap' }, pet: ['cat', '#e8e2d6'] },
+      { adult: { avatar: 'Female_Adult_17' }, kid: { avatar: 'Female_Child_01' }, pet: ['dog', '#c49a6c'] },
+      { adult: { avatar: 'Male_Adult_09' }, kid: { avatar: 'Male_Child_01' }, pet: ['dog', '#2b2b2b'] },
     ];
     families.forEach((f, i) => {
-      const adult = C().person(f.adult), kid = C().person({ ...f.kid, kid: true });
+      const adult = C().person(f.adult), kid = C().person(f.kid);
       const pet = C().pet(f.pet[0], f.pet[1]);
       g.add(adult.object, kid.object, pet.object);
       const route = routes[i].map(([x, z]) => new THREE.Vector2(x, z));
@@ -336,11 +336,26 @@
     });
   }
 
+  /* ---------- אנשים שעומדים ברחבה: מקליד בטלפון, שתי חברות מדברות ---------- */
+  function locals(g) {
+    const spots = [
+      { look: { avatar: 'Male_Adult_08', idle: 'text' }, x: -2.4, z: 5.3, ry: 2.6 },
+      { look: { avatar: 'Female_Adult_08', idle: 'talk' }, x: 4.6, z: 4.4, ry: -1.9 },
+      { look: { avatar: 'Male_Adult_16', idle: 'look' }, x: 3.7, z: 4.1, ry: 1.2 },
+    ];
+    spots.forEach((sp) => {
+      const p = C().person(sp.look);
+      p.object.position.set(sp.x, 0.04, sp.z); p.object.rotation.y = sp.ry;
+      g.add(p.object);
+      anims.push((dt) => p.update(dt, 0));
+    });
+  }
+
   AFRAME.registerComponent('plaza', {
     init() {
       const g = new THREE.Group();
       if (window.StoreCity) { window.StoreCity.build(g, this.el.sceneEl); OBST.push(...window.StoreCity.obstacles); }
-      dogPark(g); kidsZone(g); meetingSpot(g); birds(g); bubbles(g); strollers(g);
+      dogPark(g); kidsZone(g); meetingSpot(g); birds(g); bubbles(g); strollers(g); locals(g);
       this.el.setObject3D('mesh', g);
       this.t = 0;
     },

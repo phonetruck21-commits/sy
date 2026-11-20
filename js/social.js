@@ -16,71 +16,6 @@
   const EMOJI_FALLBACK = ['👋', '😀', '❤️', '👍', '🎉', '🐶', '🐱', '😂', '😮', '🛍️'];
 
 
-  /* ---------- תצוגה מקדימה של הדמות במסך הכניסה ---------- */
-  const Preview = {
-    renderer: null, scene: null, cam: null, group: null, av: null, pet: null, running: false, rotY: -0.35, drag: null,
-    init() {
-      const canvas = $('#pf-preview');
-      if (!canvas || !window.THREE) return;
-      try {
-        this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      } catch (e) { canvas.closest('figure').hidden = true; return; }
-      this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-      this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.scene = new THREE.Scene();
-      try { this.scene.environment = window.StoreEnv.studioEnvironment(this.renderer); } catch (e) { /* ignore */ }
-      this.scene.add(new THREE.HemisphereLight('#fff6e8', '#5a5048', 1.1));
-      const key = new THREE.DirectionalLight('#ffe7c4', 2.4); key.position.set(-2, 3, 3); this.scene.add(key);
-      const rim = new THREE.DirectionalLight('#9cc3ff', 1.4); rim.position.set(2, 2, -3); this.scene.add(rim);
-      // במה עגולה
-      const stage = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.9, 0.06, 48), new THREE.MeshStandardMaterial({ color: '#3a3631', roughness: 0.6 }));
-      stage.position.y = -0.03; this.scene.add(stage);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.008, 8, 64), new THREE.MeshBasicMaterial({ color: '#f3a712' }));
-      ring.rotation.x = Math.PI / 2; ring.position.y = 0.002; this.scene.add(ring);
-      this.cam = new THREE.PerspectiveCamera(28, 1, 0.1, 20);
-      this.group = new THREE.Group(); this.scene.add(this.group);
-      canvas.addEventListener('pointerdown', (e) => { this.drag = e.clientX; canvas.setPointerCapture(e.pointerId); });
-      canvas.addEventListener('pointermove', (e) => { if (this.drag !== null) { this.rotY += (e.clientX - this.drag) * 0.01; this.drag = e.clientX; } });
-      canvas.addEventListener('pointerup', () => { this.drag = null; });
-      this.rebuild(true);
-      this.running = true;
-      const loop = () => { if (!this.running) return; this.frame(); requestAnimationFrame(loop); };
-      requestAnimationFrame(loop);
-    },
-    rebuild(wave) {
-      if (!this.group) return;
-      const look = Social.currentLook();
-      while (this.group.children.length) this.group.remove(this.group.children[0]);
-      this.av = C().person(look);
-      this.group.add(this.av.object);
-      this.pet = look.pet !== 'none' ? C().pet(look.pet, look.petColor) : null;
-      if (this.pet) { this.pet.object.position.set(0.45, 0, 0.45); this.pet.object.rotation.y = -0.6; this.group.add(this.pet.object); }
-      const H = look.kid ? 1.25 : 1.85;
-      this.cam.position.set(0, H * 0.62, H * 2.2 + 0.9);
-      this.cam.lookAt(0, H * 0.48, 0);
-      if (wave) this.av.play('wave');
-      this.last = performance.now();
-    },
-    frame() {
-      if (!this.running || !this.av) return;
-      const canvas = this.renderer.domElement;
-      const w = canvas.clientWidth, hh = canvas.clientHeight;
-      if (w && hh && (canvas.width !== Math.round(w * this.renderer.getPixelRatio()) || canvas.height !== Math.round(hh * this.renderer.getPixelRatio()))) {
-        this.renderer.setSize(w, hh, false); this.cam.aspect = w / hh; this.cam.updateProjectionMatrix();
-      }
-      const now = performance.now();
-      const dt = Math.min(0.05, (now - (this.last || now)) / 1000);
-      this.last = now;
-      if (this.drag === null) this.rotY += dt * 0.25;
-      this.group.rotation.y = Math.sin(this.rotY) * 0.6;
-      this.av.update(dt, 0);
-      if (this.pet) this.pet.update(dt, 0);
-      this.renderer.render(this.scene, this.cam);
-    },
-    stop() { this.running = false; },
-  };
-
   const Social = {
     profile: null,
     ws: null,
@@ -102,52 +37,41 @@
     initForm() {
       let saved = {};
       try { saved = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch (e) { /* ignore */ }
-      const ch = C();
-      const swatches = (box, name, list, current, labels) => {
-        box.innerHTML = '';
-        list.forEach((c, i) => {
-          const l = h('label', 'color');
-          const r = h('input'); r.type = 'radio'; r.name = name; r.value = c;
-          r.checked = current ? current === c : i === 0;
-          r.setAttribute('aria-label', labels ? labels[i] : `אפשרות ${i + 1}`);
-          const sw = h('span'); sw.style.background = c;
-          l.append(r, sw); box.append(l);
-        });
-        if (!box.querySelector('input:checked')) box.querySelector('input').checked = true;
-      };
-      swatches($('#pf-skin'), 'skin', ch.SKINS, saved.skin || ch.SKINS[2], ['בהיר מאוד', 'בהיר', 'שזוף', 'כהה', 'כהה מאוד']);
-      swatches($('#pf-hair'), 'hair', ch.HAIRS, saved.hair, ['שחור', 'חום', 'ג׳ינג׳י', 'בלונד', 'אפור']);
-      swatches($('#pf-colors'), 'color', COLORS, saved.color || COLORS[1]);
-      const setRadio = (name, v) => { const r = v && document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; };
-      setRadio('hairStyle', saved.hairStyle); setRadio('acc', saved.acc); setRadio('pet', saved.pet);
-      if (saved.name) $('#pf-name').value = saved.name;
-      if (saved.kid) document.querySelector('input[name="who"][value="kid"]').checked = true;
-      const syncPet = (keep) => {
-        const pet = document.querySelector('input[name="pet"]:checked').value;
-        const box = $('#pf-petcolor');
-        box.hidden = !PET_COLORS[pet];
-        if (PET_COLORS[pet]) swatches(box, 'petColor', PET_COLORS[pet], keep ? saved.petColor : null, pet === 'dog' ? ['זהוב', 'שחור', 'לבן', 'חום'] : ['אפור', 'לבן', 'ג׳ינג׳י', 'שחור']);
-      };
-      syncPet(true);
-      const syncKid = () => { $('#pf-kid-note').hidden = !document.querySelector('input[name="who"][value="kid"]').checked; };
-      syncKid();
-      $('#profile').addEventListener('change', (e) => {
-        if (e.target.name === 'pet') syncPet(false);
-        if (e.target.name === 'who') syncKid();
-        Preview.rebuild(e.target.name !== 'pet' && e.target.name !== 'petColor');
+      const cast = C().CAST || {};
+      const order = ['Female_Adult_01', 'Male_Adult_08', 'Female_Adult_08', 'Male_Adult_09', 'Female_Adult_17', 'Male_Adult_16', 'Female_Child_01', 'Male_Child_01'].filter((id) => cast[id]);
+      const box = $('#pf-avatars');
+      const current = order.includes(saved.avatar) ? saved.avatar : order[0];
+      order.forEach((id) => {
+        const m = cast[id];
+        const l = h('label', 'avatar-card');
+        const r = h('input'); r.type = 'radio'; r.name = 'avatar'; r.value = id; r.checked = id === current;
+        const img = h('img'); img.src = `assets/people/thumbs/${id}.webp`; img.alt = ''; img.loading = 'lazy'; img.width = 160; img.height = 200;
+        const cap = h('span', 'avatar-cap', m.kid ? (m.g === 'f' ? 'ילדה' : 'ילד') : m.name);
+        r.setAttribute('aria-label', m.kid ? (m.g === 'f' ? 'ילדה' : 'ילד') : `${m.g === 'f' ? 'אישה' : 'גבר'} – ${m.name}`);
+        l.append(r, img, cap); box.append(l);
       });
-      Preview.init();
+      const petSaved = saved.pet === 'dog' ? (saved.petColor === '#2b2b2b' ? 'shepherd' : 'beagle') : saved.pet === 'none' ? 'none' : null;
+      if (petSaved) { const pr = document.querySelector(`input[name="pet"][value="${petSaved}"]`); if (pr) pr.checked = true; }
+      if (saved.name) $('#pf-name').value = saved.name;
+      const syncKid = () => { $('#pf-kid-note').hidden = !this.currentLook().kid; };
+      syncKid();
+      $('#profile').addEventListener('change', (e) => { if (e.target.name === 'avatar') { syncKid(); C().preload && C().preload([e.target.value]); } });
+      C().preload && C().preload([current]);
     },
     currentLook() {
       const v = (name, def) => (document.querySelector(`input[name="${name}"]:checked`) || {}).value || def;
-      const pet = v('pet', 'none');
+      const avatar = v('avatar', 'Female_Adult_01');
+      const m = (C().CAST || {})[avatar] || {};
+      const petChoice = v('pet', 'beagle');
+      const pet = petChoice === 'none' ? 'none' : 'dog';
       return {
-        kid: v('who', 'adult') === 'kid', color: v('color', COLORS[1]), skin: v('skin', '#e0ac69'), hair: v('hair', '#2b2018'),
-        hairStyle: v('hairStyle', 'short'), acc: v('acc', 'none'), pet, petColor: PET_COLORS[pet] ? v('petColor', PET_COLORS[pet][0]) : null,
+        avatar, kid: !!m.kid, color: COLORS[1], skin: '#e0ac69', hair: '#2b2018',
+        hairStyle: m.g === 'f' ? 'long' : 'short', acc: 'none', pet, petColor: pet === 'dog' ? (petChoice === 'shepherd' ? '#2b2b2b' : '#d8a35d') : null,
       };
     },
     readProfile(validate) {
-      const name = ($('#pf-name').value || '').trim().slice(0, 16);
+      let name = ($('#pf-name').value || '').trim().slice(0, 16);
+      if (!name) name = 'אורח/ת ' + Math.floor(100 + Math.random() * 900);
       if (validate && name.length < 2) {
         const el = $('#pf-name');
         el.setAttribute('aria-invalid', 'true');
@@ -159,7 +83,6 @@
       }
       this.profile = { name, ...this.currentLook() };
       try { localStorage.setItem(PROFILE_KEY, JSON.stringify(this.profile)); } catch (e) { /* ignore */ }
-      Preview.stop();
       return this.profile;
     },
 
@@ -289,7 +212,7 @@
       ws.onopen = () => {
         this.retries = 0;
         const p = this.profile;
-        ws.send(JSON.stringify({ t: 'hello', name: p.name, kid: p.kid, pet: p.pet, look: { color: p.color, skin: p.skin, hair: p.hair, hairStyle: p.hairStyle, acc: p.acc, petColor: p.petColor } }));
+        ws.send(JSON.stringify({ t: 'hello', name: p.name, kid: p.kid, pet: p.pet, look: { avatar: p.avatar, color: p.color, skin: p.skin, hair: p.hair, hairStyle: p.hairStyle, acc: p.acc, petColor: p.petColor } }));
       };
       ws.onmessage = (ev) => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } this.handle(m); };
       ws.onclose = () => {
@@ -630,7 +553,7 @@
         $('#chat-toggle').textContent = min ? '+' : '–';
         $('#chat-toggle').setAttribute('aria-label', min ? 'פתיחת הצ׳אט' : 'מזעור הצ׳אט');
       });
-      if (window.innerWidth < 700) { $('#chat').classList.add('min'); $('#chat-toggle').textContent = '+'; }
+      $('#chat').classList.add('min'); $('#chat-toggle').textContent = '+'; $('#chat-toggle').setAttribute('aria-label', 'פתיחת הצ׳אט'); // מתחיל ממוזער – מסך נקי
       $('#hud-people').addEventListener('click', () => ($('#people').hidden ? this.openPeople() : this.closePeople()));
       $('#people .drawer-x').addEventListener('click', () => this.closePeople());
       $('#invite-yes').addEventListener('click', () => { $('#invite-toast').hidden = true; if (this.pendingInvite) this.send({ t: 'group-join', code: this.pendingInvite.code }); });
