@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S.Y Phone Truck · פתרונות טכנולוגיים חכמים</title>
+  <link rel="icon" href="assets/brand/favicon.png">
+  <meta name="theme-color" content="#1d1c1a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-v1.6.0.min.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/brand.js"></script>
+  <script src="js/env.js"></script>
+  <script src="js/devices.js"></script>
+  <script src="js/truck.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/post.js"></script>
+  <script src="js/characters.js"></script>
+  <script src="js/humans.js"></script>
+  <script src="js/city.js"></script>
+  <script src="js/plaza.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/social.js"></script>
+  <script src="js/play.js"></script>
+</head>
+<body>
+  <!-- מסך פתיחה -->
+  <section id="intro" aria-labelledby="intro-title">
+    <div class="intro-inner">
+      <div class="intro-logo" data-logo="300" data-kind="badge"></div>
+      <p class="intro-eyebrow">מעבדה ניידת וירטואלית</p>
+      <h1 id="intro-title" class="brand-name"><span class="y">S.Y</span> PHONE <span class="y">TRUCK</span></h1>
+      <p class="intro-tagline brand-tagline">פתרונות טכנולוגיים חכמים</p>
+      <p class="intro-contact"><a href="tel:0525466304">052-546-6304</a> · <a href="https://phonetruck.co.il" target="_blank" rel="noopener">phonetruck.co.il</a></p>
+      <p class="intro-lede">טלפונים ואביזרים במשאית שלנו ברחבה – מסתובבים, מנסים, שואלים את המוכרת וקונים עם משלוח עד הבית.</p>
+
+      <div class="creator">
+      <form id="profile" class="profile" novalidate>
+        <fieldset class="pf-row">
+          <legend>בחרו את הדמות שלכם</legend>
+          <div class="avatar-grid" id="pf-avatars" role="radiogroup"></div>
+          <p class="pf-hint" id="pf-kid-note" hidden>במצב ילדים: שולחים לכולם רק משפטים מוכנים ואמוג׳י, ורואים הודעות חופשיות רק מהמשפחה והחברים בקבוצה.</p>
+        </fieldset>
+        <div class="pf-row">
+          <label for="pf-name">איך לקרוא לך?</label>
+          <input id="pf-name" name="name" type="text" maxlength="16" autocomplete="nickname" placeholder="כינוי (לא חובה)">
+          <p class="pf-hint">יופיע מעל הדמות שלך. אפשר להשאיר ריק.</p>
+        </div>
+        <fieldset class="pf-row">
+          <legend>חיית מחמד שתבוא איתך</legend>
+          <div class="pf-choices">
+            <label class="chip"><input type="radio" name="pet" value="beagle" checked><span>ביגל</span></label>
+            <label class="chip"><input type="radio" name="pet" value="shepherd"><span>רועה גרמני</span></label>
+            <label class="chip"><input type="radio" name="pet" value="none"><span>בלי</span></label>
+          </div>
+        </fieldset>
+        <div class="intro-actions">
+          <button id="intro-vr" class="btn" type="button" hidden>כניסה עם משקף VR</button>
+          <button id="intro-enter" class="btn btn-primary" type="submit">כניסה לחנות ←</button>
+        </div>
+      </form>
+      </div>
+      <div class="intro-load" aria-live="polite">
+        <div class="intro-track"><div id="intro-bar"></div></div>
+        <p id="intro-progress">טוען את המוצרים…</p>
+      </div>
+      <dl class="intro-controls">
+        <div><dt>במשקף</dt><dd>כוונו על העיגולים הכחולים ברצפה כדי לעבור אזור. ההדק בוחר, Grip מרים מוצר ביד.</dd></div>
+        <div><dt>במחשב ובנייד</dt><dd>עוברים בין האזורים בסרגל למטה. הצ׳אט ורשימת המבקרים נמצאים בצד. לחיצה על מוצר מקרבת אותו, וגרירה מסובבת אותו.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- סרגל עליון (מוסתר במשקף) -->
+  <header id="hud">
+    <div class="hud-brand"><span class="hud-logo" data-logo="44"></span><span class="brand-name"><span class="y">S.Y</span> PHONE TRUCK</span><span class="brand-tagline">פתרונות טכנולוגיים חכמים</span></div>
+    <div class="hud-actions">
+    <button id="hud-hunt" type="button" aria-label="חיפוש אוצרות"><span aria-hidden="true">🏆</span> <span id="hunt-count">0/5</span></button>
+    <button id="hud-people" type="button" aria-label="מבקרים וקבוצה"><span class="dot" id="live-dot"></span><span id="hud-people-label">מבקרים</span></button>
+    <button id="hud-sound" type="button" aria-label="צלילי רקע">🔊</button>
+    <button id="hud-vr" type="button" hidden>כניסה ל-VR</button>
+    <button id="hud-cart" type="button" aria-label="סל הקניות">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>סל</span>
+      <span id="hud-cart-count" class="hud-count" hidden>0</span>
+      <span id="hud-cart-total" class="hud-total"></span>
+    </button>
+    </div>
+  </header>
+  <!-- אני: מבט מבחוץ ופעולות -->
+  <div id="me-bar" role="toolbar" aria-label="הדמות שלי" hidden>
+    <button id="me-view" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7" fill="none" stroke="currentColor" stroke-width="1.7"/></svg><span>מבט מהעיניים</span></button>
+    <button type="button" data-act="wave"><b aria-hidden="true">👋</b><span>נפנוף</span></button>
+    <button type="button" data-act="dance"><b aria-hidden="true">💃</b><span>ריקוד</span></button>
+    <button type="button" data-act="jump"><b aria-hidden="true">🎉</b><span>קפיצה</span></button>
+    <button type="button" id="me-ball"><b aria-hidden="true">🎾</b><span>כדור לכלב</span></button>
+  </div>
+  <p id="hint">לחצו על מוצר כדי לבחון אותו מקרוב</p>
+
+  <!-- ניווט בין אזורי החנות -->
+  <nav id="zones" aria-label="אזורים בחנות">
+    <div id="zones-list"></div>
+    <button id="zones-seller" type="button">שאלו את המוכרת</button>
+    <button id="zones-catalog" type="button">כל המוצרים</button>
+  </nav>
+
+  <!-- חלון מוצר -->
+  <aside id="sheet" class="drawer" role="dialog" aria-labelledby="sheet-name" hidden></aside>
+  <!-- סל קניות -->
+  <aside id="cart-drawer" class="drawer" role="dialog" aria-label="סל הקניות" hidden></aside>
+  <!-- קטלוג -->
+  <div id="catalog" hidden>
+    <div class="catalog-card" role="dialog" aria-labelledby="catalog-title">
+      <button class="drawer-x" type="button" aria-label="סגירה">×</button>
+      <h2 id="catalog-title">כל המוצרים</h2>
+      <p class="catalog-sub">לחצו על מוצר ותגיעו אליו בחנות</p>
+      <div id="catalog-grid"></div>
+    </div>
+  </div>
+  <div id="dom-toast" role="status" aria-live="polite"></div>
+
+  <!-- חיפוש אוצרות -->
+  <div id="hunt-help" class="hunt-card" hidden>
+    <h2>חיפוש אוצרות</h2>
+    <p>חמישה טלפונים מוזהבים מוסתרים ברחבה: בגינת הכלבים, בפינת הילדים, ליד הדקלים ועוד. לחצו על כל אחד שתמצאו. מי שמוצא את כולם מקבל 10% הנחה על כל הקנייה.</p>
+  </div>
+  <div id="hunt-done" class="hunt-card done" role="dialog" aria-labelledby="hunt-done-title" hidden>
+    <h2 id="hunt-done-title">מצאת את כל האוצרות! 🏆</h2>
+    <p>קיבלת קופון <b dir="ltr">SY10</b> – 10% הנחה על כל הקנייה. הוא כבר מופעל בסל שלך.</p>
+    <button type="button" class="btn-buy">איזה כיף, להמשיך</button>
+  </div>
+
+  <!-- המוכרת -->
+  <aside id="seller" class="drawer" role="dialog" aria-labelledby="seller-title" hidden>
+    <button class="drawer-x" type="button" aria-label="סגירה">×</button>
+    <p class="eyebrow">מוכרת בחנות</p>
+    <h2 id="seller-title">נועה</h2>
+    <ol id="seller-log" aria-live="polite"></ol>
+    <div id="seller-quick" class="phrase-row">
+      <button type="button">איזה טלפון הכי טוב לצילום?</button>
+      <button type="button">מה ההבדל בין X Pro ל-X?</button>
+      <button type="button">מה מתאים עד 1,500 ₪?</button>
+      <button type="button">איזה אביזרים כדאי?</button>
+    </div>
+    <form id="seller-form" autocomplete="off">
+      <button type="button" id="seller-mic" aria-label="לדבר עם המוכרת">🎤</button>
+      <input id="seller-input" type="text" maxlength="300" placeholder="שאלו את נועה…" aria-label="שאלה למוכרת">
+      <button type="submit">שליחה</button>
+    </form>
+    <label class="seller-speak"><input type="checkbox" id="seller-speak"> להקריא את התשובות בקול</label>
+  </aside>
+
+  <!-- ג'ויסטיק להליכה בנייד -->
+  <div id="joystick" aria-hidden="true"><i></i></div>
+
+  <!-- צ'אט -->
+  <section id="chat" aria-label="צ׳אט" hidden>
+    <div class="chat-head">
+      <div class="chat-tabs" role="tablist">
+        <button type="button" role="tab" id="tab-all" aria-selected="true">כולם</button>
+        <button type="button" role="tab" id="tab-group" aria-selected="false">הקבוצה שלי</button>
+      </div>
+      <button type="button" id="chat-toggle" class="chat-min" aria-label="מזעור הצ׳אט">–</button>
+    </div>
+    <div class="chat-body">
+      <ol id="chat-log" aria-live="polite"></ol>
+      <div class="chat-quick" id="chat-quick"></div>
+      <form id="chat-form" autocomplete="off">
+        <input id="chat-input" type="text" maxlength="140" placeholder="כתבו הודעה…" aria-label="הודעה">
+        <button type="submit">שליחה</button>
+      </form>
+      <p class="chat-safe">לא משתפים כאן טלפון, כתובת או קישורים. מישהו מציק? אפשר להשתיק ולדווח מרשימת המבקרים.</p>
+    </div>
+  </section>
+
+  <!-- מבקרים וקבוצה -->
+  <aside id="people" class="drawer" role="dialog" aria-labelledby="people-title" hidden>
+    <button class="drawer-x" type="button" aria-label="סגירה">×</button>
+    <h2 id="people-title">מבקרים וקבוצה</h2>
+    <section class="group-box" id="group-box"></section>
+    <h3 class="people-h">מי בחנות עכשיו</h3>
+    <ul id="people-list"></ul>
+  </aside>
+
+  <!-- הזמנה לקבוצה -->
+  <div id="invite-toast" role="alertdialog" aria-live="assertive" hidden>
+    <p id="invite-text"></p>
+    <div><button type="button" id="invite-yes">הצטרפות</button><button type="button" id="invite-no">לא עכשיו</button></div>
+  </div>
+
+  <!-- תשלום -->
+  <div id="checkout" hidden>
+    <div class="co-card" role="dialog" aria-modal="true" aria-labelledby="co-title">
+      <button id="co-close" class="co-x" type="button" aria-label="סגירה">×</button>
+      <div id="co-summary">
+        <p class="co-eyebrow">תשלום מאובטח</p>
+        <h2 id="co-title">סיכום ההזמנה</h2>
+        <p id="co-shared" class="co-shared" hidden></p>
+        <ul id="co-lines"></ul>
+        <div id="co-total"></div>
+        <form id="co-delivery" novalidate>
+          <h3>משלוח עד הבית</h3>
+          <div class="dl-grid">
+            <div class="f wide"><label for="dl-name">שם מלא</label><input id="dl-name" autocomplete="name" required><p class="field-err" id="err-name"></p></div>
+            <div class="f wide"><label for="dl-phone">טלפון לתיאום</label><input id="dl-phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required><p class="field-err" id="err-phone"></p></div>
+            <div class="f wide"><label for="dl-city">עיר</label><input id="dl-city" autocomplete="address-level2" required><p class="field-err" id="err-city"></p></div>
+            <div class="f wide"><label for="dl-street">רחוב</label><input id="dl-street" autocomplete="address-line1" required><p class="field-err" id="err-street"></p></div>
+            <div class="f"><label for="dl-house">מספר בית</label><input id="dl-house" inputmode="numeric" required><p class="field-err" id="err-house"></p></div>
+            <div class="f"><label for="dl-apt">דירה</label><input id="dl-apt" inputmode="numeric"></div>
+            <div class="f"><label for="dl-zip">מיקוד</label><input id="dl-zip" inputmode="numeric" autocomplete="postal-code" dir="ltr"></div>
+            <div class="f wide"><label for="dl-notes">הערות לשליח</label><input id="dl-notes" maxlength="140" placeholder="קומה, קוד לבניין, להשאיר ליד הדלת…"></div>
+          </div>
+          <fieldset class="slots">
+            <legend>מתי נוח לקבל?</legend>
+            <label><input type="radio" name="dl-slot" value="tomorrow-am"><b>מחר</b><span>9:00–13:00</span></label>
+            <label><input type="radio" name="dl-slot" value="tomorrow-pm"><b>מחר</b><span>16:00–20:00</span></label>
+            <label><input type="radio" name="dl-slot" value="day2-am"><b>בעוד יומיים</b><span>9:00–13:00</span></label>
+            <label><input type="radio" name="dl-slot" value="day2-pm"><b>בעוד יומיים</b><span>16:00–20:00</span></label>
+          </fieldset>
+          <p class="field-err" id="err-slot"></p>
+          <button type="submit" class="btn btn-dark">המשך לתשלום</button>
+        </form>
+        <div id="co-pay" hidden>
+          <p class="co-address"><span>משלוח אל</span> <b id="co-address"></b> <button type="button" id="co-edit-address" class="link">שינוי</button></p>
+          <div id="paypal-buttons"></div>
+        </div>
+      </div>
+      <div id="co-done" hidden>
+        <p class="co-eyebrow">ההזמנה התקבלה</p>
+        <h2>תודה שקניתם אצלנו</h2>
+        <dl class="co-receipt">
+          <div><dt>מספר אישור</dt><dd id="co-order"></dd></div>
+          <div><dt>סכום</dt><dd id="co-amount"></dd></div>
+        </dl>
+        <ol class="track">
+          <li class="done"><b>ההזמנה התקבלה</b><span>עכשיו</span></li>
+          <li><b>נארזת במשאית</b><span>היום</span></li>
+          <li><b>יוצאת למשלוח</b><span id="co-eta"></span></li>
+          <li><b>אצלכם בבית</b><span id="co-dest"></span></li>
+        </ol>
+        <p class="co-note">נשלח לכם SMS לפני שהשליח מגיע. אישור תשלום נשלח במייל מ-PayPal.</p>
+        <button id="co-back-vr" class="btn btn-primary" type="button" hidden>חזרה לחנות במשקף</button>
+        <button id="co-close-done" class="btn" type="button">המשך בקנייה</button>
+      </div>
+      <p id="co-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <a-scene
+    store
+    atmosphere
+    cinematic
+    shadow="type: pcfsoft"
+    fog="type: linear; color: #c8c9c8; near: 35; far: 190"
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 1.0; foveationLevel: 1"
+    cursor="rayOrigin: mouse; fuse: false"
+    raycaster="objects: .clickable; far: 20; interval: 40"
+    xr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    loading-screen="enabled: false">
+
+    <a-entity light="type: hemisphere; color: #bcd2ee; groundColor: #8a7c6c; intensity: 0.7"></a-entity>
+    <a-entity id="sun" light="type: directional; color: #ffe2bd; intensity: 3.2; castShadow: true; shadowMapWidth: 4096; shadowMapHeight: 4096; shadowCameraLeft: -22; shadowCameraRight: 22; shadowCameraTop: 22; shadowCameraBottom: -22; shadowCameraNear: 1; shadowCameraFar: 90; shadowBias: -0.0004; shadowRadius: 2" position="22.9 10.7 16.2"></a-entity>
+
+    <!-- המבקר: rig + מצלמה + בקרים -->
+    <a-entity id="rig" position="0 0 8.2" thumbstick-move walker>
+      <a-entity id="camera" camera position="0 1.6 0" look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 18">
+        <a-entity id="toast" position="0 -0.3 -1.1" visible="false"></a-entity>
+      </a-entity>
+      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; far: 12; lineColor: #f5f2ed; lineOpacity: 0.5" haptics grabber>
+        <a-entity id="wrist-cart" position="0 0.045 0.1" rotation="-60 0 0"></a-entity>
+      </a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 12; lineColor: #f5f2ed; lineOpacity: 0.5" haptics grabber></a-entity>
+    </a-entity>
+
+    <!-- החנות נבנית מתוך js/app.js לפי js/products.js -->
+    <a-entity id="store-root"></a-entity>
+    <a-entity id="plaza" plaza></a-entity>
+    <a-entity id="others"></a-entity>
+    <a-entity id="play" play></a-entity>
+    <a-entity id="hover" visible="false" face-camera></a-entity>
+    <a-entity id="panel" visible="false"></a-entity>
+  </a-scene>
+</body>
+</html>
