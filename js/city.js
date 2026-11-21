@@ -59,6 +59,69 @@
     });
   }
 
+
+  /* ---------- רחבה מצולמת: צילום 360 אמיתי שהחלק התחתון שלו מוקרן לרצפה ----------
+   * (כמו GroundedSkybox של three.js) – הדמויות, המשאית והחנויות עומדות על הרצפה המצולמת.
+   * הצילום: Schadowplatz מ-Poly Haven (CC0).
+   */
+  const PHOTO = { height: 3.1, radius: 200, rotation: 0, gain: 1.85 };
+  function groundedSphere(map, height, radius) {
+    const geo = new THREE.SphereGeometry(radius, 128, 64);
+    geo.scale(1, 1, -1);
+    const pos = geo.getAttribute('position');
+    const v = new THREE.Vector3();
+    const y1 = -height * 3 / 2;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      if (v.y < 0) {
+        const f = v.y < y1 ? -height / v.y : (1 - (v.y * v.y) / (3 * y1 * y1));
+        v.multiplyScalar(f);
+        v.toArray(pos.array, 3 * i);
+      }
+    }
+    pos.needsUpdate = true;
+    // gain: מפצה על הטון הקולנועי (ACES) כדי שהצילום ייראה כמו המקור
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map, depthWrite: false, fog: false, color: new THREE.Color(PHOTO.gain, PHOTO.gain, PHOTO.gain) }));
+    m.renderOrder = -10;
+    m.frustumCulled = false;
+    return m;
+  }
+  function photoPlaza(g, sceneEl) {
+    const scene = sceneEl.object3D;
+    scene.fog = null;
+    scene.background = new THREE.Color('#b9c0c8');
+    const big = () => (sceneEl.renderer && sceneEl.renderer.capabilities.maxTextureSize >= 8192 && !/Android|iPhone|iPad|Quest/i.test(navigator.userAgent));
+    const load = () => {
+      TL.load(`assets/sky/plaza-${big() ? '8k' : '4k'}.webp`, (t) => {
+        if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 8;
+        t.minFilter = THREE.LinearMipmapLinearFilter;
+        const sky = groundedSphere(t, PHOTO.height, PHOTO.radius);
+        sky.position.y = PHOTO.height;
+        sky.rotation.y = PHOTO.rotation;
+        g.add(sky);
+      });
+      // תאורה והשתקפויות מאותו צילום
+      TL.load('assets/sky/plaza-env.webp', (t) => {
+        t.mapping = THREE.EquirectangularReflectionMapping;
+        if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
+        const pm = new THREE.PMREMGenerator(sceneEl.renderer);
+        scene.environment = pm.fromEquirectangular(t).texture;
+        scene.environmentIntensity = 1.1;
+        pm.dispose();
+      });
+    };
+    if (sceneEl.renderer) load(); else sceneEl.addEventListener('renderstart', load, { once: true });
+    // צללים על הרצפה המצולמת
+    const catcher = mesh(new THREE.PlaneGeometry(90, 90), new THREE.ShadowMaterial({ opacity: 0.3 }), [0, 0.003, 0], [-Math.PI / 2, 0, 0]);
+    catcher.receiveShadow = true; g.add(catcher);
+    // יום מעונן: שמש רכה יותר
+    const sun = document.querySelector('#sun');
+    if (sun) { sun.setAttribute('light', 'intensity', 1.7); sun.setAttribute('light', 'color', '#fff6ea'); sun.setAttribute('light', 'shadowRadius', 4); }
+    const hemi = document.querySelector('a-entity[light^="type: hemisphere"]');
+    if (hemi) hemi.setAttribute('light', 'intensity', 1.0);
+  }
+
   /* ---------- קרקע: אספלט, מדרכות, אבני שפה, סימוני כביש ---------- */
   function ground(g) {
     const asphalt = pbr('asphalt-02', [60, 60], { color: '#8a8a8a' });
@@ -437,9 +500,12 @@
     redrawers: [],
     obstacles: OBST,
     build(g, sceneEl) {
+      if (City.mode === 'photo') { photoPlaza(g, sceneEl); return; }
       ground(g); neighborhood(g); streetLife(g);
       sky(sceneEl);
     },
+    mode: 'photo', // 'photo' = רחבה מצולמת אמיתית, 'model' = השכונה המודלת הישנה
+    PHOTO,
     tick(dt, t) { anims.forEach((fn) => fn(dt, t)); },
     redraw() { this.redrawers.forEach((fn) => fn()); },
   };

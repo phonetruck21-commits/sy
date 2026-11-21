@@ -29,3 +29,6 @@ resized and converted to WebP for faster loading.
 | `../textures/white-stucco-*` | white_stucco |
 | `../textures/leafy-grass-*` | leafy_grass |
 | `../sky/sky.webp` | qwantani_late_afternoon_puresky |
+
+## רקע הרחבה המצולם
+- `assets/sky/plaza-*.webp` – צילום 360 של Schadowplatz (דיסלדורף) מ-[Poly Haven](https://polyhaven.com/a/schadowplatz), רישיון CC0.

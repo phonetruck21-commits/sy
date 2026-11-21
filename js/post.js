@@ -60,7 +60,7 @@
       c = clamp((c - 0.5) * 1.03 + 0.5, 0.0, 1.0);
       c = c + (1.0 - c) * 0.025; // הרמת צללים עדינה
       // וינייטה
-      vec2 q = vUv - 0.5; c *= mix(1.0, 0.82, smoothstep(0.25, 0.85, dot(q, q) * 2.2));
+      vec2 q = vUv - 0.5; c *= mix(1.0, 0.9, smoothstep(0.25, 0.85, dot(q, q) * 2.2));
       c = toSRGB(c);
       c += (hash(vUv * 731.0) - 0.5) * 0.018; // גרעין
       gl_FragColor = vec4(c, 1.0);
