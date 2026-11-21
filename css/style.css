@@ -849,3 +849,29 @@ body.sheet-open #me-bar { display: none; }
 .intro-actions { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(180deg, rgba(7,11,22,0), var(--night) 35%); z-index: 2; }
 .intro-actions .btn-primary { flex: 1; min-height: 54px; font-size: 18px; border-radius: 12px; }
 .intro-actions .btn { border-radius: 12px; }
+
+/* ---------- מתחם הקניות ---------- */
+#zones-mall { background: var(--yellow) !important; color: var(--ink) !important; font-weight: 700; }
+.ms-pic { display: grid; place-items: center; aspect-ratio: 4 / 3; margin: 6px 0 14px; border-radius: 12px; font-size: 92px; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 18%, #fff) 0 45%, #f3f2ee 46%); overflow: hidden; }
+.ms-pic img { width: 100%; height: 100%; object-fit: cover; }
+.ms-store { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--muted); letter-spacing: .04em; }
+.ms-store i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ms-price { margin: 0 0 8px; font-size: 24px; font-weight: 700; }
+.ms-desc { margin: 0 0 14px; line-height: 1.6; color: #3c4252; }
+.ms-row { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; }
+.ms-qty { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 12px; }
+.ms-qty button { width: 44px; height: 44px; border: 0; background: none; font-size: 22px; cursor: pointer; color: var(--ink); }
+.ms-qty span { min-width: 28px; text-align: center; font-weight: 700; }
+.ms-add { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--yellow); color: var(--ink); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.ms-add:disabled { background: #e7e5e0; color: #6b6b6b; cursor: not-allowed; }
+.ms-sub { margin: 18px 0 8px; font-weight: 700; }
+.ms-more { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ms-more button { display: grid; gap: 2px; justify-items: center; padding: 10px 6px; min-height: 44px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }
+.ms-more .e { font-size: 34px; } .ms-more img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+.ms-note { margin: 14px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+.dir-list { display: grid; gap: 8px; margin: 10px 0 16px; }
+.dir-item { display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 56px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font: inherit; text-align: start; cursor: pointer; color: var(--ink); }
+.dir-item:hover { border-color: var(--ink); }
+.dir-item i { width: 18px; height: 18px; border-radius: 6px; flex: none; }
+.dir-item i.free { border: 2px dashed #b7b2a8; }
+.dir-item b { display: block; } .dir-item small { color: var(--muted); }

@@ -15,6 +15,7 @@ const express = require('express');
 try { process.loadEnvFile(path.join(__dirname, '.env')); } catch (e) { /* אין .env – משתמשים במשתני סביבה */ }
 
 const { STORE_CONFIG, PRODUCTS } = require('./js/products.js');
+const mall = require('./mall.js'); // מתחם הקניות: חנויות של עסקים במנוי חודשי
 
 const {
   PAYPAL_CLIENT_ID = '',
@@ -101,9 +102,10 @@ function buildOrder(items, delivery, coupon) {
   // מפתח בסל: "מזהה-מוצר" או "מזהה-מוצר|צבע"
   const lines = Object.entries(items).map(([key, qty]) => {
     const [id, variantId] = String(key).split('|');
-    const product = PRODUCTS.find((p) => p.id === id);
+    const product = PRODUCTS.find((p) => p.id === id) || mall.findProduct(id);
     const q = Number(qty);
     if (!product) throw httpError(400, `מוצר לא קיים: ${id}`);
+    if (product.demo) throw httpError(400, `"${product.name}" הוא מוצר מחנות לדוגמה ואי אפשר לקנות אותו`);
     if (!Number.isInteger(q) || q < 1 || q > 99) throw httpError(400, `כמות לא תקינה: ${id}`);
     let variant = null;
     if (variantId) {
@@ -177,6 +179,8 @@ const pending = new Map();
 setInterval(() => { const old = Date.now() - 3600e3; pending.forEach((v, k) => { if (v.at < old) pending.delete(k); }); }, 600e3).unref();
 
 const app = express();
+app.set('trust proxy', 1);
+app.use(mall.init({ paypal, env: PAYPAL_ENV })); // לפני מפענח ה-JSON הכללי (תמונות מוצרים גדולות יותר)
 app.use(express.json({ limit: '20kb' }));
 
 // מגישים רק את קבצי האתר – לא את .env, server.js או data/
@@ -238,6 +242,7 @@ app.post('/api/orders/:id/capture', async (req, res, next) => {
         group: extra.group,
         items: unit.items,
       });
+      try { mall.recordOrder({ time: new Date().toISOString(), orderId: result.orderId, items: unit.items, delivery: extra.delivery }); } catch (e) { console.error('mall order', e); }
       console.log(`✓ Order paid: ${result.orderId} ${capture.amount && capture.amount.value} ${CURRENCY}`);
     }
     res.json(result);

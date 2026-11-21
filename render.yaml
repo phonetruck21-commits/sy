@@ -19,3 +19,5 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false           # מתחם הקניות: עדכוני מנויים מ-PayPal

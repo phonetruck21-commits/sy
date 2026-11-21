@@ -31,7 +31,7 @@
     listeners: [],
     load() {
       try { this.items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { this.items = {}; }
-      Object.keys(this.items).forEach((k) => { if (!this.resolve(k)) delete this.items[k]; });
+      Object.keys(this.items).forEach((k) => { if (!this.resolve(k) && !k.startsWith('m.')) delete this.items[k]; }); // מוצרי המתחם נטענים מאוחר יותר
     },
     save() {
       if (!this.adapter) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items)); } catch (e) { /* מצב פרטי */ } }
@@ -76,8 +76,8 @@
     lines() {
       return Object.entries(this.items).map(([key, qty]) => {
         const r = this.resolve(key);
-        return { key, qty, product: r.product, variant: r.variant, subtotal: r.product.price * qty };
-      });
+        return r && { key, qty, product: r.product, variant: r.variant, subtotal: r.product.price * qty };
+      }).filter(Boolean);
     },
     count() { return Object.values(this.items).reduce((a, b) => a + b, 0); },
     total() { return this.lines().reduce((a, l) => a + l.subtotal, 0); },
@@ -825,7 +825,7 @@
 
   function onProductLoaded() {
     loaded++;
-    const total = window.PRODUCTS.length;
+    const total = window.PRODUCTS.filter((p) => !p.mall).length; // מוצרי המתחם לא נבנים בתלת-ממד
     const el = $('#intro-progress');
     if (el) el.textContent = loaded < total ? `טוען את המוצרים… ${loaded} מתוך ${total}` : 'החנות מוכנה';
     const bar = $('#intro-bar');
@@ -1119,6 +1119,7 @@
     const slots = Tk.slots();
     const used = { table: 0, shelf: 0 };
     window.PRODUCTS.forEach((p) => {
+      if (p.mall) return; // מוצרי המתחם מוצגים בחנויות שלהם
       const kind = slots[p.display] ? p.display : 'table';
       const slot = slots[kind][used[kind]++];
       if (!slot) { console.warn('אין מקום תצוגה פנוי עבור', p.id); return; }
@@ -1511,7 +1512,7 @@
       const ul = h('ul', 'cart-lines');
       lines.forEach((l) => {
         const li = h('li');
-        li.append(thumbImg(Products[l.product.id], 'thumb'));
+        li.append(thumbImg(Products[l.product.id] || { thumb: l.product.image || l.product.thumb }, 'thumb'));
         const info = h('div', 'info');
         info.append(h('p', 'name', l.product.name));
         if (l.variant) info.append(h('p', 'sub', l.variant.label));

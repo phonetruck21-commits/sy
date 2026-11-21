@@ -232,7 +232,7 @@ function attach(server) {
           if (!g) return;
           const key = String(m.key || '');
           const [id, vid] = key.split('|');
-          const prod = PRODUCTS.find((x) => x.id === id);
+          const prod = PRODUCTS.find((x) => x.id === id) || require('./mall.js').findProduct(id);
           if (!prod || (vid && !(prod.variants || []).some((v) => v.id === vid))) return;
           const cur = g.cart[key] || { qty: 0, by: new Set() };
           const qty = Math.max(0, Math.min(99, m.op === 'set' ? Number(m.qty) || 0 : cur.qty + (Number(m.qty) || 1)));

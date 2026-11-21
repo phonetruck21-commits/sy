@@ -25,6 +25,7 @@
   <script src="js/app.js"></script>
   <script src="js/social.js"></script>
   <script src="js/play.js"></script>
+  <script src="js/mall3d.js"></script>
 </head>
 <body>
   <!-- מסך פתיחה -->
@@ -103,10 +104,14 @@
   <!-- ניווט בין אזורי החנות -->
   <nav id="zones" aria-label="אזורים בחנות">
     <div id="zones-list"></div>
+    <button id="zones-mall" type="button">מתחם הקניות</button>
     <button id="zones-seller" type="button">שאלו את המוכרת</button>
     <button id="zones-catalog" type="button">כל המוצרים</button>
   </nav>
 
+  <!-- מתחם הקניות: מוצר של עסק, ומדריך החנויות -->
+  <aside id="mall-sheet" class="drawer" role="dialog" aria-label="מוצר מהמתחם" hidden></aside>
+  <aside id="mall-dir" class="drawer" role="dialog" aria-label="מדריך המתחם" hidden></aside>
   <!-- חלון מוצר -->
   <aside id="sheet" class="drawer" role="dialog" aria-labelledby="sheet-name" hidden></aside>
   <!-- סל קניות -->
@@ -281,6 +286,7 @@
     <a-entity id="plaza" plaza></a-entity>
     <a-entity id="others"></a-entity>
     <a-entity id="play" play></a-entity>
+    <a-entity id="mall" mall></a-entity>
     <a-entity id="hover" visible="false" face-camera></a-entity>
     <a-entity id="panel" visible="false"></a-entity>
   </a-scene>
