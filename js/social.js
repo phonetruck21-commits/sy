@@ -38,7 +38,7 @@
       let saved = {};
       try { saved = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch (e) { /* ignore */ }
       const cast = C().CAST || {};
-      const order = ['Female_Adult_01', 'Male_Adult_08', 'Female_Adult_08', 'Male_Adult_09', 'Female_Adult_17', 'Male_Adult_16', 'Female_Child_01', 'Male_Child_01'].filter((id) => cast[id]);
+      const order = ['Custom_Male_01', 'Female_Adult_01', 'Male_Adult_08', 'Female_Adult_08', 'Male_Adult_09', 'Female_Adult_17', 'Male_Adult_16', 'Female_Child_01', 'Male_Child_01'].filter((id) => cast[id]);
       const box = $('#pf-avatars');
       const current = order.includes(saved.avatar) ? saved.avatar : order[0];
       order.forEach((id) => {
@@ -156,17 +156,21 @@
       const Tk = window.StoreTruck;
       const eye = this.eye(new THREE.Vector3());
       const inside = Tk.inInterior(eye.x, eye.z) || (Tk.inSteps(eye.x, eye.z) && eye.z < Tk.T.Z1 + 0.4);
-      // בתוך המשאית צפוף – מבט מהעיניים. בחוץ – רואים את עצמנו
-      if (inside) this.viewNow = 'first';
-      let want = this.viewNow === 'third' ? 2.7 : 0;
+      // רואים את עצמנו תמיד; בתוך המשאית המצלמה קרובה יותר ולא עוברת דרך הקירות והתקרה
+      const near = inside || (eye.z < Tk.T.Z1 + 2.8 && Math.abs(eye.x) < Tk.T.X1);
+      this.near = near;
+      let want = this.viewNow === 'third' ? (near ? 1.6 : 2.7) : 0;
       // לא לתת למצלמה לצאת דרך קירות המשאית
       if (want) {
         const e = camEl.object3D;
         const test = new THREE.Vector3();
         for (let d = want; d > 0.4; d -= 0.15) {
-          test.set(0, d * 0.2, d); e.localToWorld(test);
+          test.set(0, d * (near ? 0.08 : 0.2) + 0.1, d); e.localToWorld(test);
           const obst = (window.StorePlaza && window.StorePlaza.obstacles) || [];
-          const ok = !(test.x > Tk.T.X0 - 0.3 && test.x < Tk.T.CAB_X1 + 0.2 && test.z > Tk.T.Z0 - 0.3 && test.z < Tk.T.Z1 + 0.2 && test.y < Tk.T.ROOF + 0.3)
+          const T = Tk.T;
+          const inTruckBox = test.x > T.X0 - 0.3 && test.x < T.CAB_X1 + 0.2 && test.z > T.Z0 - 0.3 && test.z < T.Z1 + 0.2 && test.y < T.ROOF + 0.3;
+          const inRoom = test.x > T.X0 + 0.3 && test.x < T.X1 - 0.3 && test.z > T.Z0 + 0.3 && test.y < T.ROOF - 0.35;
+          const ok = (inside ? (inRoom || !inTruckBox) : !inTruckBox)
             && !obst.some(([ox, oz, r]) => Math.hypot(test.x - ox, test.z - oz) < r && test.y < 4.5);
           want = d;
           if (ok) break;
@@ -174,11 +178,19 @@
       }
       if (this.viewNow === 'first') this.boom = 0;
       else this.boom += (want - this.boom) * Math.min(1, dt * 4);
-      cam.position.set(0, this.boom * 0.2 + (this.boom > 0.05 ? 0.15 : 0), this.boom);
+      if (this.near && this.boom > 0.05) {
+        // ליד המשאית: המצלמה זזה אחורה אופקית ונשארת מתחת לשלט שמעל הפתח
+        const fw = new THREE.Vector3(); const ew = new THREE.Vector3();
+        this.eye(ew, fw);
+        const wpos = ew.clone().addScaledVector(fw, -this.boom);
+        wpos.y = Math.min(ew.y + 0.3, Tk.T.OPEN_TOP - 0.2);
+        camEl.object3D.worldToLocal(wpos);
+        cam.position.copy(wpos);
+      } else cam.position.set(0, this.boom * 0.2 + (this.boom > 0.05 ? 0.1 : 0), this.boom);
       // הדמות שלי
       const av = this.myAv;
       if (av) {
-        const show = this.viewNow === 'third' && this.boom > 0.6;
+        const show = this.viewNow === 'third' && this.boom > 0.5;
         av.object.visible = show;
         const fwd = new THREE.Vector3();
         this.eye(eye, fwd);

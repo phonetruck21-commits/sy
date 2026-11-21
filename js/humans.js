@@ -20,6 +20,7 @@
     Female_Child_01: { g: 'f', kid: true, name: 'ילדה' },
     Male_Child_01: { g: 'm', kid: true, name: 'ילד' },
     Business_Female_01: { g: 'f', name: 'נועה' },
+    Custom_Male_01: { g: 'm', name: 'כובע וזקן' }, // מותאם לפי תמונה (בסיס Male_Adult_17)
   };
   const ADULTS_F = ['Female_Adult_01', 'Female_Adult_08', 'Female_Adult_17'];
   const ADULTS_M = ['Male_Adult_08', 'Male_Adult_09', 'Male_Adult_16'];

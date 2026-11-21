@@ -811,7 +811,7 @@ body.sheet-open #me-bar { display: none; }
 
 /* ---------- בחירת דמות ---------- */
 .creator { display: block; }
-.avatar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.avatar-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 520px; margin-inline: auto; }
 .avatar-card { position: relative; display: flex; flex-direction: column; align-items: center; border-radius: 14px; background: linear-gradient(180deg, #16223d, #0c1426); border: 2px solid #233150; cursor: pointer; overflow: hidden; transition: border-color .15s ease, transform .15s ease; }
 .avatar-card:hover { transform: translateY(-2px); border-color: #3b5288; }
 .avatar-card input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
@@ -819,7 +819,7 @@ body.sheet-open #me-bar { display: none; }
 .avatar-cap { padding: 6px 4px 8px; font-size: 14px; font-weight: 500; color: var(--night-ink); }
 .avatar-card:has(input:checked) { border-color: var(--yellow); box-shadow: 0 0 0 2px var(--yellow), 0 8px 24px rgba(255,210,31,.18); }
 .avatar-card:has(input:focus-visible) { outline: 3px solid var(--blue); outline-offset: 2px; }
-@media (max-width: 480px) { .avatar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } .avatar-cap { font-size: 12px; } }
+@media (max-width: 480px) { .avatar-grid { gap: 6px; } .avatar-cap { font-size: 12px; } }
 
 /* ---------- נגישות ונוחות: יעדי לחיצה 44px, סרגל עליון קומפקטי בטלפון ---------- */
 #hud button, #zones button { min-height: 44px; white-space: nowrap; }
