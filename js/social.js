@@ -605,6 +605,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     Social.initForm();
+    // פעולות הדמות (נפנוף, ריקוד...) מוסתרות מאחורי "עוד" כדי שהמסך יישאר נקי
+    const more = $('#me-more');
+    if (more) more.addEventListener('click', () => { const open = $('#me-bar').classList.toggle('open'); more.setAttribute('aria-expanded', open); });
     const others = $('#others');
     const attach = () => {
       others.setAttribute('social-tick', '');

@@ -45,15 +45,18 @@
     return t;
   }
   function signTex(store, free) {
-    return canvasTex(1024, 160, (x, W, H) => {
-      x.fillStyle = '#10141d'; x.fillRect(0, 0, W, H);
+    return canvasTex(1400, 200, (x, W, H) => {
+      x.fillStyle = '#fbfaf7'; x.fillRect(0, 0, W, H);
       const col = free ? '#ffd21f' : store.color;
-      x.fillStyle = col; x.fillRect(0, H - 12, W, 12);
-      x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      x.fillStyle = '#ffffff'; x.font = `800 ${free ? 70 : 76}px ${FONT}`;
-      x.fillText(free ? 'להשכרה' : store.name, W / 2, H * 0.42);
-      x.fillStyle = free ? '#ffd21f' : '#c9d1df'; x.font = `500 30px ${FONT}`;
-      x.fillText(free ? 'S.Y MALL · פתחו כאן את החנות שלכם' : (store.tagline || ''), W / 2, H * 0.8);
+      // סמל צבעוני קטן + שם העסק בכתב נקי
+      x.fillStyle = col; if (x.roundRect) { x.beginPath(); x.roundRect(W - 150, 50, 100, 100, 22); x.fill(); } else x.fillRect(W - 150, 50, 100, 100);
+      x.fillStyle = '#ffffff'; x.font = `800 58px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+      x.fillText(free ? '+' : (store.name || '').trim().charAt(0), W - 100, 102);
+      x.textAlign = 'right';
+      x.fillStyle = '#121620'; x.font = `700 78px ${FONT}`;
+      x.fillText(free ? 'מקום פנוי להשכרה' : store.name, W - 190, H * 0.42);
+      x.fillStyle = '#6a7180'; x.font = `400 34px ${FONT}`;
+      x.fillText(free ? 'S.Y MALL · פתחו כאן את החנות שלכם' : (store.tagline || ''), W - 190, H * 0.78);
     });
   }
   function productTex(p, color) {
@@ -97,12 +100,22 @@
   const M = {};
   function mats() {
     if (M.frame) return M;
-    M.frame = new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.35, metalness: 0.8 });
-    M.wall = new THREE.MeshStandardMaterial({ color: '#f1efea', roughness: 0.85 });
-    M.floor = new THREE.MeshStandardMaterial({ color: '#cfcac0', roughness: 0.55 });
-    M.white = new THREE.MeshStandardMaterial({ color: '#fafafa', roughness: 0.5 });
-    M.wood = new THREE.MeshStandardMaterial({ color: '#b8875a', roughness: 0.6 });
-    M.led = new THREE.MeshBasicMaterial({ color: '#fff4dc', toneMapped: false });
+    M.frame = new THREE.MeshStandardMaterial({ color: '#16181d', roughness: 0.3, metalness: 0.85 });
+    M.wall = new THREE.MeshStandardMaterial({ color: '#f4f3ef', roughness: 0.9 });
+    M.ceil = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9 });
+    const wood = (() => { // טקסטורת אלון עדינה
+      const t = canvasTex(512, 512, (x, W, H) => {
+        x.fillStyle = '#c9a57a'; x.fillRect(0, 0, W, H);
+        for (let i = 0; i < 220; i++) { const y = Math.random() * H; x.strokeStyle = `rgba(${90 + Math.random() * 40},${60 + Math.random() * 30},${30},${0.08 + Math.random() * 0.12})`; x.lineWidth = 1 + Math.random() * 2; x.beginPath(); x.moveTo(0, y); x.bezierCurveTo(W * 0.3, y + 6 * Math.sin(i), W * 0.6, y - 5, W, y + 3); x.stroke(); }
+        for (let k = 0; k < 6; k++) { x.fillStyle = 'rgba(80,55,30,0.18)'; x.fillRect(0, (k * H) / 6, W, 2); }
+      });
+      t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); return t;
+    })();
+    M.floor = new THREE.MeshStandardMaterial({ map: wood, roughness: 0.55 });
+    M.wood = new THREE.MeshStandardMaterial({ map: wood, roughness: 0.5 });
+    M.white = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.4 });
+    M.glass = new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.05, transmission: 0, transparent: true, opacity: 0.12, metalness: 0.1, clearcoat: 1 });
+    M.led = new THREE.MeshBasicMaterial({ color: '#fff6e6', toneMapped: false });
     return M;
   }
   const box = (w, hh, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; return o; };
@@ -116,17 +129,24 @@
     const m = mats();
     const g = new THREE.Group();
     g.position.set(pose.x, 0, pose.z); g.rotation.y = pose.ry;
-    // מבנה: רצפה, קירות, גג, עמודי חזית
-    g.add(box(W, 0.08, D, m.floor, 0, 0.04, -D / 2));
-    const accent = new THREE.MeshStandardMaterial({ color: free ? '#e9e6df' : store.color, roughness: 0.7 });
-    g.add(box(W, H, 0.12, free ? m.wall : accent, 0, H / 2, -D));
-    [-1, 1].forEach((s) => { g.add(box(0.14, H, D, m.frame, s * W / 2, H / 2, -D / 2)); });
-    g.add(box(W + 0.3, 0.2, D + 0.35, m.frame, 0, H + 0.1, -D / 2 + 0.1));
-    // שלט
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.2, 0.62), new THREE.MeshBasicMaterial({ map: signTex(store, free), toneMapped: false }));
-    sign.position.set(0, H - 0.12, 0.2); g.add(sign);
-    g.add(box(W + 0.3, 0.7, 0.12, m.frame, 0, H - 0.12, 0.12));
-    const led = new THREE.Mesh(new THREE.BoxGeometry(W - 0.2, 0.03, 0.06), m.led); led.position.set(0, H - 0.5, -0.05); g.add(led);
+    // מבנה: במת עץ, קירות לבנים, מסגרת אלומיניום שחורה דקה, תקרה מוארת
+    g.add(box(W + 0.3, 0.12, D + 0.5, m.floor, 0, 0.06, -D / 2 + 0.25));
+    g.add(box(W, H, 0.1, m.wall, 0, H / 2, -D));
+    [-1, 1].forEach((s2) => {
+      g.add(box(0.1, H, D, m.wall, s2 * W / 2, H / 2, -D / 2));
+      g.add(box(0.05, H + 0.02, 0.05, m.frame, s2 * (W / 2 + 0.03), H / 2, 0.02)); // עמוד חזית
+    });
+    g.add(box(W + 0.12, 0.08, D + 0.1, m.wall, 0, H + 0.04, -D / 2));
+    g.add(box(W + 0.12, 0.03, 0.05, m.frame, 0, H + 0.08, 0.02));
+    const ceilLed = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.8, 0.12), m.led); ceilLed.rotation.x = Math.PI / 2; ceilLed.position.set(0, H - 0.02, -D * 0.55); g.add(ceilLed);
+    // פס צבע המותג בקיר הצד – נגיעה, לא קיר שלם
+    const accent = new THREE.MeshStandardMaterial({ color: free ? '#ffd21f' : store.color, roughness: 0.6 });
+    g.add(box(0.02, H - 0.6, 0.5, accent, -W / 2 + 0.06, H / 2 - 0.1, -D + 0.45));
+    // שלט: לוח לבן עם שם העסק, ופס אור מתחתיו
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(W, W / 7), new THREE.MeshBasicMaterial({ map: signTex(store, free), toneMapped: false }));
+    sign.position.set(0, H + 0.42, 0.04); g.add(sign);
+    g.add(box(W + 0.12, W / 7 + 0.08, 0.06, m.frame, 0, H + 0.42, 0.0));
+    const led = new THREE.Mesh(new THREE.BoxGeometry(W - 0.2, 0.02, 0.03), m.led); led.position.set(0, H + 0.08 + 0.02, 0.06); g.add(led);
     // תוכן החנות
     const hits = [];
     if (free) {
@@ -141,6 +161,7 @@
         const row = Math.floor(i / cols), col = i % cols;
         const x = (col - (cols - 1) / 2) * 1.25, y = row ? 0.95 : 1.95;
         const fr = box(0.92, 0.92, 0.05, m.white, x, y, -D + 0.1); g.add(fr);
+        g.add(box(1.0, 0.04, 0.18, m.wood, x, y - 0.74, -D + 0.14));
         const mat = new THREE.MeshStandardMaterial({ roughness: 0.6 });
         if (p.image) loader.load(p.image, (t) => { if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace; mat.map = t; mat.needsUpdate = true; });
         else mat.map = productTex(p, store.color);
@@ -150,9 +171,8 @@
         hits.push({ local: new THREE.Vector3(x, y - 0.1, -D + 0.16), w: 0.95, h: 1.2, act: () => Sheet.open(p.id) });
       });
       // דלפק ושטיח בצבע המותג
-      g.add(box(1.3, 0.95, 0.55, m.wood, W / 2 - 0.85, 0.475, -0.75));
-      const rug = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.6, 1.2), new THREE.MeshStandardMaterial({ color: store.color, roughness: 0.95 }));
-      rug.rotation.x = -Math.PI / 2; rug.position.set(0, 0.085, -D / 2); g.add(rug);
+      g.add(box(1.2, 0.9, 0.5, m.white, W / 2 - 0.8, 0.57, -0.8));
+      g.add(box(1.26, 0.04, 0.56, m.wood, W / 2 - 0.8, 1.04, -0.8));
     }
     root.object3D.add(g);
     g.updateMatrixWorld(true);

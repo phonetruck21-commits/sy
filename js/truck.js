@@ -515,8 +515,6 @@
     /* נקודות עצירה לניווט: מיקום המבקר, כיוון מבט וזווית */
     VIEWS: [
       { id: 'outside', label: 'הרחבה', x: 0, z: 8.2, yaw: 0, pitch: 0.03 },
-      { id: 'dogpark', label: 'גינת כלבים', x: -3.2, z: 10.3, yaw: 0.72, pitch: -0.12 },
-      { id: 'kids', label: 'פינת ילדים', x: 3.2, z: 10.3, yaw: -0.72, pitch: -0.12 },
       { id: 'phones', label: 'טלפונים', x: -0.25, z: 1.3, yaw: 0, pitch: -0.55 },
       { id: 'devices', label: 'טאבלט ושעון', x: -2.0, z: 1.3, yaw: 0, pitch: -0.55 },
       { id: 'accessories', label: 'אביזרים', x: -0.65, z: -0.48, yaw: 0, pitch: -0.12 },

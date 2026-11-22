@@ -919,3 +919,10 @@ body.sheet-open #shelf, body.vr #shelf { opacity: 0; pointer-events: none; }
 #chat.min { top: calc(72px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important; }
 #chat.min .chat-head { border: 0 !important; padding: 0 !important; background: transparent !important; }
 #shelf { width: auto; max-width: min(760px, calc(100% - 24px)); }
+
+/* ---------- מראה מקצועי: פחות כפתורים על המסך ---------- */
+#me-bar button[data-act], #me-bar #me-ball { display: none; }
+#me-bar.open button[data-act], #me-bar.open #me-ball { display: flex; }
+#me-more[aria-expanded="true"] { background: var(--yellow) !important; color: var(--ink) !important; }
+#hud-hunt[hidden] { display: none !important; }
+@media (min-width: 701px) { .shelf-card { width: 100px; } .shelf-name { font-size: 12px; } }

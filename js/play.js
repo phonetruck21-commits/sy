@@ -540,7 +540,9 @@
       const root = this.el;
       const build = () => {
         Seller.build($('#store-root'));
-        Ball.build(root); Slide.build(root); Hunt.build(root); Sit.build(root);
+        const photo = window.StoreCity && window.StoreCity.mode === 'photo';
+        Ball.build(root); Sit.build(root);
+        if (!photo) { Slide.build(root); Hunt.build(root); } else { const hh = $('#hud-hunt'); if (hh) hh.hidden = true; }
         Seller.setup(); Joystick.setup(); keys();
         $('#me-ball').addEventListener('click', () => Ball.throw());
         $('#hud-hunt').addEventListener('click', () => { $('#hunt-help').hidden = !$('#hunt-help').hidden; });

@@ -355,7 +355,9 @@
     init() {
       const g = new THREE.Group();
       if (window.StoreCity) { window.StoreCity.build(g, this.el.sceneEl); OBST.push(...window.StoreCity.obstacles); }
-      dogPark(g); kidsZone(g); meetingSpot(g); birds(g); bubbles(g); strollers(g); locals(g);
+      // ברחבה המצולמת: בלי אביזרי צעצוע (גינת כלבים, מגלשה, בלונים, בועות) – רק אנשים וכלבים אמיתיים
+      if (!window.StoreCity || window.StoreCity.mode !== 'photo') { dogPark(g); kidsZone(g); meetingSpot(g); birds(g); bubbles(g); }
+      strollers(g); locals(g);
       this.el.setObject3D('mesh', g);
       this.t = 0;
     },
