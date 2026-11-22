@@ -265,6 +265,12 @@
   };
   function go(slotId) {
     const p = slotPose(slotId);
+    const slot = Mall.data && Mall.data.slots.find((x) => x.id === slotId);
+    setTimeout(() => {
+      if (!V().Shelf) return;
+      if (slot && slot.store) V().Shelf.show(slot.store.name, slot.store.products.map((x) => Mall.product(x.id)).filter(Boolean));
+      else V().Shelf.show('', []);
+    }, 50);
     // עומדים מול החזית ומסתכלים פנימה
     V().Nav.go({ x: p.x - p.side * 3.4, z: p.z, yaw: p.side < 0 ? Math.PI / 2 : -Math.PI / 2, pitch: -0.08 });
   }

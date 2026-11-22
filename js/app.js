@@ -1303,6 +1303,55 @@
 
     markActive() {
       document.querySelectorAll('#zones [data-view]').forEach((b) => b.setAttribute('aria-current', b.dataset.view === this.current ? 'true' : 'false'));
+      if (typeof Shelf !== 'undefined') Shelf.forZone(this.current);
+    },
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  פס מוצרים בתחתית המסך: כרטיסים גדולים וברורים של המוצרים באזור.   *
+   *  במסך קטן המוצרים בתלת-ממד קטנים – כאן רואים ולוחצים בקלות.        *
+   * ------------------------------------------------------------------ */
+  const Shelf = {
+    title: '', list: [],
+    ZONES: {
+      phones: ['טלפונים כאן', ['phones']],
+      devices: ['טאבלט ושעון', ['tablets', 'wearables']],
+      accessories: ['אביזרים', ['audio', 'power', 'cases']],
+      checkout: ['אולי תרצו גם', ['power', 'cases', 'audio']],
+    },
+    forZone(zone) {
+      const z = this.ZONES[zone];
+      const all = window.PRODUCTS.filter((p) => !p.mall);
+      if (z) this.show(z[0], all.filter((p) => z[1].includes(p.category)));
+      else this.show('המומלצים שלנו', all);
+    },
+    show(title, list) {
+      this.title = title; this.list = list || [];
+      this.render();
+    },
+    render() {
+      const el = $('#shelf'); if (!el) return;
+      el.innerHTML = '';
+      if (!this.list.length) { el.hidden = true; return; }
+      el.hidden = false;
+      el.append(h('p', 'shelf-title', this.title));
+      const row = h('div', 'shelf-row');
+      this.list.forEach((p) => {
+        const b = h('button', 'shelf-card'); b.type = 'button';
+        b.setAttribute('aria-label', `${p.name}, ${fmt(p.price)}`);
+        const pic = h('span', 'shelf-pic');
+        const entry = Products[p.id];
+        if (entry && entry.thumb) { const im = h('img'); im.src = entry.thumb; im.alt = ''; pic.append(im); }
+        else if (p.image) { const im = h('img'); im.src = p.image; im.alt = ''; pic.append(im); }
+        else pic.textContent = p.emoji || '🛍️';
+        b.append(pic, h('span', 'shelf-name', p.name), h('b', 'shelf-price', fmt(p.price)));
+        b.addEventListener('click', () => {
+          if (p.mall && window.StoreMall) return window.StoreMall.Sheet.open(p.id);
+          Nav.toProduct(p.id).then(() => openProduct(p.id));
+        });
+        row.append(b);
+      });
+      el.append(row);
     },
   };
 
@@ -1366,6 +1415,7 @@
     makeAll() {
       Object.values(Products).forEach((e) => { e.thumb = this.make(e); });
       Catalog.render();
+      Shelf.forZone(Nav.current);
     },
   };
 
@@ -1700,5 +1750,5 @@
     },
   });
 
-  window.VRStore = { Cart, Panel, Checkout, Products, openProduct, openCart, confirmOrder, Inspect, addToCart, Nav, Sheet, CartDrawer, Catalog, Layout, toast, fmt, UI, FONT, entity, inVR, Delivery };
+  window.VRStore = { Shelf, Cart, Panel, Checkout, Products, openProduct, openCart, confirmOrder, Inspect, addToCart, Nav, Sheet, CartDrawer, Catalog, Layout, toast, fmt, UI, FONT, entity, inVR, Delivery };
 })();

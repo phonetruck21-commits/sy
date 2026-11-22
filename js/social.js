@@ -562,10 +562,10 @@
       $('#tab-group').addEventListener('click', () => this.setTab('group'));
       $('#chat-toggle').addEventListener('click', () => {
         const min = $('#chat').classList.toggle('min');
-        $('#chat-toggle').textContent = min ? '+' : '–';
+        $('#chat-toggle').textContent = min ? '💬 צ׳אט' : '–';
         $('#chat-toggle').setAttribute('aria-label', min ? 'פתיחת הצ׳אט' : 'מזעור הצ׳אט');
       });
-      $('#chat').classList.add('min'); $('#chat-toggle').textContent = '+'; $('#chat-toggle').setAttribute('aria-label', 'פתיחת הצ׳אט'); // מתחיל ממוזער – מסך נקי
+      $('#chat').classList.add('min'); $('#chat-toggle').textContent = '💬 צ׳אט'; $('#chat-toggle').setAttribute('aria-label', 'פתיחת הצ׳אט'); // מתחיל ממוזער – מסך נקי
       $('#hud-people').addEventListener('click', () => ($('#people').hidden ? this.openPeople() : this.closePeople()));
       $('#people .drawer-x').addEventListener('click', () => this.closePeople());
       $('#invite-yes').addEventListener('click', () => { $('#invite-toast').hidden = true; if (this.pendingInvite) this.send({ t: 'group-join', code: this.pendingInvite.code }); });
