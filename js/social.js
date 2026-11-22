@@ -182,7 +182,7 @@
         // ליד המשאית: המצלמה זזה אחורה אופקית ונשארת מתחת לשלט שמעל הפתח
         const fw = new THREE.Vector3(); const ew = new THREE.Vector3();
         this.eye(ew, fw);
-        const wpos = ew.clone().addScaledVector(fw, -this.boom);
+        const wpos = ew.clone().addScaledVector(fw, -this.boom).add(new THREE.Vector3(-fw.z, 0, fw.x).multiplyScalar(-0.45)); // מבט מעבר לכתף
         wpos.y = Math.min(ew.y + 0.3, Tk.T.OPEN_TOP - 0.2);
         camEl.object3D.worldToLocal(wpos);
         cam.position.copy(wpos);
@@ -578,6 +578,7 @@
 
   /* ---------- צ'אט מהיר במשקף (אי אפשר להקליד שם בנוחות) ---------- */
   function openVRChat(keep) {
+    if (!V().inVR()) return;
     const { Panel, UI } = V();
     Panel.open('vr-chat', (L) => {
       L.text('צ׳אט', { size: 0.04, weight: 700, gap: 0.01 });
@@ -610,8 +611,12 @@
       // כפתור צ'אט על פרק היד (במשקף)
       const btn = V().entity($('#leftHand'), { position: '0 0.1 0.08', rotation: '-60 0 0' });
       btn.setAttribute('canvas-text', { text: 'צ׳אט', width: 0.12, height: 0.042, fontSize: 0.018, weight: 500, align: 'center', bg: '#4c8dff', color: '#ffffff', radius: 0.021 });
-      btn.classList.add('clickable');
+      // רק במשקף: מחוץ ל-VR הכפתור מוסתר ולא לחיץ
+      btn.setAttribute('visible', false);
       btn.addEventListener('click', () => openVRChat());
+      const scene = document.querySelector('a-scene');
+      scene.addEventListener('enter-vr', () => { btn.setAttribute('visible', true); btn.classList.add('clickable'); });
+      scene.addEventListener('exit-vr', () => { btn.setAttribute('visible', false); btn.classList.remove('clickable'); if (V().Panel.kind === 'vr-chat') V().Panel.close && V().Panel.close(); });
     };
     if (others.hasLoaded) attach(); else others.addEventListener('loaded', attach);
   });

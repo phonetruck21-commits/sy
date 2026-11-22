@@ -123,6 +123,62 @@
   /* ================================================================ *
    *  2. מוכרת שמדברת (מבוסס /api/seller)                              *
    * ================================================================ */
+
+  /* מוכרת בלי שרת: כשה-AI לא זמין (תצוגה מקדימה, או בלי מפתח בשרת) עונים מהקטלוג לפי מילות מפתח */
+  function localSeller(q) {
+    const P = window.PRODUCTS.filter((p) => !p.mall);
+    const get = (id) => P.find((p) => p.id === id);
+    const f = (n) => `${Number(n).toLocaleString('he-IL')} ₪`;
+    const t = String(q || '');
+    const has = (re) => re.test(t);
+    const phones = P.filter((p) => p.category === 'phones').sort((a, b) => b.price - a.price);
+    const num = (t.replace(/,/g, '').match(/\d{3,6}/) || [])[0];
+    if (has(/תיקון|שבור|נשבר|מסך סדוק|מעבדה|לא נדלק|החלפת סוללה|מצלמות? אבטחה|אזעק|בית חכם|רשת|ראוטר|מדפסת|טונר/)) {
+      return { reply: 'את זה עושים במעבדה הניידת שלנו – תיקוני טלפונים ומחשבים, מצלמות אבטחה, אזעקות, רשתות ובית חכם. התקשרו ל-052-546-6304 או כנסו ל-phonetruck.co.il ונתאם הגעה 🙂', products: [] };
+    }
+    if (num && Number(num) >= 300) {
+      const b = Number(num);
+      const fit = phones.filter((p) => p.price <= b);
+      if (!fit.length) {
+        const extra = P.filter((p) => p.price <= b).sort((a, c) => c.price - a.price).slice(0, 2);
+        return { reply: `בתקציב של ${f(b)} אין לנו טלפון, אבל אפשר לבחור ${extra.map((p) => `${p.name} (${f(p.price)})`).join(' או ')}. הטלפון הכי משתלם שלנו הוא ${phones[phones.length - 1].name} ב-${f(phones[phones.length - 1].price)}.`, products: [...extra.map((p) => p.id), phones[phones.length - 1].id] };
+      }
+      const best = fit[0];
+      const left = b - best.price;
+      const acc = P.filter((p) => ['power', 'cases', 'audio'].includes(p.category) && p.price <= left).sort((a, c) => c.price - a.price)[0];
+      return { reply: `עד ${f(b)} הייתי ממליצה על ${best.name} ב-${f(best.price)}: ${best.description}${acc ? ` ונשאר לך מקום גם ל${acc.name} (${f(acc.price)}).` : ''}`, products: [best.id, ...(acc ? [acc.id] : [])] };
+    }
+    if (has(/הבדל|השוו|לעומת|מול|או ה/)) {
+      const a = get('nova-x-pro'), b = get('nova-x');
+      return { reply: `${a.name} (${f(a.price)}): ${a.description} ${b.name} (${f(b.price)}): ${b.description} אם צילום וזום חשובים לך – X Pro. אם רוצים טלפון קטן ומעולה במחיר נמוך יותר – X.`, products: [a.id, b.id] };
+    }
+    if (has(/צילום|מצלמ|תמונ|זום|סלפי/)) {
+      const a = get('nova-x-pro'), c = get('case-x-pro');
+      return { reply: `לצילום הכי טוב ${a.name}: שלוש מצלמות עם זום אופטי פי 5, ב-${f(a.price)}. כדאי להוסיף לו ${c.name} (${f(c.price)}) שמגן על המצלמה.`, products: [a.id, c.id] };
+    }
+    if (has(/סוללה|טעינ|מטען|פאוור|נגמר/)) {
+      const a = get('nova-a5'), pb = get('powerbank'), ch = get('charger-45');
+      return { reply: `לסוללה הכי ארוכה ${a.name} – סוללה ליומיים, ב-${f(a.price)}. ולכל טלפון: ${pb.name} (${f(pb.price)}) ו${ch.name} שטוען ל-50% ב-20 דקות (${f(ch.price)}).`, products: [a.id, pb.id, ch.id] };
+    }
+    if (has(/זול|משתלם|תקציב|מחיר|לא יקר|ילד/)) {
+      const a = get('nova-a5');
+      return { reply: `הכי משתלם אצלנו ${a.name} ב-${f(a.price)}: ${a.description}`, products: [a.id] };
+    }
+    if (has(/אביזר|כיסוי|מגן|אוזני|רמקול|מוזיק/)) {
+      const ids = ['case-x-pro', 'nova-buds', 'speaker-retro', 'charger-45'];
+      return { reply: `האביזרים הכי אהובים: ${ids.map((id) => `${get(id).name} (${f(get(id).price)})`).join(', ')}. לאיזה טלפון את/ה מחפש/ת?`, products: ids };
+    }
+    if (has(/שעון|ספורט|ריצה|דופק/)) { const w = get('nova-watch'); return { reply: `${w.name} ב-${f(w.price)}: ${w.description}`, products: [w.id] }; }
+    if (has(/טאבלט|לימוד|עבודה|מסך גדול|צפייה/)) { const w = get('nova-tab'); return { reply: `${w.name} ב-${f(w.price)}: ${w.description}`, products: [w.id] }; }
+    if (has(/משלוח|מגיע|מתי|כתובת|הביתה/)) {
+      const C = window.STORE_CONFIG || {};
+      return { reply: `משלוח עד הבית ב-${f(C.shippingCost || 29)}, וחינם בהזמנה מעל ${f(C.freeShippingOver || 300)}. בוחרים מועד בקופה: מחר או בעוד יומיים, בוקר או ערב.`, products: [] };
+    }
+    if (has(/שלום|היי|הי |בוקר|ערב טוב|מה נשמע/)) return { reply: 'שלום! 😊 מה חשוב לך – מצלמה, סוללה, גודל או מחיר? או תגידו תקציב ואמליץ.', products: [] };
+    if (has(/תודה/)) return { reply: 'בכיף! אם תרצו, אפשר להוסיף לסל ואני כאן לכל שאלה 🙂', products: [] };
+    return { reply: `אשמח לעזור! הכי נמכרים אצלנו: ${phones.map((p) => `${p.name} (${f(p.price)})`).join(', ')}. ספרו לי מה חשוב לכם או מה התקציב, ואמליץ.`, products: phones.map((p) => p.id) };
+  }
+
   const Seller = {
     history: [], busy: false, speak: false, av: null,
     build(root) {
@@ -187,17 +243,26 @@
         // לא שולחים את הודעת הפתיחה (השיחה חייבת להתחיל מהמבקר)
         const msgs = this.history.filter((m, i) => !(i === 0 && m.role === 'assistant')).slice(-20);
         const res = await fetch('api/seller', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: msgs, kid: !!(S().profile && S().profile.kid) }) });
-        const data = await res.json().catch(() => ({}));
+        let data = await res.json().catch(() => ({}));
         typing.remove();
-        if (!res.ok) throw new Error(data.error || 'המוכרת לא זמינה כרגע');
+        // בלי AI (אין שרת / אין מפתח / תקלה): עונים מהקטלוג. רק הגבלת קצב מוצגת כהודעה
+        if (res.status === 429) throw new Error(data.error || 'רגע, הרבה שאלות ברצף');
+        if (!res.ok || !data.reply) data = localSeller(text);
         this.add('assistant', data.reply, data.products);
         this.talking = Math.min(6, data.reply.length / 18);
         if (this.speak) this.say(data.reply);
       } catch (e) {
         typing.remove();
-        const li = h('li', 'error'); li.append(h('p', '', /fetch|Failed|NetworkError/i.test(e.message) ? 'המוכרת עונה כשהחנות רצה על השרת שלה.' : e.message));
-        $('#seller-log').append(li);
-        this.history.pop();
+        if (/fetch|Failed|NetworkError|Load failed/i.test(e.message)) {
+          const data = localSeller(text);
+          this.add('assistant', data.reply, data.products);
+          this.talking = 3;
+          if (this.speak) this.say(data.reply);
+        } else {
+          const li = h('li', 'error'); li.append(h('p', '', e.message));
+          $('#seller-log').append(li);
+          this.history.pop();
+        }
       } finally { this.busy = false; }
     },
     say(text) {
