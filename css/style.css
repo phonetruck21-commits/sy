@@ -1,0 +1,928 @@
+/* לוּמָה – ממשק HTML מעל החנות התלת-ממדית.
+   פלטה: נייר חם, דיו כהה, אפור-חום עדין. ללא מעברי צבע וללא אימוג׳י. */
+:root {
+  --paper: #fbfaf8;
+  --ink: #0b1222;
+  --muted: #5d677a;
+  --line: #dfe3ea;
+  --night: #070b16;
+  --night-ink: #f4f6fb;
+  --night-muted: #9aa6bd;
+  --yellow: #ffd21f;
+  --blue: #1e6bff;
+  --sale: #9b2f26;
+  --serif: "Heebo", "Segoe UI", Arial, sans-serif;
+  --sans: "Heebo", "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 26px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn:hover { background: rgba(127, 120, 110, 0.12); }
+.btn-primary { background: var(--yellow); color: var(--ink); border-color: var(--yellow); font-weight: 700; }
+.btn-primary:hover { background: #ffe066; }
+
+/* ---------- מסך פתיחה ---------- */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding-block: 32px;
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+  background: var(--night);
+  color: var(--night-ink);
+}
+.intro-inner { width: 100%; max-width: 560px; margin-block: auto; }
+.intro-eyebrow {
+  margin: 0 0 18px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--night-muted);
+}
+#intro h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(64px, 14vw, 112px);
+  line-height: 0.95;
+}
+.intro-tagline { margin: 10px 0 0; font-size: 18px; color: var(--night-muted); letter-spacing: 0.06em; }
+.intro-lede { margin: 28px 0 32px; font-size: 17px; line-height: 1.7; max-width: 46ch; color: #d9d3c9; }
+.intro-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.intro-actions .btn { color: var(--night-ink); }
+.intro-actions .btn-primary { color: var(--night); }
+.intro-load { margin-top: 26px; }
+.intro-track { height: 1px; background: #3c3a36; overflow: hidden; }
+#intro-bar { height: 100%; background: var(--night-ink); transform: scaleX(0); transform-origin: right; transition: transform 0.3s ease; }
+#intro-progress { margin: 10px 0 0; font-size: 13px; color: var(--night-muted); font-variant-numeric: tabular-nums; }
+.intro-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px 28px;
+  margin: 40px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid #3c3a36;
+}
+.intro-controls dt { font-size: 12px; font-weight: 500; letter-spacing: 0.14em; color: var(--night-muted); margin-bottom: 6px; }
+.intro-controls dd { margin: 0; font-size: 14px; line-height: 1.6; color: #cfc9bf; }
+
+/* ---------- סרגל עליון ---------- */
+#hud {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  padding-bottom: 14px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.hud-brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.hud-logo { display: inline-flex; width: 44px; height: 44px; border-radius: 11px; overflow: hidden; box-shadow: 0 0 0 2px var(--yellow), 0 6px 18px rgba(7,11,22,.35); flex: none; }
+.hud-logo img { width: 100%; height: 100%; display: block; }
+.hud-brand .brand-name { direction: ltr; unicode-bidi: isolate; font-style: italic; font-weight: 900 !important; letter-spacing: -0.01em; }
+.hud-brand .brand-name { font-family: var(--serif); font-size: 26px; font-weight: 700; }
+.hud-brand .brand-tagline { font-size: 13px; color: var(--muted); letter-spacing: 0.02em; }
+#hud-cart {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: rgba(251, 250, 248, 0.92);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+#hud-cart:hover { border-color: var(--ink); }
+.hud-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.hud-total { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hud-total:empty { display: none; }
+
+#hint {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  margin: 0;
+  padding: 10px 16px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  background: rgba(29, 28, 26, 0.82);
+  color: var(--night-ink);
+  font-size: 13px;
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.in-store #hint { opacity: 1; }
+body.in-store.hint-done #hint { opacity: 0; }
+
+#dom-toast {
+  position: fixed;
+  top: calc(76px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 20;
+  transform: translate(-50%, -8px);
+  padding: 12px 18px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  background: var(--night);
+  color: var(--night-ink);
+  font-size: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#dom-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- חלון תשלום ---------- */
+#checkout {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(29, 28, 26, 0.55);
+  overflow-y: auto;
+}
+.co-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  box-sizing: border-box;
+  padding: 32px 28px 24px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 2px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+}
+.co-eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.16em; color: var(--muted); }
+.co-card h2 { margin: 0 0 20px; font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.15; }
+.co-x {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.co-x:hover { color: var(--ink); }
+#co-lines { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+#co-lines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+#co-lines li > div { min-width: 0; }
+.co-name { display: block; font-weight: 500; }
+.co-sub { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.co-sub:empty { display: none; }
+.co-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+#co-lines li.co-ship { color: var(--muted); }
+#co-total { display: flex; justify-content: space-between; margin: 16px 0 22px; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+#paypal-buttons { min-height: 50px; }
+#co-status { margin: 12px 0 0; font-size: 14px; color: var(--muted); line-height: 1.5; }
+#co-status:empty { display: none; }
+#co-status.error { color: var(--sale); }
+.co-receipt { margin: 0 0 16px; border-top: 1px solid var(--line); }
+.co-receipt div { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.co-receipt dt { color: var(--muted); }
+.co-receipt dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+.co-note { margin: 0 0 20px; font-size: 14px; color: var(--muted); }
+#co-done .btn { width: 100%; margin-top: 10px; color: var(--ink); }
+#co-done .btn-primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+@media (max-width: 520px) {
+  .hud-brand .brand-tagline { display: none; }
+  .hud-brand .brand-name { font-size: 24px; }
+  .intro-actions .btn { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #intro-bar, #hint, #dom-toast, .btn { transition: none; }
+}
+
+/* ---------- סרגל אזורים ---------- */
+#zones {
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  padding: 6px;
+  background: rgba(251, 250, 248, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+body.in-store #zones { opacity: 1; pointer-events: auto; }
+#zones-list { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+#zones-list::-webkit-scrollbar { display: none; }
+#zones button {
+  flex: none;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#zones button:hover { background: rgba(29, 28, 26, 0.07); }
+#zones button[aria-current="true"] { background: var(--yellow); color: var(--ink); font-weight: 700; }
+#zones-catalog { background: #1557d6 !important; color: #fff !important; }
+
+#hint {
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+}
+body.sheet-open #hint, body.hint-done #hint { opacity: 0; }
+
+/* ---------- מגירות: חלון מוצר וסל ---------- */
+.drawer {
+  position: fixed;
+  top: calc(72px + env(safe-area-inset-top, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  width: min(380px, calc(100% - 32px));
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 26px 24px 22px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  animation: drawer-in 0.22s ease both;
+}
+@keyframes drawer-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+.drawer-x {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.drawer-x:hover { background: rgba(29, 28, 26, 0.06); color: var(--ink); }
+.drawer h2 { margin: 2px 0 8px; font-size: 26px; font-weight: 700; line-height: 1.2; }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 500; letter-spacing: 0.14em; color: var(--muted); }
+
+.sheet-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin: 0 0 14px; font-variant-numeric: tabular-nums; }
+.sheet-price .now { font-size: 22px; font-weight: 500; }
+.sheet-price .now.sale { color: var(--sale); }
+.sheet-price .was { color: var(--muted); }
+.sheet-price .save { font-size: 13px; color: var(--sale); background: #f6e7e5; padding: 2px 8px; border-radius: 999px; }
+.sheet-desc { margin: 0 0 18px; font-size: 15px; line-height: 1.65; }
+.sheet-colors { margin: 0 0 18px; padding: 0; border: 0; }
+.sheet-colors legend { padding: 0; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
+.sheet-colors legend b { color: var(--ink); font-weight: 500; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--paper);
+  background: var(--c);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
+.sheet-buy { display: flex; gap: 10px; align-items: stretch; margin-bottom: 10px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.stepper button { width: 40px; min-height: 48px; border: 0; background: transparent; color: var(--ink); font-size: 18px; cursor: pointer; }
+.stepper button:hover { background: rgba(29, 28, 26, 0.06); }
+.stepper output { min-width: 24px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stepper.small button { width: 34px; min-height: 34px; font-size: 16px; }
+.btn-buy {
+  flex: 1;
+  min-height: 50px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.drawer > .btn-buy { width: 100%; margin-top: 6px; }
+.btn-buy:hover { background: #000; }
+.link { border: 0; background: none; padding: 8px 0; color: var(--ink); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.sheet-specs { margin: 18px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); list-style: none; display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.sheet-hint { margin: 16px 0 0; font-size: 13px; color: var(--muted); }
+.sheet-hint::before { content: "↻ "; }
+
+.cart-lines { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.cart-lines li { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: start; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.cart-lines .thumb { width: 64px; height: 64px; object-fit: contain; background: #f1efeb; border-radius: 10px; }
+.cart-lines .info { min-width: 0; }
+.cart-lines .name { margin: 0; font-weight: 500; }
+.cart-lines .sub { margin: 2px 0 8px; font-size: 13px; color: var(--muted); }
+.cart-lines .row { display: flex; align-items: center; gap: 12px; }
+.cart-lines .price { font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.totals { margin: 14px 0 0; }
+.totals div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.totals dd { margin: 0; }
+.totals .grand { margin-top: 6px; font-size: 18px; color: var(--ink); font-weight: 500; }
+.ship { margin: 12px 0 8px; font-size: 13px; color: var(--muted); }
+.ship p { margin: 0 0 6px; }
+.ship .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.ship .bar i { display: block; height: 100%; background: var(--blue); }
+.empty { color: var(--muted); }
+
+/* ---------- קטלוג ---------- */
+#catalog {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(29, 28, 26, 0.45);
+}
+.catalog-card {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 26px 24px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+}
+.catalog-card h2 { margin: 0; font-size: 28px; font-weight: 700; }
+.catalog-sub { margin: 4px 0 18px; color: var(--muted); }
+#catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.card:hover { border-color: var(--ink); transform: translateY(-2px); }
+.card .pic { width: 100%; aspect-ratio: 1; max-width: 100%; margin-bottom: 6px; border-radius: 8px; background: #f1efeb; display: flex; align-items: center; justify-content: center; }
+.card .pic img { width: 100%; height: 100%; object-fit: contain; }
+.card .cat { font-size: 11px; letter-spacing: 0.1em; color: var(--muted); }
+.card .name { font-weight: 500; }
+.card .price { display: flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.card .price b { font-weight: 500; }
+.card .price b.sale { color: var(--sale); }
+.card .price s { font-size: 13px; color: var(--muted); }
+.card .dots { display: flex; gap: 4px; margin-top: 4px; }
+.card .dots i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+
+/* ---------- נייד ---------- */
+@media (max-width: 700px) {
+  .drawer {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 56vh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    animation-name: sheet-up;
+  }
+  @keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+  body.sheet-open #zones { opacity: 0; pointer-events: none; }
+  #zones button { padding: 0 12px; font-size: 13px; }
+  .drawer h2 { font-size: 22px; }
+  #catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer, .card { animation: none; transition: none; }
+}
+
+.hud-actions { display: flex; gap: 8px; pointer-events: auto; }
+#hud-vr {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ---------- פרופיל במסך הכניסה ---------- */
+.profile { display: grid; gap: 18px; margin: 0 0 8px; }
+.pf-row { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
+.pf-row > label, .pf-row legend { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; color: var(--night-muted); padding: 0; margin-bottom: 8px; }
+#pf-name {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #4a4741;
+  border-radius: 10px;
+  background: #26241f;
+  color: var(--night-ink);
+  font: inherit;
+  font-size: 17px;
+}
+#pf-name:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+#pf-name[aria-invalid="true"] { border-color: #e4572e; }
+.pf-hint { margin: 0; font-size: 13px; line-height: 1.6; color: #a8a197; }
+.pf-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { position: relative; cursor: pointer; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip span { display: inline-flex; align-items: center; min-height: 42px; padding: 0 18px; border: 1px solid #4a4741; border-radius: 999px; font-size: 15px; }
+.chip input:checked + span { background: var(--night-ink); color: var(--night); border-color: var(--night-ink); }
+.chip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.pf-colors { display: flex; flex-wrap: wrap; gap: 10px; }
+.pf-colors .color { position: relative; cursor: pointer; }
+.pf-colors input { position: absolute; opacity: 0; }
+.pf-colors span { display: block; width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--night); box-shadow: 0 0 0 1px #4a4741; }
+.pf-colors input:checked + span { box-shadow: 0 0 0 2px var(--night-ink); }
+.pf-colors input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 3px; }
+.field-err { margin: 4px 0 0; font-size: 13px; color: #e4572e; }
+.field-err:empty { display: none; }
+
+/* ---------- כפתור מבקרים בסרגל העליון ---------- */
+#hud-people {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 42px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 2px;
+  background: rgba(251, 250, 248, 0.92); color: var(--ink);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+}
+#hud-people .dot { width: 8px; height: 8px; border-radius: 50%; background: #b9b3aa; }
+#hud-people .dot.on { background: #2fb36d; box-shadow: 0 0 0 3px rgba(47, 179, 109, 0.2); }
+
+/* ---------- צ'אט ---------- */
+#chat {
+  position: fixed;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 25;
+  width: min(330px, calc(100% - 32px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: rgba(251, 250, 248, 0.96);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
+}
+.chat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 6px; border-bottom: 1px solid var(--line); }
+.chat-tabs { display: flex; gap: 4px; }
+.chat-tabs button { position: relative; min-height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); font-size: 13px; font-weight: 500; cursor: pointer; }
+.chat-tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+.chat-tabs button[data-unread]:not([data-unread=""])::after { content: attr(data-unread); position: absolute; top: -4px; left: -4px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: #e4572e; color: #fff; font-size: 10px; line-height: 16px; }
+.chat-min { width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 18px; cursor: pointer; color: var(--muted); }
+#chat.min .chat-body { display: none; }
+#chat-log { list-style: none; margin: 0; padding: 10px 12px; height: 170px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; }
+#chat-log li b { font-weight: 500; margin-inline-end: 6px; }
+#chat-log li.sys { color: var(--muted); font-size: 13px; }
+#chat-log li.mine b { color: var(--blue); }
+.chat-quick { padding: 0 10px; display: grid; gap: 6px; }
+.emoji-row { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.emoji-row button { flex: none; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; font-size: 18px; cursor: pointer; }
+.emoji-row button:hover { background: rgba(29, 28, 26, 0.07); }
+.phrase-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.phrase-row button { flex: none; min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-size: 13px; cursor: pointer; white-space: nowrap; }
+.phrase-row button:hover { border-color: var(--ink); }
+#chat-form { display: flex; gap: 6px; padding: 8px 10px 4px; }
+#chat-input { flex: 1; min-width: 0; min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 14px; background: #fff; }
+#chat-input:disabled { background: #f1efeb; }
+#chat-form button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--ink); color: var(--paper); font: inherit; font-size: 14px; cursor: pointer; }
+.chat-safe { margin: 0; padding: 4px 12px 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* ---------- מבקרים וקבוצה ---------- */
+#people { right: auto; left: max(16px, env(safe-area-inset-left, 0px)); z-index: 32; }
+.group-box { display: grid; gap: 10px; padding: 14px; margin: 8px 0 18px; border-radius: 12px; background: #f1efeb; }
+.group-box h3, .people-h { margin: 0; font-size: 17px; font-weight: 700; }
+.people-h { margin-bottom: 8px; }
+.muted { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.group-box .join { display: flex; gap: 8px; }
+.group-box .join input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 16px; letter-spacing: 0.2em; text-transform: uppercase; }
+.group-box .join button { min-height: 44px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 10px; background: #fff; font: inherit; cursor: pointer; }
+.group-box .code { display: flex; align-items: center; gap: 10px; }
+.group-box .code span { font-size: 13px; color: var(--muted); }
+.group-box .code b { font-size: 26px; letter-spacing: 0.18em; font-variant-numeric: tabular-nums; direction: ltr; }
+.group-box .members { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.group-box .members li { padding: 4px 10px; border-radius: 999px; background: #fff; font-size: 13px; }
+.group-box .row { display: flex; align-items: center; gap: 12px; }
+#people-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#people-list .person { display: grid; grid-template-columns: 14px 1fr; gap: 2px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+#people-list .person i { width: 12px; height: 12px; border-radius: 50%; }
+#people-list .n { font-weight: 500; }
+#people-list .tags { grid-column: 2; font-size: 12px; color: var(--muted); }
+#people-list .acts { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+#people-list .acts button { min-height: 32px; padding: 0 10px; border: 1px solid var(--ink); border-radius: 8px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+#people-list .acts button.quiet { border-color: var(--line); color: var(--muted); }
+
+#invite-toast {
+  position: fixed;
+  top: calc(76px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(380px, calc(100% - 32px));
+  box-sizing: border-box;
+  padding: 16px;
+  background: var(--night);
+  color: var(--night-ink);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+}
+#invite-toast p { margin: 0 0 12px; font-size: 15px; }
+#invite-toast div { display: flex; gap: 8px; }
+#invite-toast button { min-height: 40px; padding: 0 14px; border: 1px solid var(--night-ink); border-radius: 10px; background: transparent; color: var(--night-ink); font: inherit; cursor: pointer; }
+#invite-toast #invite-yes { background: var(--night-ink); color: var(--night); }
+
+.shared-note { margin: 0 0 6px; padding: 8px 10px; border-radius: 8px; background: #e8f0ff; color: #23407a; font-size: 13px; }
+.cart-lines .by { margin: -4px 0 8px; font-size: 12px; color: var(--blue); }
+
+/* ---------- משלוח עד הבית ---------- */
+.co-shared { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #e8f0ff; color: #23407a; font-size: 14px; }
+#co-delivery h3 { margin: 0 0 12px; font-size: 18px; }
+.dl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.dl-grid .f { display: grid; gap: 4px; min-width: 0; }
+.dl-grid .f.wide { grid-column: 1 / -1; }
+.dl-grid label { font-size: 13px; color: var(--muted); }
+.dl-grid input { min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 15px; background: #fff; min-width: 0; }
+.dl-grid input[aria-invalid="true"] { border-color: var(--sale); }
+.slots { margin: 14px 0 4px; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.slots legend { font-size: 14px; font-weight: 500; margin-bottom: 8px; padding: 0; }
+.slots label { position: relative; display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.slots input { position: absolute; opacity: 0; }
+.slots label:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.slots label:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+.slots b { font-weight: 500; }
+.slots span { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.btn-dark { width: 100%; margin-top: 12px; background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.co-address { margin: 4px 0 16px; font-size: 14px; line-height: 1.6; }
+.co-address span { color: var(--muted); }
+.track { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 0; }
+.track li { position: relative; display: grid; gap: 2px; padding: 0 22px 16px 0; border-right: 2px solid var(--line); margin-right: 6px; }
+.track li::before { content: ""; position: absolute; right: -7px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid var(--line); }
+.track li.done::before { background: #2fb36d; border-color: #2fb36d; }
+.track li:last-child { border-right-color: transparent; padding-bottom: 0; }
+.track b { font-weight: 500; }
+.track span { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 700px) {
+  #chat { left: 12px; right: 12px; width: auto; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  #chat-log { height: 130px; }
+  body.sheet-open #chat { display: none; }
+  .dl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hud-brand .brand-tagline { display: none; }
+  #hud-people { padding: 0 10px; }
+}
+
+/* ---------- יוצר הדמות ---------- */
+.intro-inner { max-width: 980px; }
+.creator { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 32px; align-items: start; margin-top: 8px; }
+.preview { position: sticky; top: 16px; margin: 0; }
+#pf-preview {
+  display: block; width: 100%; max-width: 100%; aspect-ratio: 13 / 16; height: auto;
+  border-radius: 18px; cursor: grab; touch-action: pan-y;
+  background: radial-gradient(120% 90% at 50% 20%, #5a4a3a 0%, #2a2520 55%, #1d1c1a 100%);
+}
+#pf-preview:active { cursor: grabbing; }
+.preview figcaption { margin-top: 10px; font-size: 13px; color: var(--night-muted); text-align: center; }
+.pf-row .pf-colors + .pf-colors, .pf-choices + .pf-colors { margin-top: 10px; }
+#pf-skin span, #pf-hair span, #pf-petcolor span { width: 30px; height: 30px; }
+@media (max-width: 760px) {
+  .creator { grid-template-columns: 1fr; gap: 18px; }
+  .preview { position: relative; top: 0; max-width: 300px; margin-inline: auto; width: 100%; }
+}
+
+/* ---------- סרגל "אני" ---------- */
+#me-bar {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 14;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#me-bar button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  width: 64px; min-height: 60px; padding: 6px 4px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: rgba(251, 250, 248, 0.94); color: var(--ink);
+  font: inherit; font-size: 11px; line-height: 1.2; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(6px);
+}
+#me-bar button b { font-size: 22px; font-weight: 400; }
+#me-bar button:hover { border-color: var(--ink); }
+#me-view[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+body.sheet-open #me-bar { display: none; }
+#hud-sound {
+  min-width: 42px; min-height: 42px; border: 1px solid var(--line); border-radius: 2px;
+  background: rgba(251, 250, 248, 0.92); font-size: 17px; cursor: pointer;
+}
+@media (max-width: 700px) {
+  #me-bar { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); transform: none; gap: 6px; }
+  #me-bar button { width: 52px; min-height: 50px; font-size: 10px; }
+  #me-bar button b { font-size: 18px; }
+  #me-bar button span { display: none; }
+  #me-view svg { width: 22px; height: 22px; }
+  #hud-sound { display: none; }
+}
+
+/* מסך הכניסה: כותרת קטנה יותר כדי שיוצר הדמות ייראה מיד */
+#intro h1.brand-name { font-size: clamp(52px, 9vw, 88px); }
+#intro .intro-lede { margin: 14px 0 18px; }
+
+.totals .save dd, .totals .save dt { color: var(--sale); }
+
+/* ---------- נסו את המכשיר ---------- */
+.try { margin: 0 0 16px; padding: 14px; border-radius: 12px; background: #f1efeb; }
+.try h3 { margin: 0 0 10px; font-size: 16px; }
+.try-row { display: flex; gap: 8px; }
+.try-btn { flex: 1; min-height: 42px; border: 1px solid var(--ink); border-radius: 10px; background: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+.try-btn.primary { background: var(--ink); color: var(--paper); }
+.try-btn:disabled { opacity: 0.35; cursor: default; }
+.try-hint, .try-sub { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.gallery img { width: 100%; aspect-ratio: 9 / 19; object-fit: cover; border-radius: 8px; }
+.flash { position: fixed; inset: 0; background: #fff; z-index: 300; pointer-events: none; animation: flash 0.35s ease-out forwards; }
+@keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
+
+/* ---------- המוכרת ---------- */
+#seller { z-index: 33; display: flex; flex-direction: column; }
+#seller-log { list-style: none; margin: 10px 0; padding: 0; flex: 1; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+#seller-log li { max-width: 88%; }
+#seller-log li p { margin: 0; padding: 10px 12px; border-radius: 14px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
+#seller-log li.assistant p { background: #f1efeb; }
+#seller-log li.user { align-self: flex-end; }
+#seller-log li.user p { background: var(--ink); color: var(--paper); }
+#seller-log li.typing p { color: var(--muted); }
+#seller-log li.error p { background: #f6e7e5; color: var(--sale); font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip-prod { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 10px 4px 6px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.chip-prod img { width: 30px; height: 30px; object-fit: contain; }
+.chip-prod:hover { border-color: var(--ink); }
+#seller-quick { margin-bottom: 8px; flex-wrap: wrap; }
+#seller-form { display: flex; gap: 6px; }
+#seller-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 15px; }
+#seller-form button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--ink); color: var(--paper); font: inherit; cursor: pointer; }
+#seller-mic { background: #f1efeb !important; color: var(--ink) !important; font-size: 18px; }
+#seller-mic.on { background: #e4572e !important; color: #fff !important; }
+.seller-speak { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+#zones-seller { background: var(--ink) !important; color: var(--yellow) !important; font-weight: 700; }
+
+/* ---------- חיפוש אוצרות ---------- */
+#hud-hunt { min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 2px; background: rgba(251, 250, 248, 0.92); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; font-variant-numeric: tabular-nums; }
+#hud-hunt.done { background: #e8b923; border-color: #e8b923; color: #1d1c1a; }
+.hunt-card { position: fixed; top: calc(76px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 45; width: min(380px, calc(100% - 32px)); box-sizing: border-box; padding: 18px; border-radius: 14px; background: var(--paper); color: var(--ink); box-shadow: 0 16px 40px rgba(0,0,0,0.25); }
+.hunt-card h2 { margin: 0 0 8px; font-size: 20px; }
+.hunt-card p { margin: 0 0 12px; font-size: 15px; line-height: 1.6; }
+.hunt-card.done { border: 2px solid #e8b923; }
+.hunt-card .btn-buy { width: 100%; }
+
+/* ---------- ג'ויסטיק (מסכי מגע בלבד) ---------- */
+#joystick { display: none; position: fixed; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); z-index: 16; width: 110px; height: 110px; border-radius: 50%; background: rgba(29, 28, 26, 0.25); border: 2px solid rgba(255, 255, 255, 0.6); touch-action: none; }
+#joystick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+@media (pointer: coarse) { body.in-store #joystick { display: block; } body.sheet-open #joystick { display: none; } }
+
+/* ---------- מיתוג S.Y Phone Truck ---------- */
+#intro { background: radial-gradient(120% 80% at 50% 0%, #10224a 0%, var(--night) 60%); }
+.intro-logo { display: flex; justify-content: center; margin: 0 0 18px; }
+.intro-logo img { width: min(300px, 70vw); height: auto; filter: drop-shadow(0 0 28px rgba(30,107,255,.55)); }
+#intro h1.brand-name { direction: ltr; unicode-bidi: isolate; font-style: italic; font-weight: 900; font-size: clamp(40px, 8vw, 72px); letter-spacing: -0.01em; text-align: center; }
+#intro h1 .y, .hud-brand .y { color: var(--yellow); }
+.intro-tagline, .intro-eyebrow { text-align: center; }
+.intro-tagline { color: #fff; font-weight: 700; letter-spacing: 0; }
+.intro-sub { margin: 6px 0 0; text-align: center; color: var(--yellow); font-weight: 700; font-size: 16px; }
+.intro-contact { margin: 10px 0 0; text-align: center; color: var(--night-muted); font-size: 14px; direction: ltr; }
+.intro-contact a { color: inherit; }
+.hud-brand { pointer-events: auto; padding: 6px 14px 6px 6px; border-radius: 16px; background: rgba(7, 11, 22, 0.86); color: #fff; box-shadow: 0 8px 24px rgba(7,11,22,.3); backdrop-filter: blur(8px); }
+.hud-brand .brand-name { font-size: 20px !important; color: #fff; }
+.hud-brand .brand-tagline { color: #c7d0e0; }
+
+/* ---------- בחירת דמות ---------- */
+.creator { display: block; }
+.avatar-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 520px; margin-inline: auto; }
+.avatar-card { position: relative; display: flex; flex-direction: column; align-items: center; border-radius: 14px; background: linear-gradient(180deg, #16223d, #0c1426); border: 2px solid #233150; cursor: pointer; overflow: hidden; transition: border-color .15s ease, transform .15s ease; }
+.avatar-card:hover { transform: translateY(-2px); border-color: #3b5288; }
+.avatar-card input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.avatar-card img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+.avatar-cap { padding: 6px 4px 8px; font-size: 14px; font-weight: 500; color: var(--night-ink); }
+.avatar-card:has(input:checked) { border-color: var(--yellow); box-shadow: 0 0 0 2px var(--yellow), 0 8px 24px rgba(255,210,31,.18); }
+.avatar-card:has(input:focus-visible) { outline: 3px solid var(--blue); outline-offset: 2px; }
+@media (max-width: 480px) { .avatar-grid { gap: 6px; } .avatar-cap { font-size: 12px; } }
+
+/* ---------- נגישות ונוחות: יעדי לחיצה 44px, סרגל עליון קומפקטי בטלפון ---------- */
+#hud button, #zones button { min-height: 44px; white-space: nowrap; }
+#hud-sound { min-width: 44px; }
+@media (pointer: coarse) {
+  .chat-tabs button, #chat-toggle { min-height: 44px; min-width: 44px; }
+  #chat .emoji button, #chat .quick button { min-height: 44px; min-width: 44px; }
+}
+.intro-logo img { width: min(220px, 52vw); }
+@media (max-width: 640px) {
+  .hud-brand { padding: 4px; border-radius: 14px; }
+  .hud-brand .brand-name, .hud-brand .brand-tagline { display: none !important; }
+  .hud-logo { width: 40px; height: 40px; }
+  #intro h1.brand-name { font-size: clamp(32px, 10vw, 44px); }
+}
+
+/* ---------- כפתורי מסך אחידים: כהה שקוף עם הדגשה צהובה ---------- */
+#hud-cart, #hud-people, #hud-sound, #hud-hunt, #hud-vr, #me-bar button {
+  background: rgba(7, 11, 22, 0.82) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 12px !important; backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(7,11,22,.25);
+}
+#hud-cart:hover, #hud-people:hover, #hud-sound:hover, #hud-hunt:hover, #me-bar button:hover { border-color: var(--yellow) !important; }
+#me-bar button[aria-pressed="true"] { background: var(--yellow) !important; color: var(--ink) !important; }
+#hud-cart { font-weight: 700; }
+#hud-cart .count, #hud-cart b { color: var(--yellow); }
+.intro-lede { margin: 16px auto 22px; text-align: center; font-size: 16px; }
+.intro-actions { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(180deg, rgba(7,11,22,0), var(--night) 35%); z-index: 2; }
+.intro-actions .btn-primary { flex: 1; min-height: 54px; font-size: 18px; border-radius: 12px; }
+.intro-actions .btn { border-radius: 12px; }
+
+/* ---------- מתחם הקניות ---------- */
+#zones-mall { background: var(--yellow) !important; color: var(--ink) !important; font-weight: 700; }
+.ms-pic { display: grid; place-items: center; aspect-ratio: 4 / 3; margin: 6px 0 14px; border-radius: 12px; font-size: 92px; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 18%, #fff) 0 45%, #f3f2ee 46%); overflow: hidden; }
+.ms-pic img { width: 100%; height: 100%; object-fit: cover; }
+.ms-store { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--muted); letter-spacing: .04em; }
+.ms-store i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ms-price { margin: 0 0 8px; font-size: 24px; font-weight: 700; }
+.ms-desc { margin: 0 0 14px; line-height: 1.6; color: #3c4252; }
+.ms-row { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; }
+.ms-qty { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 12px; }
+.ms-qty button { width: 44px; height: 44px; border: 0; background: none; font-size: 22px; cursor: pointer; color: var(--ink); }
+.ms-qty span { min-width: 28px; text-align: center; font-weight: 700; }
+.ms-add { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--yellow); color: var(--ink); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.ms-add:disabled { background: #e7e5e0; color: #6b6b6b; cursor: not-allowed; }
+.ms-sub { margin: 18px 0 8px; font-weight: 700; }
+.ms-more { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ms-more button { display: grid; gap: 2px; justify-items: center; padding: 10px 6px; min-height: 44px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }
+.ms-more .e { font-size: 34px; } .ms-more img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+.ms-note { margin: 14px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+.dir-list { display: grid; gap: 8px; margin: 10px 0 16px; }
+.dir-item { display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 56px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font: inherit; text-align: start; cursor: pointer; color: var(--ink); }
+.dir-item:hover { border-color: var(--ink); }
+.dir-item i { width: 18px; height: 18px; border-radius: 6px; flex: none; }
+.dir-item i.free { border: 2px dashed #b7b2a8; }
+.dir-item b { display: block; } .dir-item small { color: var(--muted); }
+
+/* ---------- פס מוצרים ---------- */
+#shelf {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  z-index: 14; width: min(760px, calc(100% - 24px)); box-sizing: border-box;
+  padding: 8px 10px 10px; border-radius: 18px;
+  background: rgba(7, 11, 22, 0.86); backdrop-filter: blur(10px); color: #fff;
+  box-shadow: 0 10px 30px rgba(7, 11, 22, .3);
+  opacity: 0; pointer-events: none; transition: opacity .25s ease;
+}
+body.in-store #shelf { opacity: 1; pointer-events: auto; }
+body.sheet-open #shelf, body.vr #shelf { opacity: 0; pointer-events: none; }
+.shelf-title { margin: 0 4px 6px; font-size: 13px; font-weight: 700; color: var(--yellow); }
+.shelf-row { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 2px; }
+.shelf-row::-webkit-scrollbar { display: none; }
+.shelf-card {
+  flex: none; width: 112px; scroll-snap-align: start; display: grid; justify-items: center; gap: 2px;
+  padding: 6px 6px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+  background: rgba(255,255,255,.06); color: #fff; font: inherit; cursor: pointer; text-align: center;
+}
+.shelf-card:hover, .shelf-card:focus-visible { border-color: var(--yellow); background: rgba(255,210,31,.1); }
+.shelf-pic { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 10px; background: #f4f3ef; font-size: 40px; overflow: hidden; }
+.shelf-pic img { width: 100%; height: 100%; object-fit: contain; }
+.shelf-name { font-size: 13px; line-height: 1.25; min-height: 2.5em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shelf-price { font-size: 14px; color: var(--yellow); }
+#chat { bottom: calc(80px + 168px + env(safe-area-inset-bottom, 0px)) !important; }
+#hint { display: none !important; }
+@media (max-width: 700px) {
+  .shelf-card { width: 96px; }
+  .shelf-name { font-size: 12px; }
+}
+/* צ'אט ממוזער = כפתור קטן בפינה, כדי שהמסך יישאר פנוי */
+#chat.min { width: auto !important; right: auto !important; padding: 0 !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+#chat.min .chat-tabs { display: none; }
+#chat.min #chat-toggle { width: auto; min-width: 0; height: 44px; padding: 0 16px; border-radius: 999px; background: rgba(7, 11, 22, 0.86); color: #fff; font-size: 14px; font-weight: 700; border: 1px solid rgba(255,255,255,.14); }
+@media (max-height: 620px) {
+  .shelf-card { width: 84px; padding: 4px 4px 6px; }
+  .shelf-pic { font-size: 30px; }
+  .shelf-title { display: none; }
+}
+#chat.min { top: calc(72px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important; }
+#chat.min .chat-head { border: 0 !important; padding: 0 !important; background: transparent !important; }
+#shelf { width: auto; max-width: min(760px, calc(100% - 24px)); }
+
+/* ---------- מראה מקצועי: פחות כפתורים על המסך ---------- */
+#me-bar button[data-act], #me-bar #me-ball { display: none; }
+#me-bar.open button[data-act], #me-bar.open #me-ball { display: flex; }
+#me-more[aria-expanded="true"] { background: var(--yellow) !important; color: var(--ink) !important; }
+#hud-hunt[hidden] { display: none !important; }
+@media (min-width: 701px) { .shelf-card { width: 100px; } .shelf-name { font-size: 12px; } }

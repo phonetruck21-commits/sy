@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S.Y Mall · פתחו חנות במתחם</title>
+  <link rel="icon" href="assets/brand/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap">
+  <link rel="stylesheet" href="css/merchant.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/"><img src="assets/brand/sy.webp" alt="" width="40" height="40"><span><b>S.Y</b> MALL</span></a>
+    <nav><a href="/">לכניסה למתחם</a><a href="#manage" id="nav-manage" hidden>ניהול החנות שלי</a></nav>
+  </header>
+
+  <main id="signup">
+    <section class="hero">
+      <p class="eyebrow">מתחם הקניות הווירטואלי של S.Y Phone Truck</p>
+      <h1>פתחו חנות במתחם.<br><span>לקוחות נכנסים, מסתובבים וקונים.</span></h1>
+      <p class="lede">החנות שלכם עומדת ברחבה ליד משאית S.Y. מבקרים מגיעים מהמחשב, מהטלפון וממשקפי VR, רואים את המוצרים בחלון הראווה וקונים בסל אחד עם משלוח עד הבית. משלמים מנוי חודשי, ואפשר לבטל בכל חודש.</p>
+      <ul class="perks">
+        <li>בלי דמי הקמה</li><li>מנוי חודשי, ביטול בכל חודש</li><li>הזמנות מגיעות ישירות לעמוד הניהול</li><li>תשלום מאובטח ב-PayPal</li>
+      </ul>
+    </section>
+
+    <section class="step" aria-labelledby="h-plan">
+      <h2 id="h-plan"><span class="n">1</span>בחרו מסלול</h2>
+      <div class="plans" id="plans" role="radiogroup" aria-labelledby="h-plan"></div>
+    </section>
+
+    <section class="step" aria-labelledby="h-slot">
+      <h2 id="h-slot"><span class="n">2</span>בחרו מקום במתחם</h2>
+      <p class="hint">המשאית במרכז הרחבה, וארבע חנויות בכל צד. מקומות תפוסים מסומנים באפור.</p>
+      <div class="map" id="map" role="radiogroup" aria-labelledby="h-slot">
+        <div class="map-truck" aria-hidden="true">S.Y Phone Truck</div>
+        <div class="map-col" id="col-L"></div>
+        <div class="map-col" id="col-R"></div>
+      </div>
+    </section>
+
+    <section class="step" aria-labelledby="h-form">
+      <h2 id="h-form"><span class="n">3</span>פרטי העסק</h2>
+      <form id="apply" novalidate>
+        <div class="grid">
+          <label>שם העסק (יופיע על השלט)<input name="name" maxlength="40" required autocomplete="organization"></label>
+          <label>משפט קצר על העסק<input name="tagline" maxlength="60" placeholder="לדוגמה: פרחים טריים כל בוקר"></label>
+          <label>תחום<select name="category" id="category"></select></label>
+          <label>צבע המותג<input name="color" type="color" value="#1e6bff"></label>
+          <label>שם איש/אשת קשר<input name="contactName" maxlength="60" required autocomplete="name"></label>
+          <label>טלפון<input name="phone" type="tel" maxlength="20" required autocomplete="tel" dir="ltr"></label>
+          <label>אימייל<input name="email" type="email" maxlength="120" required autocomplete="email" dir="ltr"></label>
+          <label>ח.פ / עוסק מורשה (לא חובה)<input name="taxId" maxlength="20" inputmode="numeric" dir="ltr"></label>
+        </div>
+        <details class="contract" id="contract">
+          <summary>חוזה שכירות חנות במתחם (לקריאה)</summary>
+          <div class="contract-body">
+            <p><b>הצדדים:</b> S.Y Phone Truck – פתרונות טכנולוגיים חכמים ("המתחם"), והעסק הנרשם בטופס זה ("השוכר").</p>
+            <ol>
+              <li><b>מה מקבלים:</b> מקום לחנות במתחם הקניות הווירטואלי, בהתאם למסלול שנבחר, עם שלט בשם העסק, תצוגת מוצרים, עמוד ניהול וקבלת הזמנות.</li>
+              <li><b>תקופה ותשלום:</b> מנוי חודשי מתחדש, המחויב מראש בכל חודש באמצעות PayPal, לפי מחיר המסלול. המחיר כולל מע"מ.</li>
+              <li><b>ביטול:</b> אפשר לבטל בכל עת מעמוד הניהול. החיובים נעצרים מיד, והחנות נשארת פתוחה עד סוף החודש ששולם. אין החזר על חודש שהתחיל.</li>
+              <li><b>מכירות ללקוחות:</b> הלקוחות משלמים דרך קופת המתחם. המתחם מעביר לשוכר את סכום המכירות, בניכוי עמלות סליקה, עד ה-10 בחודש שאחרי. השוכר אחראי לאספקת המוצרים ללקוח במועד שנבחר, לאחריות ולהחזרות לפי דין.</li>
+              <li><b>תוכן:</b> השוכר אחראי שהמוצרים, התמונות והתיאורים חוקיים, נכונים ושייכים לו. אסור למכור מוצרים אסורים, מסוכנים או מזויפים. המתחם רשאי להסיר תוכן או לסגור חנות שמפרה כללים אלה, ולהחזיר את דמי החודש היחסיים.</li>
+              <li><b>שינוי מחיר:</b> שינוי במחיר המסלול יימסר לשוכר 30 יום מראש, והשוכר רשאי לבטל לפני שהוא נכנס לתוקף.</li>
+              <li><b>זמינות:</b> המתחם יעשה מאמץ סביר שהאתר יהיה זמין, אך אינו אחראי לתקלות של צדדים שלישיים (אינטרנט, אחסון, PayPal).</li>
+              <li><b>פרטיות:</b> פרטי הלקוחות שמגיעים עם הזמנה ישמשו את השוכר רק לאספקת ההזמנה ולשירות.</li>
+            </ol>
+            <p class="small">גרסת החוזה: <span id="terms-version"></span>. לפני הפעלה מסחרית מומלץ שעורך/ת דין יעבור/תעבור על החוזה.</p>
+          </div>
+        </details>
+        <label class="check"><input type="checkbox" name="acceptTerms" required> קראתי ואני מאשר/ת את חוזה השכירות ואת החיוב החודשי</label>
+        <p class="err" id="apply-err" role="alert"></p>
+        <div class="summary" id="summary" aria-live="polite"></div>
+        <button class="btn-primary" type="submit" id="apply-btn">המשך לתשלום</button>
+      </form>
+    </section>
+
+    <section class="step" id="pay" hidden aria-labelledby="h-pay">
+      <h2 id="h-pay"><span class="n">4</span>תשלום מנוי חודשי</h2>
+      <p class="hint" id="pay-text"></p>
+      <div id="paypal-subscribe"></div>
+      <button class="btn-primary" type="button" id="demo-activate" hidden>הפעלה במצב ניסיון (בלי תשלום)</button>
+      <p class="err" id="pay-err" role="alert"></p>
+    </section>
+  </main>
+
+  <main id="manage" hidden>
+    <section class="hero small-hero">
+      <p class="eyebrow">ניהול החנות</p>
+      <h1 id="m-title"></h1>
+      <p class="status" id="m-status"></p>
+      <p class="keynote">שמרו את הקישור לעמוד הזה – הוא המפתח שלכם לניהול החנות: <button type="button" class="link" id="copy-link">העתקת הקישור</button></p>
+    </section>
+    <div class="cols">
+      <section class="card">
+        <h2>פרטי החנות</h2>
+        <form id="store-form" class="grid one">
+          <label>שם העסק<input name="name" maxlength="40"></label>
+          <label>משפט קצר<input name="tagline" maxlength="60"></label>
+          <label>תחום<select name="category" id="m-category"></select></label>
+          <label>צבע המותג<input name="color" type="color"></label>
+          <button class="btn" type="submit">שמירה</button>
+          <p class="ok" id="store-ok" aria-live="polite"></p>
+        </form>
+      </section>
+      <section class="card">
+        <h2>הוספת מוצר <span class="muted" id="p-count"></span></h2>
+        <form id="product-form" class="grid one">
+          <label>שם המוצר<input name="name" maxlength="60" required></label>
+          <label>מחיר (₪)<input name="price" type="number" min="1" max="100000" step="1" required inputmode="numeric"></label>
+          <label>תיאור<textarea name="description" maxlength="400" rows="3"></textarea></label>
+          <label>תמונה<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+          <img id="p-preview" alt="" hidden>
+          <button class="btn-primary" type="submit">הוספה לחנות</button>
+          <p class="err" id="p-err" role="alert"></p>
+        </form>
+      </section>
+    </div>
+    <section class="card">
+      <h2>המוצרים בחנות</h2>
+      <ul class="products" id="products"></ul>
+    </section>
+    <section class="card">
+      <h2>הזמנות</h2>
+      <p class="hint">התשלום מהלקוחות עובר דרך קופת המתחם, וסכום המכירות מועבר אליכם פעם בחודש לפי החוזה.</p>
+      <div id="orders"></div>
+    </section>
+    <section class="card danger">
+      <h2>המנוי</h2>
+      <p id="sub-text"></p>
+      <button class="btn" type="button" id="cancel-sub">ביטול המנוי</button>
+    </section>
+  </main>
+
+  <script src="js/merchant.js"></script>
+</body>
+</html>
