@@ -926,3 +926,17 @@ body.sheet-open #shelf, body.vr #shelf { opacity: 0; pointer-events: none; }
 #me-more[aria-expanded="true"] { background: var(--yellow) !important; color: var(--ink) !important; }
 #hud-hunt[hidden] { display: none !important; }
 @media (min-width: 701px) { .shelf-card { width: 100px; } .shelf-name { font-size: 12px; } }
+
+/* שירותים וניווט נגיש בנייד */
+#service-dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 30px; width: min(520px, calc(100vw - 48px)); max-height: 82dvh; overflow: auto; box-shadow: 0 24px 80px #070b1640; }
+#service-dialog::backdrop { background: #070b16b8; }
+#service-dialog .drawer-x { position: sticky; top: 0; float: left; }
+#service-form { display: grid; gap: 14px; }
+#service-form label { display: grid; gap: 6px; font-weight: 500; }
+#service-form input:not([type=checkbox]), #service-form select, #service-form textarea { box-sizing: border-box; width: 100%; min-height: 44px; border: 1px solid #a8b1c2; border-radius: 8px; padding: 10px; background: white; color: var(--ink); font: inherit; }
+#service-form .service-consent { display: flex; align-items: start; font-size: 13px; }
+#service-status { overflow-wrap: anywhere; }
+#zones button { min-height: 44px; flex-shrink: 0; }
+#zones button[aria-pressed=true] { border-color: var(--blue); }
+@media (max-width: 700px) { #zones { justify-content: start; overflow-x: auto; flex-wrap: nowrap; max-width: 100vw; box-sizing: border-box; } #hud .brand-tagline { display: none; } #service-dialog { padding: 20px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

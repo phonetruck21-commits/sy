@@ -17,8 +17,8 @@ const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 
-const DATA = path.join(__dirname, 'data');
-const FILE = path.join(DATA, 'mall.json');
+const storage = require('./storage');
+const DATA = storage.DATA;
 const UPLOADS = path.join(DATA, 'uploads');
 const ORDERS = path.join(DATA, 'mall-orders.jsonl');
 const TERMS_VERSION = '2026-11-21';
@@ -48,12 +48,8 @@ const demoOn = () => process.env.MALL_DEMO !== '0';
 
 /* ---------------- אחסון ---------------- */
 let db = { merchants: [], paypal: {} };
-try { db = { ...db, ...JSON.parse(fs.readFileSync(FILE, 'utf8')) }; } catch (e) { /* קובץ חדש */ }
-function save() {
-  fs.mkdirSync(DATA, { recursive: true });
-  fs.writeFileSync(FILE + '.tmp', JSON.stringify(db, null, 1));
-  fs.renameSync(FILE + '.tmp', FILE);
-}
+db = { ...db, ...storage.read('mall.json', {}) };
+function save() { storage.write('mall.json', db); }
 const now = () => Date.now();
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const clean = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
@@ -99,15 +95,16 @@ function findProduct(id) {
 function recordOrder(order) {
   const byMerchant = {};
   (order.items || []).forEach((it) => {
-    const p = findProduct(it.sku);
-    if (!p) return;
-    (byMerchant[p.merchantId] = byMerchant[p.merchantId] || []).push({ name: it.name, qty: Number(it.quantity), price: Number(it.unit_amount && it.unit_amount.value) });
+    const match = /^m\.([\w-]{2,40})\.([\w-]{1,40})$/.exec(String(it.sku));
+    if (!match) return;
+    const merchantId = match[1];
+    (byMerchant[merchantId] = byMerchant[merchantId] || []).push({ name: it.name, qty: Number(it.quantity), price: Number(it.unit_amount && it.unit_amount.value) });
   });
   const entries = Object.entries(byMerchant);
   if (!entries.length) return;
   fs.mkdirSync(DATA, { recursive: true });
   entries.forEach(([merchantId, lines]) => {
-    fs.appendFileSync(ORDERS, JSON.stringify({ time: order.time, orderId: order.orderId, merchantId, lines, delivery: order.delivery || null }) + '\n');
+    if (!ordersFor(merchantId).some(o => o.orderId === order.orderId)) storage.append('mall-orders.jsonl', { time: order.time, orderId: order.orderId, merchantId, lines, delivery: order.delivery || null });
   });
 }
 function ordersFor(merchantId) {
@@ -194,8 +191,7 @@ router.post('/api/mall/apply', small, async (req, res, next) => {
     if (!plan) throw httpError(400, 'נא לבחור מסלול');
     const slot = SLOTS.includes(b.slot) ? b.slot : null;
     if (!slot) throw httpError(400, 'נא לבחור מקום במתחם');
-    const demoInSlot = demoOn() && DEMO.some((d) => d.slot === slot) && !db.merchants.some((m) => m.slot === slot && isOpen(m));
-    if (slotTaken(slot) && !demoInSlot) throw httpError(409, 'המקום הזה כבר תפוס – נא לבחור מקום אחר');
+    if (slotTaken(slot)) throw httpError(409, 'המקום הזה כבר תפוס – נא לבחור מקום אחר');
     if (b.acceptTerms !== true) throw httpError(400, 'יש לאשר את חוזה השכירות');
     const name = clean(b.name, 40), contactName = clean(b.contactName, 60), phone = clean(b.phone, 20).replace(/[^\d+\-\s]/g, ''), email = clean(b.email, 120);
     if (name.length < 2) throw httpError(400, 'נא למלא את שם העסק');
@@ -235,8 +231,8 @@ router.post('/api/mall/activate', small, async (req, res, next) => {
     const plans = await ensurePlans();
     const s = r.json;
     if (s.plan_id !== plans[m.plan].id) throw httpError(400, 'המנוי לא תואם למסלול שנבחר');
-    if (s.custom_id && s.custom_id !== m.id) throw httpError(400, 'המנוי שייך לעסק אחר');
-    if (!['ACTIVE', 'APPROVED'].includes(s.status)) throw httpError(402, `המנוי עדיין לא פעיל (${s.status})`);
+    if (s.custom_id !== m.id) throw httpError(400, 'המנוי שייך לעסק אחר');
+    if (s.status !== 'ACTIVE') throw httpError(402, `המנוי עדיין לא פעיל (${s.status})`);
     if (db.merchants.some((x) => x.id !== m.id && x.subscriptionId === sid)) throw httpError(409, 'המנוי כבר משויך לחנות אחרת');
     Object.assign(m, { status: 'active', activatedAt: now(), subscriptionId: sid, nextBilling: s.billing_info && s.billing_info.next_billing_time || null });
     save();
