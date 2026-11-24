@@ -15,6 +15,7 @@ const express = require('express');
 try { process.loadEnvFile(path.join(__dirname, '.env')); } catch (e) { /* אין .env – משתמשים במשתני סביבה */ }
 
 const { STORE_CONFIG, PRODUCTS } = require('./js/products.js');
+const catalog = require('./catalog');
 const mall = require('./mall.js'); // מתחם הקניות: חנויות של עסקים במנוי חודשי
 
 const {
@@ -105,6 +106,7 @@ function buildOrder(items, delivery, coupon) {
     const product = PRODUCTS.find((p) => p.id === id) || mall.findProduct(id);
     const q = Number(qty);
     if (!product) throw httpError(400, `מוצר לא קיים: ${id}`);
+    if (!product.merchantId && !catalog.canSell(product)) throw httpError(400, 'המוצר מוצג להמחשה וטרם אושר למכירה. צרו קשר עם החנות.');
     if (product.demo) throw httpError(400, `"${product.name}" הוא מוצר מחנות לדוגמה ואי אפשר לקנות אותו`);
     if (!Number.isInteger(q) || q < 1 || q > 99) throw httpError(400, `כמות לא תקינה: ${id}`);
     let variant = null;
@@ -183,15 +185,22 @@ const app = express();
 app.set('trust proxy', 1);
 // ב-Render לא מקבלים מידע עסקי לפני חיבור אחסון קבוע מפורש.
 app.use((req, res, next) => {
-  if (process.env.RENDER && !process.env.DATA_DIR && req.method !== 'GET' && /^\/api\/(?:orders|mall|service-requests)(?:\/|$)/.test(req.path)) return res.status(503).json({ error: 'הרשמה והזמנות ייפתחו לאחר הגדרת אחסון קבוע בשרת.' });
+  if (process.env.RENDER && !process.env.DATA_DIR && req.method !== 'GET' && /^\/api\/(?:orders|mall|service-requests|admin)(?:\/|$)/.test(req.path)) return res.status(503).json({ error: 'הרשמה והזמנות ייפתחו לאחר הגדרת אחסון קבוע בשרת.' });
   next();
 });
 app.use(mall.init({ paypal, env: PAYPAL_ENV })); // לפני מפענח ה-JSON הכללי (תמונות מוצרים גדולות יותר)
 app.use(express.json({ limit: '20kb' }));
 app.use(require('./services'));
+app.use(require('./admin'));
 app.use((req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'no-referrer'); next(); });
 
 // מגישים רק את קבצי האתר – לא את .env, server.js או data/
+app.get('/js/products.js', (req, res) => {
+  const source = fs.readFileSync(path.join(__dirname, 'js/products.js'), 'utf8');
+  const overrides = JSON.stringify(catalog.overrides()).replace(/</g, '\u003c');
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('application/javascript').send(source + '\n;(()=>{const updates=' + overrides + ';window.PRODUCTS.forEach(p=>{if(updates[p.id])Object.assign(p,updates[p.id]);});})();');
+});
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));

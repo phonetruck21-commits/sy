@@ -2,6 +2,12 @@
 (() => {
   'use strict';
   document.addEventListener('DOMContentLoaded', () => {
+    const placeholders = window.PRODUCTS?.some(p => !p.mall && !p.published);
+    if (placeholders) {
+      const notice = document.createElement('p'); notice.id = 'catalog-notice'; notice.setAttribute('role', 'note');
+      notice.textContent = 'פריטים שלא אושרו למכירה מוצגים להמחשה בלבד. דגמי התלת־ממד להמחשה; מחיר ומפרט מחייבים לפי המוצר.';
+      document.querySelector('.intro-inner')?.append(notice);
+    }
     const dialog = document.createElement('dialog');
     dialog.id = 'service-dialog';
     dialog.dir = 'rtl';
