@@ -926,3 +926,5 @@ body.sheet-open #shelf, body.vr #shelf { opacity: 0; pointer-events: none; }
 #me-more[aria-expanded="true"] { background: var(--yellow) !important; color: var(--ink) !important; }
 #hud-hunt[hidden] { display: none !important; }
 @media (min-width: 701px) { .shelf-card { width: 100px; } .shelf-name { font-size: 12px; } }
+.ms-call { margin-top: 8px; background: var(--ink) !important; color: #fff !important; }
+.ms-sub-link { display: block; margin-top: 12px; text-align: center; color: var(--muted); font-size: 14px; }

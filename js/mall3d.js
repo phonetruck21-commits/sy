@@ -152,7 +152,7 @@
     if (free) {
       const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.4), new THREE.MeshBasicMaterial({ map: posterTex(plans), toneMapped: false }));
       poster.position.set(0, 1.55, -D + 0.08); g.add(poster);
-      hits.push({ local: new THREE.Vector3(0, 1.55, -D + 0.1), w: 2.0, h: 1.4, act: () => window.open('merchant.html', '_blank', 'noopener') });
+      hits.push({ local: new THREE.Vector3(0, 1.55, -D + 0.1), w: 2.0, h: 1.4, act: () => Rent.open() });
     } else {
       const ps = store.products.slice(0, 6);
       const cols = Math.min(3, ps.length > 4 ? 3 : Math.max(2, ps.length));
@@ -263,6 +263,30 @@
   };
 
   /* מדריך המתחם: רשימת החנויות + מעבר אליהן */
+  /* השכרת חנות: חלון עם קישורים אמיתיים (חלונות קופצים נחסמים בתוך אפליקציות) */
+  const RENT_URL = 'https://phonetruck.co.il';
+  const RENT_PHONE = '052-546-6304';
+  const Rent = {
+    open() {
+      const el = $('#mall-sheet'); el.innerHTML = '';
+      const close = h('button', 'drawer-x', '×'); close.type = 'button'; close.setAttribute('aria-label', 'סגירה'); close.addEventListener('click', () => this.close());
+      el.append(close, h('p', 'ms-store', 'S.Y MALL'), h('h2', null, 'פתחו חנות במתחם'));
+      el.append(h('p', 'ms-desc', 'החנות שלכם עומדת ברחבה ליד משאית S.Y, והמבקרים קונים ממנה בסל אחד עם משלוח עד הבית. מנוי חודשי, בלי דמי הקמה, ביטול בכל חודש.'));
+      const plans = (Mall.data && Mall.data.plans) || DEMO.plans;
+      const list = h('div', 'dir-list');
+      plans.forEach((p) => { const row = h('div', 'dir-item'); const t = h('span'); t.append(h('b', null, p.name), h('small', null, `${fmt(p.price)} לחודש`)); row.append(t); list.append(row); });
+      const site = h('a', 'ms-add', 'מילוי פרטים באתר phonetruck.co.il'); site.href = RENT_URL; site.target = '_blank'; site.rel = 'noopener';
+      const call = h('a', 'ms-add ms-call', `התקשרו ${RENT_PHONE}`); call.href = 'tel:' + RENT_PHONE.replace(/\D/g, '');
+      el.append(site, call, h('p', 'ms-sub', 'מסלולים'), list);
+      if (location.protocol.startsWith('http') && !/claude/.test(location.hostname)) {
+        const reg = h('a', 'ms-sub-link', 'או הרשמה ותשלום ישירות כאן'); reg.href = 'merchant.html'; el.append(reg);
+      }
+      if (V().Sheet) V().Sheet.close();
+      el.hidden = false; document.body.classList.add('sheet-open'); close.focus();
+    },
+    close() { $('#mall-sheet').hidden = true; document.body.classList.remove('sheet-open'); },
+  };
+
   const Directory = {
     open() {
       const el = $('#mall-dir'); el.innerHTML = '';
@@ -277,7 +301,7 @@
         b.addEventListener('click', () => { this.close(); go(s.id); });
         list.append(b);
       });
-      const cta = h('a', 'ms-add dir-cta', 'פתחו חנות במתחם'); cta.href = 'merchant.html'; cta.target = '_blank'; cta.rel = 'noopener';
+      const cta = h('button', 'ms-add dir-cta', 'פתחו חנות במתחם'); cta.type = 'button'; cta.addEventListener('click', () => Rent.open());
       el.append(list, cta);
       el.hidden = false; document.body.classList.add('sheet-open'); close.focus();
     },
@@ -311,5 +335,5 @@
     },
   });
 
-  window.StoreMall = { Mall, Sheet, Directory, go, slotPose };
+  window.StoreMall = { Mall, Sheet, Directory, Rent, go, slotPose };
 })();
