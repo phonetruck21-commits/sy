@@ -15,6 +15,7 @@ const express = require('express');
 try { process.loadEnvFile(path.join(__dirname, '.env')); } catch (e) { /* אין .env – משתמשים במשתני סביבה */ }
 
 const { STORE_CONFIG, PRODUCTS } = require('./js/products.js');
+const catalog = require('./catalog');
 const mall = require('./mall.js'); // מתחם הקניות: חנויות של עסקים במנוי חודשי
 
 const {
@@ -27,7 +28,7 @@ const {
 const PAYPAL_API = process.env.PAYPAL_API_BASE
   || (PAYPAL_ENV === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com');
 const CURRENCY = STORE_CONFIG.currencyCode || 'ILS';
-const ORDERS_FILE = path.join(__dirname, 'data', 'orders.jsonl');
+const storage = require('./storage');
 
 /* ---------------- PayPal REST API ---------------- */
 
@@ -52,7 +53,7 @@ async function paypal(method, urlPath, body) {
   const token = await getAccessToken();
   const res = await fetch(`${PAYPAL_API}${urlPath}`, {
     method,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(method === 'POST' && /\/capture$/.test(urlPath) ? { 'PayPal-Request-Id': 'capture-' + urlPath.split('/')[4] } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json().catch(() => ({}));
@@ -105,6 +106,7 @@ function buildOrder(items, delivery, coupon) {
     const product = PRODUCTS.find((p) => p.id === id) || mall.findProduct(id);
     const q = Number(qty);
     if (!product) throw httpError(400, `מוצר לא קיים: ${id}`);
+    if (!product.merchantId && !catalog.canSell(product)) throw httpError(400, 'המוצר מוצג להמחשה וטרם אושר למכירה. צרו קשר עם החנות.');
     if (product.demo) throw httpError(400, `"${product.name}" הוא מוצר מחנות לדוגמה ואי אפשר לקנות אותו`);
     if (!Number.isInteger(q) || q < 1 || q > 99) throw httpError(400, `כמות לא תקינה: ${id}`);
     let variant = null;
@@ -166,24 +168,39 @@ function buildOrder(items, delivery, coupon) {
 }
 
 function saveOrder(record) {
-  try {
-    fs.mkdirSync(path.dirname(ORDERS_FILE), { recursive: true });
-    fs.appendFileSync(ORDERS_FILE, JSON.stringify(record) + '\n');
-  } catch (e) { console.error('Failed to save order', e); }
+  const file = path.join(storage.DATA, 'orders.jsonl');
+  const rows = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
+  if (!rows.some(row => row.orderId === record.orderId)) storage.append('orders.jsonl', record);
 }
 
 /* ---------------- שרת ---------------- */
 
 // פרטי משלוח של הזמנות שעוד לא שולמו (נמחקים אחרי שעה)
-const pending = new Map();
-setInterval(() => { const old = Date.now() - 3600e3; pending.forEach((v, k) => { if (v.at < old) pending.delete(k); }); }, 600e3).unref();
+const pending = new Map(Object.entries(storage.read('pending.json', {})));
+const persistPending = () => storage.write('pending.json', Object.fromEntries(pending));
+const capturing = new Set();
+setInterval(() => { const old = Date.now() - 7 * 86400e3; pending.forEach((v, k) => { if (v.at < old) pending.delete(k); }); }, 600e3).unref();
 
 const app = express();
 app.set('trust proxy', 1);
+// ב-Render לא מקבלים מידע עסקי לפני חיבור אחסון קבוע מפורש.
+app.use((req, res, next) => {
+  if (process.env.RENDER && !process.env.DATA_DIR && req.method !== 'GET' && /^\/api\/(?:orders|mall|service-requests|admin)(?:\/|$)/.test(req.path)) return res.status(503).json({ error: 'הרשמה והזמנות ייפתחו לאחר הגדרת אחסון קבוע בשרת.' });
+  next();
+});
 app.use(mall.init({ paypal, env: PAYPAL_ENV })); // לפני מפענח ה-JSON הכללי (תמונות מוצרים גדולות יותר)
 app.use(express.json({ limit: '20kb' }));
+app.use(require('./services'));
+app.use(require('./admin'));
+app.use((req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'no-referrer'); next(); });
 
 // מגישים רק את קבצי האתר – לא את .env, server.js או data/
+app.get('/js/products.js', (req, res) => {
+  const source = fs.readFileSync(path.join(__dirname, 'js/products.js'), 'utf8');
+  const overrides = JSON.stringify(catalog.overrides()).replace(/</g, '\u003c');
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('application/javascript').send(source + '\n;(()=>{const updates=' + overrides + ';window.PRODUCTS.forEach(p=>{if(updates[p.id])Object.assign(p,updates[p.id]);});})();');
+});
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
@@ -205,7 +222,8 @@ app.post('/api/orders', async (req, res, next) => {
       console.error('PayPal create order failed', r.status, JSON.stringify(r.json));
       throw httpError(502, 'יצירת ההזמנה ב-PayPal נכשלה');
     }
-    pending.set(r.json.id, { delivery, group: String((req.body && req.body.group) || '').slice(0, 8) || null, at: Date.now() });
+    pending.set(r.json.id, { expectedTotal: money(order.total), items: order.body.purchase_units[0].items, delivery, group: String((req.body && req.body.group) || '').slice(0, 8) || null, at: Date.now() });
+    persistPending();
     res.json({ id: r.json.id });
   } catch (e) { next(e); }
 });
@@ -215,7 +233,15 @@ app.post('/api/orders/:id/capture', async (req, res, next) => {
   try {
     const id = req.params.id;
     if (!/^[A-Z0-9]{5,40}$/.test(id)) throw httpError(400, 'מספר הזמנה לא תקין');
-    const r = await paypal('POST', `/v2/checkout/orders/${id}/capture`);
+    if (!pending.has(id)) throw httpError(404, 'הזמנה לא נמצאה באתר');
+    if (pending.get(id).result) return res.json(pending.get(id).result);
+    if (capturing.has(id)) throw httpError(409, 'התשלום כבר בבדיקה, נסו שוב בעוד רגע');
+    capturing.add(id);
+    let r;
+    try {
+      r = await paypal('POST', `/v2/checkout/orders/${id}/capture`);
+      if (!r.ok && r.json.details?.some(d => d.issue === 'ORDER_ALREADY_CAPTURED')) r = await paypal('GET', `/v2/checkout/orders/${id}`);
+    } finally { capturing.delete(id); }
     if (!r.ok) {
       const issue = r.json && r.json.details && r.json.details[0] && r.json.details[0].issue;
       console.error('PayPal capture failed', r.status, JSON.stringify(r.json));
@@ -230,7 +256,7 @@ app.post('/api/orders/:id/capture', async (req, res, next) => {
       amount: capture.amount,
     };
     const extra = pending.get(id) || {};
-    pending.delete(id);
+    if (result.status === 'COMPLETED' && (capture.status !== 'COMPLETED' || capture.amount?.currency_code !== CURRENCY || capture.amount?.value !== extra.expectedTotal)) throw httpError(502, 'פרטי התשלום אינם תואמים להזמנה');
     if (extra.delivery) result.delivery = { slotLabel: extra.delivery.slotLabel, city: extra.delivery.city };
     if (result.status === 'COMPLETED') {
       saveOrder({
@@ -240,9 +266,10 @@ app.post('/api/orders/:id/capture', async (req, res, next) => {
         shipping: unit.shipping,
         delivery: extra.delivery,
         group: extra.group,
-        items: unit.items,
+        items: extra.items,
       });
-      try { mall.recordOrder({ time: new Date().toISOString(), orderId: result.orderId, items: unit.items, delivery: extra.delivery }); } catch (e) { console.error('mall order', e); }
+      mall.recordOrder({ time: new Date().toISOString(), orderId: result.orderId, items: extra.items, delivery: extra.delivery });
+      pending.set(id, { ...extra, result }); persistPending();
       console.log(`✓ Order paid: ${result.orderId} ${capture.amount && capture.amount.value} ${CURRENCY}`);
     }
     res.json(result);
@@ -275,7 +302,7 @@ setInterval(() => { const old = Date.now() - 60000; sellerHits.forEach((v, k) =>
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   const status = err.status || 500;
   if (status >= 500) console.error(err);
-  res.status(status).json({ error: err.message, ...(err.extra || {}) });
+  res.status(status).json({ error: status >= 500 ? 'השירות אינו זמין כרגע. נסו שוב או צרו קשר עם החנות.' : err.message, ...(err.extra || {}) });
 });
 
 if (require.main === module) {

@@ -1052,7 +1052,7 @@
       cam.getWorldDirection(this.fwd);
       this.fwd.y = 0; this.fwd.normalize();
       const right = new THREE.Vector3(-this.fwd.z, 0, this.fwd.x);
-      const step = this.data.speed * (dt / 1000);
+      const step = this.data.speed * (Math.min(dt, 50) / 1000);
       const p = this.el.object3D.position;
       p.addScaledVector(this.fwd, -y * step).addScaledVector(right, x * step);
       const d = this.data;
@@ -1237,7 +1237,7 @@
       if (Panel.kind) Panel.close();
       if (typeof id === 'string') this.current = id;
       this.markActive();
-      if (inVR()) { this.teleport(v); return Promise.resolve(); }
+      if (inVR() || window.storeReducedMotion) { this.teleport(v); const lc = this.look(); lc.yawObject.rotation.y = v.yaw; lc.pitchObject.rotation.x = v.pitch; return Promise.resolve(); }
       const rig = this.rig().object3D;
       const cam = $('#camera').object3D;
       const start = this.camWorld();
