@@ -3,6 +3,7 @@ import { api, type JobStatus } from '../lib/api';
 import { useSession } from '../session';
 import { ROLE_LABEL, fmtBytes, fmtDateTime, fmtDuration } from '../lib/format';
 import { Badge, Button, Card, ErrorText, Field, Input, Select } from '../components/ui';
+import { StatusEditor } from '../components/StatusEditor';
 
 interface User {
   id: string;
@@ -220,14 +221,7 @@ export default function Admin() {
           <Button onClick={() => run(() => api('/api/tenant', { method: 'PATCH', body: { retentionDays: retention } }).then(refresh), 'מדיניות השמירה עודכנה')}>שמור</Button>
           <div className="pt-2">
             <div className="mb-1 text-sm font-semibold text-muted">סטטוסי עבודה</div>
-            <div className="flex flex-wrap gap-1">
-              {statuses.map((s) => (
-                <Badge key={s.key} tone={s.is_terminal ? 'neutral' : 'info'}>
-                  {s.label}
-                </Badge>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-muted">התאמת סטטוסים זמינה דרך ה-API (PUT /api/job-statuses). עורך גרפי – בשלב הבא.</p>
+            <StatusEditor statuses={statuses} onSaved={() => void load()} />
           </div>
         </div>
       </Card>

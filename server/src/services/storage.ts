@@ -1,5 +1,5 @@
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, rm, stat } from 'node:fs/promises';
+import { appendFile, mkdir, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { createHash } from 'node:crypto';
@@ -13,6 +13,11 @@ export interface MediaStorage {
   put(key: string, data: Readable, maxBytes: number): Promise<{ size: number; sha256: string }>;
   get(key: string): Promise<{ stream: Readable; size: number }>;
   delete(key: string): Promise<void>;
+  /** Appends bytes to a temporary upload object (resumable uploads). */
+  appendPart(uploadKey: string, data: Buffer): Promise<number>;
+  /** Moves a finished upload to its final key and returns its size and SHA-256. */
+  finalizePart(uploadKey: string, finalKey: string): Promise<{ size: number; sha256: string }>;
+  partSize(uploadKey: string): Promise<number>;
 }
 
 export class StorageLimitError extends Error {}
@@ -54,5 +59,34 @@ export class LocalStorage implements MediaStorage {
 
   async delete(key: string) {
     await rm(this.resolve(key), { force: true });
+  }
+
+  async appendPart(uploadKey: string, data: Buffer) {
+    const full = this.resolve(uploadKey);
+    await mkdir(path.dirname(full), { recursive: true });
+    await appendFile(full, data, { mode: 0o640 });
+    return (await stat(full)).size;
+  }
+
+  async partSize(uploadKey: string) {
+    try {
+      return (await stat(this.resolve(uploadKey))).size;
+    } catch {
+      return 0;
+    }
+  }
+
+  async finalizePart(uploadKey: string, finalKey: string) {
+    const src = this.resolve(uploadKey);
+    const dst = this.resolve(finalKey);
+    const hash = createHash('sha256');
+    let size = 0;
+    for await (const chunk of createReadStream(src)) {
+      hash.update(chunk as Buffer);
+      size += (chunk as Buffer).length;
+    }
+    await mkdir(path.dirname(dst), { recursive: true });
+    await rename(src, dst);
+    return { size, sha256: hash.digest('hex') };
   }
 }

@@ -22,11 +22,16 @@ export async function runRetention(db: pg.Pool, storage: MediaStorage, log: (o: 
   for (const [tenantId, count] of perTenant) {
     await audit(db, { tenantId, actor: 'system', action: 'retention.media_deleted', details: { count } });
   }
+  // Abandoned resumable uploads (never completed within 7 days)
+  const stale = await db.query(`DELETE FROM uploads WHERE media_id IS NULL AND updated_at < now() - interval '7 days' RETURNING id, tenant_id`);
+  for (const u of stale.rows) {
+    await storage.delete(`_uploads/${u.tenant_id}/${u.id}.part`).catch(() => undefined);
+  }
   const sessions = await db.query(`DELETE FROM sessions WHERE expires_at < now() - interval '7 days' OR revoked_at < now() - interval '7 days'`);
   const links = await db.query(`DELETE FROM share_links WHERE expires_at < now() - interval '30 days'`);
   // Stream sessions left open by a crashed client are closed after 12h
   await db.query(`UPDATE stream_sessions SET ended_at = now() WHERE ended_at IS NULL AND started_at < now() - interval '12 hours'`);
-  const result = { media: expired.rowCount ?? 0, sessions: sessions.rowCount ?? 0, links: links.rowCount ?? 0 };
+  const result = { staleUploads: stale.rowCount ?? 0, media: expired.rowCount ?? 0, sessions: sessions.rowCount ?? 0, links: links.rowCount ?? 0 };
   log(result, 'retention sweep done');
   return result;
 }

@@ -9,6 +9,7 @@ const TechConsole = lazy(() => import('./pages/TechConsole'));
 const Jobs = lazy(() => import('./pages/Jobs'));
 const JobDetail = lazy(() => import('./pages/JobDetail'));
 const Admin = lazy(() => import('./pages/Admin'));
+const Reports = lazy(() => import('./pages/Reports'));
 const Viewer = lazy(() => import('./pages/Viewer'));
 
 function RequireAuth({ children, roles }: { children: ReactNode; roles?: string[] }) {
@@ -40,6 +41,7 @@ export default function App() {
                     <Route path="/jobs" element={<Jobs />} />
                     <Route path="/jobs/:id" element={<JobDetail />} />
                     <Route path="/admin" element={<RequireAuth roles={['owner', 'admin']}><Admin /></RequireAuth>} />
+                    <Route path="/reports" element={<RequireAuth roles={['owner', 'admin']}><Reports /></RequireAuth>} />
                   </Route>
                   <Route path="*" element={<Navigate to="/tech" replace />} />
                 </Routes>

@@ -48,7 +48,7 @@ npm run dev -w server                        # http://localhost:8080
 ## בדיקות
 
 ```bash
-npm test                     # 23 בדיקות API מול PostgreSQL אמיתי
+npm test                     # 27 בדיקות API מול PostgreSQL אמיתי
 npm run test:e2e             # מקצה לקצה: מצלמה מדומה ← WHIP ← MediaMTX ← WHEP ← "טלפון"
 cargo test --manifest-path desktop/src-tauri/Cargo.toml
 ```

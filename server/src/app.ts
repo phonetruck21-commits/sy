@@ -21,6 +21,8 @@ import { adminRoutes } from './routes/admin.js';
 import { jobRoutes } from './routes/jobs.js';
 import { streamRoutes } from './routes/stream.js';
 import { mediaRoutes } from './routes/media.js';
+import { uploadRoutes } from './routes/uploads.js';
+import { reportRoutes } from './routes/reports.js';
 
 const TAURI_ORIGINS = ['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost'];
 
@@ -110,6 +112,8 @@ export async function buildApp(config: Config): Promise<BuiltApp> {
   await jobRoutes(app, ctx);
   await streamRoutes(app, ctx);
   await mediaRoutes(app, ctx, storage);
+  await uploadRoutes(app, ctx, storage);
+  await reportRoutes(app, ctx);
 
   // Serve the built web app (technician console, admin, customer viewer) with SPA fallback
   const webDist = path.resolve(config.WEB_DIST_DIR);

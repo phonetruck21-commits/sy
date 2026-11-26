@@ -40,6 +40,7 @@ services:
       ICE_SERVERS: ${ICE_SERVERS:-[]}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-1024}
+      MAX_RECORDING_MB: ${MAX_RECORDING_MB:-8192}
       TRUST_PROXY: "true"
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:

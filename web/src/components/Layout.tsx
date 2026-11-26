@@ -45,6 +45,7 @@ export function ThemeToggle() {
 const NAV: { to: string; label: string; roles?: string[] }[] = [
   { to: '/tech', label: '🎥 עמדת טכנאי' },
   { to: '/jobs', label: '🔧 עבודות' },
+  { to: '/reports', label: '📊 דוחות', roles: ['owner', 'admin'] },
   { to: '/admin', label: '⚙️ ניהול', roles: ['owner', 'admin'] },
 ];
 

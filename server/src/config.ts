@@ -21,6 +21,8 @@ const schema = z.object({
   ICE_SERVERS: z.string().default('[]'),
   MEDIA_DIR: z.string().default('./data/media'),
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(1024),
+  /** Max size of one recording uploaded in chunks (resumable). */
+  MAX_RECORDING_MB: z.coerce.number().int().positive().default(8192),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(12),
   /** Allow creating new businesses from the login screen. Off by default once one exists. */
   ALLOW_SIGNUP: z

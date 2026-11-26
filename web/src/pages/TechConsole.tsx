@@ -73,6 +73,8 @@ export default function TechConsole() {
   const [recording, setRecording] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [pending, setPending] = useState(0);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const onUploadProgress = useCallback((_item: unknown, f: number) => setUploadPct(f >= 1 ? null : Math.round(f * 100)), []);
   const [now, setNow] = useState(Date.now());
   const [flash, setFlash] = useState(false);
 
@@ -227,7 +229,7 @@ export default function TechConsole() {
   // ---- offline outbox sync ----
   useEffect(() => {
     const run = () =>
-      void syncOutbox(setPending).then((r) => {
+      void syncOutbox(setPending, onUploadProgress).then((r) => {
         if (r.uploaded) {
           alert('ok', `סונכרנו ${r.uploaded} קבצים לשרת`);
           void loadJob();
@@ -311,11 +313,16 @@ export default function TechConsole() {
         setRecording(false);
         if (r.path) {
           alert('ok', `ההקלטה נשמרה: ${r.path}`);
+          if (job && station.uploadRecordings && job.consent_recording_at) {
+            await outbox.add({ id: newId(), jobId: job.id, jobNumber: job.job_number, kind: 'video', mime: r.mime, desktopFile: r.fileName, capturedAt: new Date().toISOString(), attempts: 0 });
+            alert('info', 'ההקלטה תועלה לשרת ברקע');
+            void syncOutbox(setPending, onUploadProgress).then(() => loadJob());
+          }
         } else if (r.blob) {
           await localRecordings.add({ id: newId(), jobId: job?.id ?? null, jobNumber: job?.job_number, fileName: r.fileName, mime: r.mime, blob: r.blob, createdAt: new Date().toISOString(), durationSec: r.durationSec });
           if (job && station.uploadRecordings && job.consent_recording_at) {
             await outbox.add({ id: newId(), jobId: job.id, jobNumber: job.job_number, kind: 'video', mime: r.mime, blob: r.blob, capturedAt: new Date().toISOString(), attempts: 0 });
-            void syncOutbox(setPending).then(() => loadJob());
+            void syncOutbox(setPending, onUploadProgress).then(() => loadJob());
           }
           alert('ok', `ההקלטה נשמרה מקומית (${fmtDuration(r.durationSec)})`);
           downloadBlob(r.blob, r.fileName);
@@ -346,7 +353,7 @@ export default function TechConsole() {
       setFlash(true);
       setTimeout(() => setFlash(false), 180);
       await outbox.add({ id: newId(), jobId: job.id, jobNumber: job.job_number, kind: 'photo', mime: 'image/jpeg', blob, capturedAt: new Date().toISOString(), attempts: 0 });
-      const r = await syncOutbox(setPending);
+      const r = await syncOutbox(setPending, onUploadProgress);
       alert(r.pending ? 'warn' : 'ok', r.pending ? 'התמונה נשמרה מקומית ותסונכרן כשיחזור החיבור' : 'התמונה נשמרה בתיק העבודה');
       void loadJob();
     } catch (err) {
@@ -396,7 +403,7 @@ export default function TechConsole() {
               {stats.width}×{stats.height} · {Math.round(stats.fps ?? 0)}fps · {stats.kbps} kbps
             </Badge>
           )}
-          {pending > 0 && <Badge tone="warn">⏳ {pending} ממתינים לסנכרון</Badge>}
+          {pending > 0 && <Badge tone="warn">⏳ {pending} ממתינים לסנכרון{uploadPct !== null && ` · מעלה ${uploadPct}%`}</Badge>}
           {!online && <Badge tone="warn">עבודה במצב לא מקוון</Badge>}
         </div>
 
@@ -614,12 +621,10 @@ export default function TechConsole() {
                 </div>
               </details>
             )}
-            {!isDesktop() && (
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="h-4 w-4 accent-amber-400" checked={station.uploadRecordings} onChange={(e) => setStation({ ...station, uploadRecordings: e.target.checked })} />
-                העלאת הקלטות לשרת (בנוסף לשמירה מקומית)
-              </label>
-            )}
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="h-4 w-4 accent-amber-400" checked={station.uploadRecordings} onChange={(e) => setStation({ ...station, uploadRecordings: e.target.checked })} />
+              העלאת הקלטות לשרת ברקע (בנוסף לשמירה מקומית, ממשיך אחרי ניתוק)
+            </label>
             <div className="flex items-end gap-2">
               <Field label="שם עמדה">
                 <Input value={station.workstation} onChange={(e) => setStation({ ...station, workstation: e.target.value })} />

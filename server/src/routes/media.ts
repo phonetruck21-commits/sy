@@ -9,7 +9,7 @@ import { getPlanForTenant } from '../services/tenants.js';
 import { StorageLimitError, type MediaStorage } from '../services/storage.js';
 import { loadJob } from './jobs.js';
 
-const ALLOWED: Record<string, { kind: 'photo' | 'video'; ext: string }> = {
+export const ALLOWED: Record<string, { kind: 'photo' | 'video'; ext: string }> = {
   'image/jpeg': { kind: 'photo', ext: 'jpg' },
   'image/png': { kind: 'photo', ext: 'png' },
   'image/webp': { kind: 'photo', ext: 'webp' },

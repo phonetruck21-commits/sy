@@ -91,6 +91,12 @@ test('USB camera -> technician -> media server -> secure link -> phone viewer', 
   await bad.goto('/v/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
   await expect(bad.getByTestId('viewer-fatal')).toBeVisible();
 
+  // ---------- Local recording + background resumable upload to the job file ----------
+  await tech.getByRole('button', { name: '🎥 התחל הקלטה' }).click();
+  await tech.waitForTimeout(4000);
+  await tech.getByRole('button', { name: '⏹️ עצור הקלטה' }).click();
+  await expect(tech.getByTestId('active-job')).toContainText('1 סרטונים', { timeout: 30_000 });
+
   // ---------- Stop stream -> viewer sees "not active" ----------
   await tech.getByTestId('stop-stream').click();
   await expect(phone.getByTestId('viewer-conn')).toContainText(/השידור אינו פעיל|מתחבר/, { timeout: 30_000 });

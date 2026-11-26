@@ -43,6 +43,12 @@
 | POST | `/api/jobs/:id/media?clientId=&capturedAt=` | משתמש | העלאת תמונה או וידאו (multipart, שדה `file`). חוזר על עצמו בבטחה לפי `clientId` |
 | GET | `/api/media/:id/content` | משתמש (אותו עסק) | הורדת קובץ. **אין גישה ציבורית לקבצים** |
 | DELETE | `/api/media/:id` | מנהל | מחיקת קובץ |
+| POST | `/api/jobs/:id/uploads` | משתמש | פתיחת העלאה בחלקים `{mime, size, clientId}`; אותו clientId ממשיך העלאה קיימת |
+| PUT | `/api/uploads/:id?offset=N` | משתמש | חלק של עד 8MB (`application/octet-stream`); offset שגוי מחזיר 409 עם `details.received` |
+| GET | `/api/uploads/:id` | משתמש | מאיפה להמשיך |
+| POST | `/api/uploads/:id/complete` | משתמש | סיום – הקובץ נוסף לתיק העבודה (חוזר על עצמו בבטחה) |
+| DELETE | `/api/uploads/:id` | משתמש | ביטול העלאה |
+| GET | `/api/reports/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` | מנהל | דוח פעילות (עד 400 ימים, שעון ישראל) |
 | GET | `/api/usage` | משתמש | ניצול מכסות והתראות (מעל 80%) |
 
 `/internal/mediamtx/auth` הוא hook פנימי של שרת המדיה. Caddy חוסם אותו מבחוץ, והוא מוגן בנוסף בסוד משותף.

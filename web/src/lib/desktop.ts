@@ -34,3 +34,12 @@ export async function desktopInfo(): Promise<{ version: string; recordingsDir: s
   if (!isDesktop()) return null;
   return invoke('app_info');
 }
+
+/** Reads a byte range of a local recording (for chunked upload to the server). */
+export async function desktopReadChunk(fileName: string, offset: number, length: number): Promise<ArrayBuffer> {
+  return invoke<ArrayBuffer>('recording_read_chunk', { fileName, offset, length });
+}
+
+export async function desktopRecordingSize(fileName: string): Promise<number> {
+  return invoke<number>('recording_size', { fileName });
+}

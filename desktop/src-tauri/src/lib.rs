@@ -69,6 +69,26 @@ fn recording_finish(file_name: String) -> Result<Finished, String> {
     Ok(Finished { path: path.display().to_string(), size: meta.len() })
 }
 
+/// Reads part of a finished recording so the UI can upload it to the server in chunks
+/// (resumable, so multi-GB recordings survive network drops). Returned as raw bytes, not JSON.
+#[tauri::command]
+fn recording_read_chunk(file_name: String, offset: u64, length: u64) -> Result<tauri::ipc::Response, String> {
+    use std::io::{Read, Seek, SeekFrom};
+    const MAX_CHUNK: u64 = 8 * 1024 * 1024;
+    let path = recordings_dir()?.join(safe_file_name(&file_name)?);
+    let mut file = fs::File::open(&path).map_err(|e| format!("cannot open recording: {e}"))?;
+    file.seek(SeekFrom::Start(offset)).map_err(|e| e.to_string())?;
+    let mut buf = Vec::with_capacity(length.min(MAX_CHUNK) as usize);
+    file.take(length.min(MAX_CHUNK)).read_to_end(&mut buf).map_err(|e| e.to_string())?;
+    Ok(tauri::ipc::Response::new(buf))
+}
+
+#[tauri::command]
+fn recording_size(file_name: String) -> Result<u64, String> {
+    let path = recordings_dir()?.join(safe_file_name(&file_name)?);
+    Ok(fs::metadata(&path).map_err(|e| format!("recording not found: {e}"))?.len())
+}
+
 #[tauri::command]
 fn open_recordings_folder() -> Result<(), String> {
     let dir = recordings_dir()?;
@@ -102,7 +122,7 @@ fn app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![recording_append, recording_finish, open_recordings_folder, app_info])
+        .invoke_handler(tauri::generate_handler![recording_append, recording_finish, recording_read_chunk, recording_size, open_recordings_folder, app_info])
         .run(tauri::generate_context!())
         .expect("error while running S.Y LIVE SERVICE");
 }

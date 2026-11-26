@@ -4,6 +4,8 @@
  *  - recordings: browser-mode local copies of recordings (desktop mode writes to disk instead)
  */
 import { api, getToken } from './api';
+import { desktopReadChunk, desktopRecordingSize } from './desktop';
+import { uploadResumable } from './uploader';
 
 const DB_NAME = 'sy-live';
 const DB_VERSION = 1;
@@ -14,7 +16,10 @@ export interface OutboxItem {
   jobNumber?: number;
   kind: 'photo' | 'video';
   mime: string;
-  blob: Blob;
+  /** Browser mode: the file itself. */
+  blob?: Blob;
+  /** Desktop mode: name of the recording in the local recordings folder (read back in chunks). */
+  desktopFile?: string;
   capturedAt: string;
   attempts: number;
   lastError?: string;
@@ -70,7 +75,7 @@ export const localRecordings = {
 let syncing = false;
 
 /** Uploads pending items. Safe to call often; the server de-duplicates by clientId. */
-export async function syncOutbox(onChange?: (pending: number) => void): Promise<{ uploaded: number; pending: number }> {
+export async function syncOutbox(onChange?: (pending: number) => void, onProgress?: (item: OutboxItem, fraction: number) => void): Promise<{ uploaded: number; pending: number }> {
   if (syncing || !getToken()) return { uploaded: 0, pending: (await outbox.all().catch(() => [])).length };
   syncing = true;
   let uploaded = 0;
@@ -78,11 +83,30 @@ export async function syncOutbox(onChange?: (pending: number) => void): Promise<
     const items = await outbox.all();
     for (const item of items) {
       if (!navigator.onLine) break;
-      const form = new FormData();
-      const ext = item.mime.includes('png') ? 'png' : item.mime.includes('jpeg') ? 'jpg' : item.mime.includes('mp4') ? 'mp4' : 'webm';
-      form.append('file', new File([item.blob], `${item.kind}-${item.id}.${ext}`, { type: item.mime }));
+      if (item.attempts >= 99) continue; // permanently rejected – kept locally, not retried
       try {
-        await api(`/api/jobs/${item.jobId}/media?clientId=${encodeURIComponent(item.id)}&capturedAt=${encodeURIComponent(item.capturedAt)}`, { method: 'POST', form });
+        if (item.kind === 'video' || item.desktopFile) {
+          // Recordings: resumable chunked upload (survives drops; continues where it stopped)
+          const size = item.desktopFile ? await desktopRecordingSize(item.desktopFile) : item.blob!.size;
+          await uploadResumable(
+            {
+              jobId: item.jobId,
+              clientId: item.id,
+              mime: item.mime,
+              size,
+              capturedAt: item.capturedAt,
+              readChunk: item.desktopFile
+                ? (offset, length) => desktopReadChunk(item.desktopFile!, offset, length)
+                : (offset, length) => item.blob!.slice(offset, offset + length).arrayBuffer(),
+            },
+            (f) => onProgress?.(item, f),
+          );
+        } else {
+          const form = new FormData();
+          const ext = item.mime.includes('png') ? 'png' : item.mime.includes('jpeg') ? 'jpg' : 'webp';
+          form.append('file', new File([item.blob!], `${item.kind}-${item.id}.${ext}`, { type: item.mime }));
+          await api(`/api/jobs/${item.jobId}/media?clientId=${encodeURIComponent(item.id)}&capturedAt=${encodeURIComponent(item.capturedAt)}`, { method: 'POST', form });
+        }
         await outbox.remove(item.id);
         uploaded++;
       } catch (err) {
