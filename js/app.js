@@ -1040,7 +1040,15 @@
         const x = e.detail.x;
         if (Math.abs(x) < 0.3) { this.turnReady = true; return; }
         if (this.turnReady && Math.abs(x) > 0.7) {
-          this.el.object3D.rotation.y -= THREE.MathUtils.degToRad(this.data.snap) * Math.sign(x);
+          // סיבוב סביב הראש (ולא סביב מרכז החדר) – אחרת המבקר "מחליק" הצידה בכל סיבוב
+          const a = -THREE.MathUtils.degToRad(this.data.snap) * Math.sign(x);
+          const rig = this.el.object3D;
+          const head = new THREE.Vector3(); $('#camera').object3D.getWorldPosition(head);
+          const off = rig.position.clone().sub(head); off.y = 0;
+          off.applyAxisAngle(new THREE.Vector3(0, 1, 0), a);
+          rig.position.x = head.x + off.x; rig.position.z = head.z + off.z;
+          rig.rotation.y += a;
+          pulse($('#rightHand'), 0.2, 20);
           this.turnReady = false;
         }
       });

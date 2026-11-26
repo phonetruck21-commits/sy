@@ -613,10 +613,10 @@
       others.setAttribute('social-tick', '');
       // כפתור צ'אט על פרק היד (במשקף)
       const btn = V().entity($('#leftHand'), { position: '0 0.1 0.08', rotation: '-60 0 0' });
-      btn.setAttribute('canvas-text', { text: 'צ׳אט', width: 0.12, height: 0.042, fontSize: 0.018, weight: 500, align: 'center', bg: '#4c8dff', color: '#ffffff', radius: 0.021 });
+      btn.setAttribute('canvas-text', { text: 'תפריט', width: 0.12, height: 0.042, fontSize: 0.018, weight: 500, align: 'center', bg: '#4c8dff', color: '#ffffff', radius: 0.021 });
       // רק במשקף: מחוץ ל-VR הכפתור מוסתר ולא לחיץ
       btn.setAttribute('visible', false);
-      btn.addEventListener('click', () => openVRChat());
+      btn.addEventListener('click', () => (window.StoreVR ? window.StoreVR.menu() : openVRChat()));
       const scene = document.querySelector('a-scene');
       scene.addEventListener('enter-vr', () => { btn.setAttribute('visible', true); btn.classList.add('clickable'); });
       scene.addEventListener('exit-vr', () => { btn.setAttribute('visible', false); btn.classList.remove('clickable'); if (V().Panel.kind === 'vr-chat') V().Panel.close && V().Panel.close(); });
@@ -624,5 +624,6 @@
     if (others.hasLoaded) attach(); else others.addEventListener('loaded', attach);
   });
 
+  Social.openVRChat = openVRChat;
   window.StoreSocial = Social;
 })();
